@@ -45,6 +45,22 @@ class PortableEvidenceTests(unittest.TestCase):
     def verify(self):
         return portable.verify(self.directory, historical=EVIDENCE, launcher_digest=LAUNCHER)
 
+    def test_published_receipts_are_pinned_to_their_launcher_commit(self):
+        record = portable.provenance(EVIDENCE / "portable-validation")
+        for mode in portable.MODES:
+            run = historical_verifier.load(EVIDENCE / f"portable-validation/chat-{mode}.json")
+            self.assertEqual({n["launcher_sha256"] for n in run["nodes"]}, {record["launcher_sha256"]})
+        result = portable.verify(EVIDENCE / "portable-validation")
+        self.assertEqual(result["launcher_source_commit"], record["repository_commit"])
+        # Later launcher edits must not re-label old measurements: the pin, not
+        # the working tree, decides which launcher the receipts describe.
+        (self.directory / "provenance.json").write_text(json.dumps({**record, "launcher_sha256": "9" * 64}))
+        with self.assertRaisesRegex(ValueError, "published launcher"):
+            portable.verify(self.directory, historical=EVIDENCE)
+        (self.directory / "provenance.json").write_text(json.dumps({**record, "repository_commit": "main"}))
+        with self.assertRaisesRegex(ValueError, "invalid provenance repository_commit"):
+            portable.verify(self.directory, historical=EVIDENCE)
+
     def test_matched_fixture_recomputed_and_bound_to_build(self):
         result = self.verify()
         self.assertEqual(result["output_tokens_per_run"], 959)

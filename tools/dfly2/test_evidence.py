@@ -1,11 +1,13 @@
 import json
 from pathlib import Path
+import tempfile
 import unittest
 
 import sanitize_evidence as sanitizer
 import verify_evidence as verifier
 
-EVIDENCE = Path(__file__).resolve().parents[2] / "evidence"
+ROOT = Path(__file__).resolve().parents[2]
+EVIDENCE = ROOT / "evidence"
 
 
 class EvidenceTests(unittest.TestCase):
@@ -64,12 +66,68 @@ class EvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "token digest mismatch"):
             verifier.summarize_run(run, requests, verifier.sha256(EVIDENCE / "chat-requests.json"), None)
 
-    def test_changed_time_recomputes_rate(self):
-        run = verifier.load(EVIDENCE / "chat-dfly2.json")
-        run["summary"]["seconds"] += 1
+    def summarize(self, run):
         requests = verifier.load(EVIDENCE / "chat-requests.json")["requests"]
-        row, _ = verifier.summarize_run(run, requests, verifier.sha256(EVIDENCE / "chat-requests.json"), None)
-        self.assertNotEqual(row["estimated_decode_tokens_per_second"], 45.84)
+        return verifier.summarize_run(run, requests, verifier.sha256(EVIDENCE / "chat-requests.json"), None)
+
+    def test_changed_total_time_is_rejected_by_the_reply_clock(self):
+        run = verifier.load(EVIDENCE / "chat-dfly2.json")
+        run["summary"]["seconds"] -= 5
+        with self.assertRaisesRegex(ValueError, "per-reply seconds disagree"):
+            self.summarize(run)
+
+    def test_consistently_shortened_times_are_rejected_by_the_step_clock(self):
+        # Editing the total and a reply together still leaves the profiler's
+        # independent step time, which a flattering edit would have to match.
+        run = verifier.load(EVIDENCE / "chat-dfly2.json")
+        run["summary"]["seconds"] = round(run["summary"]["seconds"] - 5, 2)
+        reply = [r for r in run["records"] if "reply" in r][-1]
+        reply["seconds"] = round(reply["seconds"] - 5, 2)
+        with self.assertRaisesRegex(ValueError, "native step clock disagrees"):
+            self.summarize(run)
+
+    def test_missing_or_inconsistent_profile_is_rejected(self):
+        run = verifier.load(EVIDENCE / "chat-dfly2.json")
+        profile = next(r for r in run["records"] if "profile" in r)
+        profile["profile"]["rounds"] += 1
+        with self.assertRaisesRegex(ValueError, "profile rounds disagree"):
+            self.summarize(run)
+        run["records"] = [r for r in run["records"] if "profile" not in r]
+        with self.assertRaisesRegex(ValueError, "exactly one native profile"):
+            self.summarize(run)
+
+    def test_per_request_and_end_to_end_figures_are_published(self):
+        result = verifier.verify(EVIDENCE)
+        dspark, dfly2 = result["relative_to_serial"]
+        self.assertEqual((dspark["mode"], dfly2["mode"]), ("dspark", "dfly2"))
+        self.assertEqual(dspark["requests_slower_than_serial"], [])
+        self.assertEqual(dfly2["requests_slower_than_serial"], ["chat_sampled_explain_cache"])
+        self.assertLess(dfly2["end_to_end_speedup"], dfly2["decode_speedup"])
+        row = result["runs"][2]
+        self.assertEqual([q["output_tokens"] for q in row["requests"]], [197, 133, 41, 256, 96, 236])
+        self.assertEqual(sum(q["rounds"] for q in row["requests"]), row["rounds"])
+        # The drafters land the same number of tokens a round; the gap is cost.
+        self.assertAlmostEqual(row["tokens_per_round"], result["runs"][1]["tokens_per_round"], delta=0.1)
+        self.assertLess(row["decode_tokens_per_second_if_draft_pass_were_free"],
+                        result["runs"][1]["estimated_decode_tokens_per_second"])
+
+    def test_custom_kernels_explain_only_a_minority_of_the_measured_draft_pass(self):
+        result = verifier.verify(EVIDENCE)
+        budget = result["microbenchmark_custom_kernel_ms_per_draft_pass"]
+        self.assertEqual(budget, {"routed_expert_ms": [2.78, 3.71], "attention_ms": 2.3, "total_ms": [5.08, 6.01]})
+        self.assertLess(budget["total_ms"][1], result["runs"][2]["native_profile"]["pass_ms"] / 4)
+
+    def test_primitive_receipt_is_bound_to_the_patch_kernel(self):
+        patch = (ROOT / "patches/0001-dfly2-native.patch").read_bytes()
+        source = verifier.added_file_from_patch(ROOT / "patches/0001-dfly2-native.patch", verifier.KERNEL_PATH)
+        self.assertIn(b"tf_dfly_gather_context", source)
+        self.assertEqual(verifier.hashlib.sha256(source).hexdigest(),
+                         verifier.load(EVIDENCE / "gpu-primitives.json")["source_sha256"])
+        with tempfile.TemporaryDirectory() as tmp:
+            changed = Path(tmp) / "changed.patch"
+            changed.write_bytes(patch.replace(b"0.04419417382415922f", b"0.05f", 1))
+            with self.assertRaisesRegex(ValueError, "published kernel source"):
+                verifier.verify(EVIDENCE, patch=changed)
 
 
 if __name__ == "__main__":

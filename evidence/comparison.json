@@ -1,5 +1,5 @@
 {
-  "schema": "dfly2-public-comparison-v1",
+  "schema": "dfly2-public-comparison-v2",
   "request_count": 6,
   "requests_sha256": "5243088b517b75309cb57a5d72a379a468339ed2aad98b2e58b533f0b6cd6f23",
   "all_token_arrays_and_finish_reasons_equal": true,
@@ -22,6 +22,99 @@
       "summed_reported_prefill_seconds": 2.43,
       "estimated_decode_seconds": 24.78,
       "estimated_decode_tokens_per_second": 38.46,
+      "end_to_end_tokens_per_second": 35.24,
+      "tokens_per_round": 1.0,
+      "proposed_per_round": 0.0,
+      "accepted_per_round": 0.0,
+      "acceptance_rate": null,
+      "native_profile": {
+        "step_ms": 26.0,
+        "forward_ms": 25.93,
+        "pass_ms": 0.0,
+        "rows_per_round": 1.0,
+        "step_seconds": 24.78
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": null,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 196,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.54,
+          "total_seconds": 5.64,
+          "estimated_decode_seconds": 5.1,
+          "estimated_decode_tokens_per_second": 38.43,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 132,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.34,
+          "total_seconds": 3.77,
+          "estimated_decode_seconds": 3.43,
+          "estimated_decode_tokens_per_second": 38.48,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 40,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.4,
+          "total_seconds": 1.44,
+          "estimated_decode_seconds": 1.04,
+          "estimated_decode_tokens_per_second": 38.46,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 255,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.44,
+          "total_seconds": 7.06,
+          "estimated_decode_seconds": 6.62,
+          "estimated_decode_tokens_per_second": 38.52,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 95,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.4,
+          "total_seconds": 2.83,
+          "estimated_decode_seconds": 2.43,
+          "estimated_decode_tokens_per_second": 39.09,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 235,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.31,
+          "total_seconds": 6.46,
+          "estimated_decode_seconds": 6.15,
+          "estimated_decode_tokens_per_second": 38.21,
+          "tokens_per_round": 1.0
+        }
+      ],
       "receipt": "chat-serial.json"
     },
     {
@@ -37,6 +130,99 @@
       "summed_reported_prefill_seconds": 2.41,
       "estimated_decode_seconds": 12.87,
       "estimated_decode_tokens_per_second": 74.05,
+      "end_to_end_tokens_per_second": 62.76,
+      "tokens_per_round": 3.56,
+      "proposed_per_round": 3.43,
+      "accepted_per_round": 2.57,
+      "acceptance_rate": 0.752,
+      "native_profile": {
+        "step_ms": 48.03,
+        "forward_ms": 43.85,
+        "pass_ms": 3.7,
+        "rows_per_round": 4.43,
+        "step_seconds": 12.87
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 80.22,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 37,
+          "drafted": 184,
+          "accepted": 160,
+          "prefill_seconds": 0.51,
+          "total_seconds": 2.72,
+          "estimated_decode_seconds": 2.21,
+          "estimated_decode_tokens_per_second": 88.69,
+          "tokens_per_round": 5.3
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 33,
+          "drafted": 129,
+          "accepted": 100,
+          "prefill_seconds": 0.34,
+          "total_seconds": 1.96,
+          "estimated_decode_seconds": 1.62,
+          "estimated_decode_tokens_per_second": 81.48,
+          "tokens_per_round": 4.0
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 8,
+          "drafted": 39,
+          "accepted": 33,
+          "prefill_seconds": 0.4,
+          "total_seconds": 0.86,
+          "estimated_decode_seconds": 0.46,
+          "estimated_decode_tokens_per_second": 86.96,
+          "tokens_per_round": 5.0
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 69,
+          "drafted": 258,
+          "accepted": 186,
+          "prefill_seconds": 0.44,
+          "total_seconds": 3.75,
+          "estimated_decode_seconds": 3.31,
+          "estimated_decode_tokens_per_second": 77.04,
+          "tokens_per_round": 3.7
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 17,
+          "drafted": 85,
+          "accepted": 79,
+          "prefill_seconds": 0.41,
+          "total_seconds": 1.33,
+          "estimated_decode_seconds": 0.92,
+          "estimated_decode_tokens_per_second": 103.26,
+          "tokens_per_round": 5.59
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 104,
+          "drafted": 223,
+          "accepted": 132,
+          "prefill_seconds": 0.31,
+          "total_seconds": 4.67,
+          "estimated_decode_seconds": 4.36,
+          "estimated_decode_tokens_per_second": 53.9,
+          "tokens_per_round": 2.26
+        }
+      ],
       "receipt": "chat-dspark.json"
     },
     {
@@ -52,7 +238,122 @@
       "summed_reported_prefill_seconds": 2.94,
       "estimated_decode_seconds": 20.79,
       "estimated_decode_tokens_per_second": 45.84,
+      "end_to_end_tokens_per_second": 40.41,
+      "tokens_per_round": 3.52,
+      "proposed_per_round": 4.99,
+      "accepted_per_round": 2.53,
+      "acceptance_rate": 0.507,
+      "native_profile": {
+        "step_ms": 76.77,
+        "forward_ms": 50.95,
+        "pass_ms": 27.23,
+        "rows_per_round": 5.99,
+        "step_seconds": 20.8
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 70.99,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 39,
+          "drafted": 195,
+          "accepted": 158,
+          "prefill_seconds": 0.93,
+          "total_seconds": 3.91,
+          "estimated_decode_seconds": 2.98,
+          "estimated_decode_tokens_per_second": 65.77,
+          "tokens_per_round": 5.03
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 32,
+          "drafted": 160,
+          "accepted": 101,
+          "prefill_seconds": 0.36,
+          "total_seconds": 2.82,
+          "estimated_decode_seconds": 2.46,
+          "estimated_decode_tokens_per_second": 53.66,
+          "tokens_per_round": 4.12
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 8,
+          "drafted": 40,
+          "accepted": 32,
+          "prefill_seconds": 0.42,
+          "total_seconds": 1.03,
+          "estimated_decode_seconds": 0.61,
+          "estimated_decode_tokens_per_second": 65.57,
+          "tokens_per_round": 5.0
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 67,
+          "drafted": 331,
+          "accepted": 188,
+          "prefill_seconds": 0.47,
+          "total_seconds": 5.54,
+          "estimated_decode_seconds": 5.07,
+          "estimated_decode_tokens_per_second": 50.3,
+          "tokens_per_round": 3.81
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 16,
+          "drafted": 80,
+          "accepted": 79,
+          "prefill_seconds": 0.42,
+          "total_seconds": 1.62,
+          "estimated_decode_seconds": 1.2,
+          "estimated_decode_tokens_per_second": 79.17,
+          "tokens_per_round": 5.94
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 109,
+          "drafted": 545,
+          "accepted": 127,
+          "prefill_seconds": 0.34,
+          "total_seconds": 8.81,
+          "estimated_decode_seconds": 8.47,
+          "estimated_decode_tokens_per_second": 27.74,
+          "tokens_per_round": 2.16
+        }
+      ],
       "receipt": "chat-dfly2.json"
+    }
+  ],
+  "relative_to_serial": [
+    {
+      "mode": "dspark",
+      "receipt": "chat-dspark.json",
+      "decode_speedup": 1.925,
+      "end_to_end_speedup": 1.781,
+      "first_request_prefill_seconds": 0.51,
+      "serial_first_request_prefill_seconds": 0.54,
+      "requests_slower_than_serial": []
+    },
+    {
+      "mode": "dfly2",
+      "receipt": "chat-dfly2.json",
+      "decode_speedup": 1.192,
+      "end_to_end_speedup": 1.147,
+      "first_request_prefill_seconds": 0.93,
+      "serial_first_request_prefill_seconds": 0.54,
+      "requests_slower_than_serial": [
+        "chat_sampled_explain_cache"
+      ]
     }
   ],
   "dspark_initial_run": {
@@ -67,15 +368,120 @@
     "total_seconds_including_prefill": 15.46,
     "summed_reported_prefill_seconds": 2.44,
     "estimated_decode_seconds": 13.02,
-    "estimated_decode_tokens_per_second": 73.2
+    "estimated_decode_tokens_per_second": 73.2,
+    "end_to_end_tokens_per_second": 62.03,
+    "tokens_per_round": 3.56,
+    "proposed_per_round": 3.43,
+    "accepted_per_round": 2.57,
+    "acceptance_rate": 0.751,
+    "native_profile": {
+      "step_ms": 48.55,
+      "forward_ms": 44.31,
+      "pass_ms": 3.74,
+      "rows_per_round": 4.43,
+      "step_seconds": 13.01
+    },
+    "decode_tokens_per_second_if_draft_pass_were_free": 79.36,
+    "requests": [
+      {
+        "name": "chat_greedy_merge_intervals",
+        "prompt_tokens": 93,
+        "output_tokens": 197,
+        "rounds": 37,
+        "drafted": 184,
+        "accepted": 160,
+        "prefill_seconds": 0.51,
+        "total_seconds": 2.7,
+        "estimated_decode_seconds": 2.19,
+        "estimated_decode_tokens_per_second": 89.5,
+        "tokens_per_round": 5.3
+      },
+      {
+        "name": "chat_greedy_latest_sql",
+        "prompt_tokens": 96,
+        "output_tokens": 133,
+        "rounds": 33,
+        "drafted": 129,
+        "accepted": 100,
+        "prefill_seconds": 0.35,
+        "total_seconds": 2.0,
+        "estimated_decode_seconds": 1.65,
+        "estimated_decode_tokens_per_second": 80.0,
+        "tokens_per_round": 4.0
+      },
+      {
+        "name": "chat_greedy_extract_json",
+        "prompt_tokens": 117,
+        "output_tokens": 41,
+        "rounds": 8,
+        "drafted": 39,
+        "accepted": 33,
+        "prefill_seconds": 0.4,
+        "total_seconds": 0.87,
+        "estimated_decode_seconds": 0.47,
+        "estimated_decode_tokens_per_second": 85.11,
+        "tokens_per_round": 5.0
+      },
+      {
+        "name": "chat_sampled_binary_search",
+        "prompt_tokens": 142,
+        "output_tokens": 256,
+        "rounds": 69,
+        "drafted": 258,
+        "accepted": 186,
+        "prefill_seconds": 0.45,
+        "total_seconds": 3.77,
+        "estimated_decode_seconds": 3.32,
+        "estimated_decode_tokens_per_second": 76.81,
+        "tokens_per_round": 3.7
+      },
+      {
+        "name": "chat_sampled_multiturn_edit",
+        "prompt_tokens": 125,
+        "output_tokens": 96,
+        "rounds": 17,
+        "drafted": 85,
+        "accepted": 79,
+        "prefill_seconds": 0.41,
+        "total_seconds": 1.34,
+        "estimated_decode_seconds": 0.93,
+        "estimated_decode_tokens_per_second": 102.15,
+        "tokens_per_round": 5.59
+      },
+      {
+        "name": "chat_sampled_explain_cache",
+        "prompt_tokens": 82,
+        "output_tokens": 236,
+        "rounds": 104,
+        "drafted": 224,
+        "accepted": 132,
+        "prefill_seconds": 0.32,
+        "total_seconds": 4.78,
+        "estimated_decode_seconds": 4.46,
+        "estimated_decode_tokens_per_second": 52.69,
+        "tokens_per_round": 2.26
+      }
+    ]
   },
   "draft_weights_bytes_per_rank": 4529862920,
   "draft_pack_manifest_sha256": "cdb1a38bb46af18fee74357562f4b855f67f5d70897f1ef9dd8976dbaf269ac4",
   "recorded_primitive_checks_passed": 11,
+  "primitive_receipt_kernel_source_sha256": "b9ecbc6595a45641250df7b7d7f3d3c33f71483613159f9e18202715654ad751",
   "recorded_fp4_kernel_speedup_range": [
     1.7228988400913139,
     1.798432312496123
   ],
-  "timing_method": "953 post-first-token outputs divided by (native total seconds minus six recorded prefill times); native times rounded to 0.01 seconds",
-  "scope": "Recorded one-stream eager runs, profiling enabled, short prompts. Output equivalence is not a quality evaluation; kernel speedup is not model speedup."
+  "microbenchmark_custom_kernel_ms_per_draft_pass": {
+    "routed_expert_ms": [
+      2.78,
+      3.71
+    ],
+    "attention_ms": 2.3,
+    "total_ms": [
+      5.08,
+      6.01
+    ]
+  },
+  "timing_method": "953 post-first-token outputs divided by (native total seconds minus six recorded prefill times); native times rounded to 0.01 seconds; cross-checked against per-reply seconds and the native step clock",
+  "scope": "Recorded one-stream eager runs, profiling enabled, short prompts. Output equivalence is not a quality evaluation; kernel speedup is not model speedup. The drafting modes do not share a proposal policy; see docs/RESULTS.md."
 }

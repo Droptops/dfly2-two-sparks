@@ -42,6 +42,24 @@ class PairTests(unittest.TestCase):
             self.assertIn("TF_DS_REPLAY_FLOOR=1", args)
             self.assertEqual(any(x.startswith("TF_DS_DFLY2_DIR=") for x in args), mode == "dfly2")
 
+    def test_matched_depth_mode_fixes_five_drafts_and_settings_are_recorded(self):
+        for mode in pair.MODES:
+            args = pair.create_argv({**self.config, "mode": mode}, self.pre, Path("/tmp/cid"))
+            settings = pair.execution_settings(mode)
+            self.assertEqual("--fix-k" in args, mode == "dspark_fixed5")
+            self.assertEqual(settings["fixed_draft_depth"], 5 if mode == "dspark_fixed5" else None)
+            self.assertEqual(settings["drafting"], mode != "serial")
+            # The record and the container arguments come from one source.
+            self.assertEqual(args[args.index("--pool") + 1], str(settings["pool_tokens"]))
+            self.assertEqual(args[args.index("--streams") + 1], str(settings["streams"]))
+            self.assertEqual(args[args.index("--parallel") + 1], str(settings["parallel"]))
+            self.assertEqual(args[args.index("--profile") + 1], "1")
+        fixed = pair.create_argv({**self.config, "mode": "dspark_fixed5"}, self.pre, Path("/tmp/cid"))
+        self.assertEqual(fixed[fixed.index("--fix-k") + 1], "5")
+        self.assertFalse(any(x.startswith("TF_DS_DFLY2_DIR=") for x in fixed))
+        with self.assertRaises(pair.Refusal):
+            pair.execution_settings("dspark_fixed9")
+
     def test_cleanup_refuses_foreign_label_and_uses_recorded_id(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "rank0.cid"
