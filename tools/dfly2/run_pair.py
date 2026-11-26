@@ -149,13 +149,50 @@ def check_pack(pack, rank):
     return digest(manifest)
 
 
+def image_content_fingerprint(info):
+    """Identify runnable image content across Docker image-store backends.
+
+    Docker's .Id can name an OCI index or the image config after save/load.
+    Platform, full runtime config and ordered uncompressed layers must agree.
+    Names, tags, store metadata and the store-specific .Id are excluded.
+    """
+    if not isinstance(info, dict) or info.get("Architecture") != "arm64" or info.get("Os") != "linux":
+        raise Refusal("Runtime image must identify Linux ARM64 content")
+    variant = info.get("Variant", "")
+    if not isinstance(variant, str) or not re.fullmatch(r"[A-Za-z0-9_.-]*", variant):
+        raise Refusal("Runtime image has an invalid platform variant")
+    config, rootfs = info.get("Config"), info.get("RootFS")
+    if not isinstance(config, dict) or not isinstance(rootfs, dict) or rootfs.get("Type") != "layers":
+        raise Refusal("Runtime image configuration or root filesystem is missing")
+    layers = rootfs.get("Layers")
+    if (not isinstance(layers, list) or not layers
+            or any(not isinstance(x, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", x) for x in layers)):
+        raise Refusal("Runtime image must expose ordered SHA-256 filesystem layers")
+    inherited = config.get("Env")
+    if inherited is None:
+        inherited = []
+    if not isinstance(inherited, list) or any(not isinstance(x, str) for x in inherited):
+        raise Refusal("Runtime image has invalid environment metadata")
+    content = {"Architecture": info["Architecture"], "Os": info["Os"], "Variant": variant,
+               "Config": config, "RootFS": {"Type": "layers", "Layers": layers}}
+    try:
+        encoded = json.dumps(content, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        raise Refusal("Runtime image metadata is not valid canonical JSON") from exc
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def check_image(mode):
     image = CLUSTER["image"]
-    image_id = command(["docker", "image", "inspect", "--format", "{{.Id}}", image]).stdout.strip()
-    inherited = json.loads(command(["docker", "image", "inspect", "--format", "{{json .Config.Env}}", image]).stdout) or []
+    info = json.loads(command(["docker", "image", "inspect", "--format", "{{json .}}", image]).stdout)
+    fingerprint = image_content_fingerprint(info)
+    image_id = info.get("Id")
+    if not isinstance(image_id, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
+        raise Refusal("Runtime image has an invalid Docker image ID")
+    inherited = info["Config"].get("Env") or []
     if mode != "dfly2" and any(x.startswith("TF_DS_DFLY2_DIR=") for x in inherited):
         raise Refusal("Baseline image unexpectedly inherits a DFly2 directory")
-    return image_id
+    return image_id, fingerprint
 
 
 def check_container_names(config, allow_id=None):
@@ -225,9 +262,10 @@ def node_preflight(config, *, allow_id=None):
     if config["mode"] == "dfly2":
         pack_sha = check_pack(config["pack"], rank)
     image = CLUSTER["image"]
-    image_id = check_image(config["mode"])
+    image_id, image_content_sha256 = check_image(config["mode"])
     return {"host": expected["hostname"], "rank": rank, "mem_available_bytes": available,
             "fabric": fabric, "gpu": gpu, "image": image, "image_id": image_id,
+            "image_content_sha256": image_content_sha256,
             "config_identity": cluster.identity(CLUSTER), "launcher_sha256": launcher_identity(),
             "target_config_sha256": digest(MODEL / "config.json"),
             "binary_sha256": digest(binary), "requests_sha256": request_sha,
@@ -364,7 +402,7 @@ def preflight_pair(config):
         raise Refusal(f"Run the coordinator on {HEAD}")
     dashboard = stopped_dashboard()
     nodes = [rpc(rank, "preflight", config) for rank in (0, 1)]
-    for key in ("binary_sha256", "requests_sha256", "pack_manifest_sha256", "launcher_sha256", "config_identity", "image_id", "target_config_sha256"):
+    for key in ("binary_sha256", "requests_sha256", "pack_manifest_sha256", "launcher_sha256", "config_identity", "image_content_sha256", "target_config_sha256"):
         if nodes[0][key] != nodes[1][key]:
             raise Refusal(f"The ranks disagree on {key}")
     return {"dashboard": dashboard, "nodes": nodes}

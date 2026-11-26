@@ -55,6 +55,37 @@ Its source mount path is replaced with a placeholder. It contains no machine
 identity or raw host logs. The historical inference and fresh build checks are
 kept distinct; no new performance result is inferred from rebuilding the image.
 
+`portable-validation/` contains the subsequent fresh serial, DSpark and DFly2
+GPU receipts, a byte-identical copy of the reviewed request fixture, and a
+separately recomputed comparison. All three modes used the newly built public
+executable. The original top-level chat receipts and comparison remain the
+historical integration measurements; their times have not been replaced or
+combined with the new run times.
+
+`tools/dfly2/export_portable_evidence.py` applies the same allowlist to runs
+made with the public launcher. It also retains validated UTC start/end times,
+the combined launcher/configuration-module source SHA-256, the target's
+configuration-file SHA-256, and a runtime image-content SHA-256. The latter
+identifies canonical architecture, OS, variant, image configuration and ordered
+RootFS content. Docker storage backends can report different image IDs for the
+same transferred image, so those private IDs are neither exported nor used as
+the cross-node content identity. The private cluster configuration and its digest
+remain excluded. The pool size is supplied explicitly from the reviewed
+configuration because the raw run receipt does not embed that setting; this
+published suite requires exactly 8,192 tokens. Other
+published execution settings are fixed by the launcher. The exporter requires
+a new output directory and writes its derived comparison only after the
+cross-run checks pass. It also requires the reviewed historical request-file
+digest before creating any output directory, so unreviewed prompt text is not
+written into public evidence.
+
+`tools/dfly2/verify_portable_evidence.py` additionally binds all three modes to
+the executable in the public build receipt, verifies the published launcher's
+source digest, requires matching image contents, target metadata and execution settings across
+runs, checks the DFly2 pack identity, and compares the fresh serial output with
+the historical serial output. Historical run timings are never substituted
+into a portable comparison. These checks require neither CUDA nor model files.
+
 The standard-library verifier reconstructs the token equality and throughput
 calculation without trusting the raw receipts' saved `equal` flags. Its tests
 exercise exclusion of injected infrastructure fields, refusal of text in

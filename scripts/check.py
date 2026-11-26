@@ -27,6 +27,7 @@ def main():
         for file in sorted(folder.rglob("*.py")):
             compile(file.read_bytes(), str(file.relative_to(root)), "exec")
     subprocess.run([sys.executable, str(tools / "verify_evidence.py")], cwd=root, check=True)
+    subprocess.run([sys.executable, str(tools / "verify_portable_evidence.py")], cwd=root, check=True)
     build = json.loads((root / "evidence/public-build-validation.json").read_text())
     lock = json.loads((root / "upstream.lock.json").read_text())
     assert build["host_test_exit_code"] == build["public_docker_build_with_pinned_python_tools_exit_code"] == 0

@@ -2,7 +2,7 @@
 
 Experimental Tencent DFly2 speculative decoding for DeepSeek-V4.1-Flash-1017 on two NVIDIA GB10 nodes, using TensorFold's native Zig/CUDA runtime.
 
-The integration runs on real hardware and matched all **959 reference output tokens and finish reasons** in a six-request chat test. In that small test, estimated decode speed was **45.84 tok/s with DFly2**, **74.05 tok/s with the existing DSpark drafter**, and **38.46 tok/s without drafting**. DSpark was faster on this workload.
+The public launcher and freshly built image ran on two GB10 systems and matched all **959 reference output tokens and all six finish reasons**. In that small chat test, estimated decode speed was **45.06 tok/s with DFly2**, **74.98 tok/s with the existing DSpark drafter**, and **38.49 tok/s without drafting**. DSpark was faster on this workload.
 
 This repository publishes the implementation, tests, setup recipe, and measured results so others can reproduce and improve it. It is an experimental port, with text, tensor parallelism across two nodes, one active stream, replicated KV, and eager execution. CUDA graphs, concurrent requests, vision, long contexts including 64K, and production serving flows have not been qualified.
 
@@ -25,17 +25,17 @@ Use ARM64 Linux on the two GB10 nodes with working NVIDIA drivers, NVIDIA Contai
 3. Copy [the example cluster configuration](examples/cluster.example.json) to `cluster.local.json`, fill in both nodes and paths, and follow [the run guide](docs/RUN.md).
 4. Run the read-only preflight first. An explicit `--run` starts an isolated test pair after the checks pass. The launcher does not stop existing workloads.
 
-The new launcher and public build path are release-preparation changes. Their validation status is listed in [the results](docs/RESULTS.md); the measured inference results describe the original implementation and harness. Do not infer new throughput results from source preparation or CPU tests.
+The public build and portable launcher have completed a fresh two-node GPU comparison. [Results and methodology](docs/RESULTS.md) separate those measurements from build/CPU checks and retain the earlier integration results.
 
 ## Results and limits
 
 | Backend | Estimated decode tok/s | Total seconds including prefill |
 | --- | ---: | ---: |
-| No drafting | 38.46 | 27.21 |
-| DSpark | 74.05 | 15.28 |
-| DFly2 | 45.84 | 23.73 |
+| No drafting | 38.49 | 27.14 |
+| DSpark | 74.98 | 15.16 |
+| DFly2 | 45.06 | 24.56 |
 
-These are single-stream eager measurements with profiling enabled. Three requests were greedy; three used temperature 0.7, top-p 1, top-k 20, and fixed seeds. Prompts were 82–142 tokens; the combined output was 959 tokens. Decode time is estimated from rounded native timings and excludes the first token from each prefill. These results are neither a general performance ranking nor a claim to reproduce Tencent's published speedups.
+These are single-stream eager measurements with profiling enabled, using the same freshly built executable and image contents for all three modes. Three requests were greedy; three used temperature 0.7, top-p 1, top-k 20, and fixed seeds. Prompts were 82–142 tokens; the combined output was 959 tokens. Decode time is estimated from rounded native timings and excludes the first token from each prefill. [Portable-run evidence](evidence/portable-validation/comparison.json) records the calculation. These results are neither a general performance ranking nor a claim to reproduce Tencent's published speedups.
 
 [Results and methodology](docs/RESULTS.md) explain the exact checks, numerical differences from the reference implementation, omissions from public receipts, and untested cases. Final target-token equality does not establish whole-drafter numerical parity or identical proposal acceptance. The drafter was released for the unsuffixed DeepSeek-V4.1-Flash target; this experiment uses the 1017 target and verifies compatible geometry and RoPE settings.
 

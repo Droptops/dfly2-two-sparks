@@ -1,6 +1,6 @@
 # Configure and validate two Sparks
 
-The public launchers have CPU-tested configuration, ownership and command-building checks. They have **not been rerun on GPUs after the portability rewrite**. Published GPU measurements came from the original isolated launcher and engine described in the evidence. A successful public preflight does not reproduce those measurements.
+The public two-node inference launcher and freshly built image completed serial, DSpark and DFly2 GPU runs with matching 959 output tokens and all six finish reasons. [RESULTS.md](RESULTS.md) separates this fresh portable validation from the earlier integration measurements. A successful preflight alone does not reproduce GPU results.
 
 Complete [BUILD.md](BUILD.md) first. Runtime commands below are for Linux on the two configured GB10 nodes. Python 3.10+, Docker access, `ip`, `nvidia-smi`, existing SSH host keys and passwordless head-to-worker SSH are required. The launchers never stop services, change network configuration, download weights or restore a previously running model.
 
@@ -13,7 +13,7 @@ The configuration rejects unknown fields and accepts no shell snippets, extra Do
 | Field | Meaning |
 | --- | --- |
 | `version` | Exactly `1`. |
-| `image` | Same public image on both hosts; defaults to `dfly2-two-sparks:experimental`. Build once and transfer it, because image IDs must match. |
+| `image` | Same public image on both hosts; defaults to `dfly2-two-sparks:experimental`. Build once and transfer it; the preflight compares canonical image contents across Docker storage backends. |
 | `nodes` | Exactly two entries, rank 0/head first. Each has short `hostname`, direct-fabric IPv4 `address`, absolute Linux `repo_dir`, `config_path`, and `fabric`. |
 | `nodes[1].ssh_target` | Existing `user@host` or `user@SSH-alias`. `ssh_port` defaults to 22. SSH options cannot be embedded here. |
 | `fabric` | Explicit `interface`, list of `hcas`, and common `gid_index`. The live route, active HCA ports, IPv4-mapped RoCE v2 GIDs and local addresses must agree. |
@@ -75,7 +75,7 @@ python3 tools/dfly2/run_pair.py --config /etc/dfly2-two-sparks/cluster.json --mo
   --requests /srv/models/dfly2-experiment/requests-chat.json
 ```
 
-Omitting `--run` performs only read-only checks, including remote checks on the worker. It starts no container and allocates no GPU weights. The checks cover hostname, repository location, canonical configuration and launcher hashes, actual fabric, memory, absence of GPU compute processes, one GB10 per host, configured stopped services, available port, expected cache files and accessible assets. Both hosts must agree on image ID, native binary hash, target config hash, request hash and DFly pack-manifest hash. Baseline modes refuse an image that inherits `TF_DS_DFLY2_DIR`, including an empty value.
+Omitting `--run` performs only read-only checks, including remote checks on the worker. It starts no container and allocates no GPU weights. The checks cover hostname, repository location, canonical configuration and launcher hashes, actual fabric, memory, absence of GPU compute processes, one GB10 per host, configured stopped services, available port, expected cache files and accessible assets. Both hosts must agree on the canonical image-content fingerprint, native binary hash, target config hash, request hash and DFly pack-manifest hash. The image fingerprint includes architecture, OS, variant, complete image configuration and ordered RootFS layers; Docker storage-backend image IDs may differ. Baseline modes refuse an image that inherits `TF_DS_DFLY2_DIR`, including an empty value.
 
 The pack check validates its format, two rank entries, local file size and digest syntax. It does not rehash multiple gigabytes on every preflight. Use the converter's recorded SHA256 checks and the upload probe to verify weights. Similarly, the rank-cache filename is not a hash of every target weight byte; preserve the model provenance checks from BUILD.md. Preflight does not reserve the GPU, so keep other model launchers stopped while validation runs.
 
@@ -127,6 +127,12 @@ python3 tools/dfly2/run_pair.py --config /etc/dfly2-two-sparks/cluster.json \
 The bounded configuration is TP2, one text stream, eager execution, replicated KV, pool 8192, no side stream or prefetch, AIO enabled and replay floor 1. Serial uses zero drafts; DSpark uses the original drafter; DFly2 alone receives `TF_DS_DFLY2_DIR`. Native profiling is enabled. `--reference` compares every reply token and finish reason against a successful serial result using the same request-file hash. It does not compare abbreviated token hashes alone.
 
 The launcher captures both ranks' stdout/stderr and writes `result.json` with preflight identities, completion state, cleanup and equivalence. Inspect native timing fields and readable outputs before making speed or quality claims. These small suites do not establish general quality equivalence, long-context correctness, serving compatibility or production readiness.
+
+An immediate next run can fail the port check with `Address already in use`
+while the previous connection is in TCP `TIME_WAIT`, even after both containers
+have exited. Check the configured port locally, wait for normal TCP expiry, and
+retry preflight when it is free. Do not stop an unrelated listener to clear the
+port. This was encountered after a successful run during public validation.
 
 ## Cleanup and interrupted runs
 

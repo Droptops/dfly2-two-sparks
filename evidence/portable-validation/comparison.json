@@ -1,0 +1,70 @@
+{
+  "schema": "dfly2-portable-comparison-v1",
+  "request_count": 6,
+  "requests_sha256": "5243088b517b75309cb57a5d72a379a468339ed2aad98b2e58b533f0b6cd6f23",
+  "binary_sha256": "0a3831df751158a6cada9b4efb266c958ed7ebfe7606803d7386abd52e248029",
+  "launcher_sha256": "899c7799365766951e07b957e5cf94123acf1ef0285e4ed2e7ce74dc9d7416da",
+  "target_config_sha256": "4eac47f0da99a65f2bcfb97ca357f7d5388a79c9b377d6dd65b1ed18548d846d",
+  "image_content_sha256": "6091c420e136e0c6c09b6283a49f8444575de0540f2174e98b98639281a33603",
+  "draft_pack_manifest_sha256": "cdb1a38bb46af18fee74357562f4b855f67f5d70897f1ef9dd8976dbaf269ac4",
+  "configuration": {
+    "world_size": 2,
+    "streams": 1,
+    "parallel": 1,
+    "pool_tokens": 8192,
+    "cuda_graphs": false,
+    "profiling": true
+  },
+  "all_token_arrays_and_finish_reasons_equal": true,
+  "matches_historical_serial_tokens_and_finish_reasons": true,
+  "output_tokens_per_run": 959,
+  "runs": [
+    {
+      "mode": "serial",
+      "binary_sha256": "0a3831df751158a6cada9b4efb266c958ed7ebfe7606803d7386abd52e248029",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 953,
+      "drafted": 0,
+      "accepted": 0,
+      "total_seconds_including_prefill": 27.14,
+      "summed_reported_prefill_seconds": 2.38,
+      "estimated_decode_seconds": 24.76,
+      "estimated_decode_tokens_per_second": 38.49,
+      "receipt": "chat-serial.json"
+    },
+    {
+      "mode": "dspark",
+      "binary_sha256": "0a3831df751158a6cada9b4efb266c958ed7ebfe7606803d7386abd52e248029",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 268,
+      "drafted": 916,
+      "accepted": 690,
+      "total_seconds_including_prefill": 15.16,
+      "summed_reported_prefill_seconds": 2.45,
+      "estimated_decode_seconds": 12.71,
+      "estimated_decode_tokens_per_second": 74.98,
+      "receipt": "chat-dspark.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "0a3831df751158a6cada9b4efb266c958ed7ebfe7606803d7386abd52e248029",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 271,
+      "drafted": 1351,
+      "accepted": 685,
+      "total_seconds_including_prefill": 24.56,
+      "summed_reported_prefill_seconds": 3.41,
+      "estimated_decode_seconds": 21.15,
+      "estimated_decode_tokens_per_second": 45.06,
+      "receipt": "chat-dfly2.json"
+    }
+  ],
+  "timing_method": "Post-first-token outputs divided by native total seconds minus summed prefill times; native times rounded to 0.01 seconds",
+  "scope": "Fresh public-launcher one-stream eager GPU runs, profiling enabled, six short prompts. Output equivalence is not a quality evaluation or a statistical throughput study."
+}

@@ -86,6 +86,29 @@ def sanitize_run(raw):
             "summary": {k: numeric(v) for k, v in pick(native["summary"], SUMMARY_KEYS).items()}}
 
 
+def sanitize_portable_run(raw, *, pool_tokens):
+    """Export a public-launcher run, with explicit operator-supplied pool size.
+
+    run_pair records source hashes but does not embed its execution settings.
+    The caller must supply the pool from the reviewed cluster configuration;
+    the remaining fixed settings are enforced by the public launcher.
+    """
+    if type(pool_tokens) is not int or pool_tokens != 8192:
+        raise ValueError("portable validation requires the configured 8192-token pool")
+    result = sanitize_run(raw)
+    result["validation"] = "portable-launcher"
+    result["configuration"]["pool_tokens"] = pool_tokens
+    for clean, node in zip(result["nodes"], raw["preflight"]["nodes"]):
+        for key in ("launcher_sha256", "target_config_sha256", "image_content_sha256"):
+            clean[key] = digest(node[key])
+    for key in ("started_utc", "finished_utc"):
+        value = raw[key]
+        if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", value):
+            raise ValueError("invalid UTC timestamp")
+        result[key] = value
+    return result
+
+
 def validate_requests(obj):
     if set(obj) != {"requests", "metadata"}:
         raise ValueError("unreviewed request envelope")

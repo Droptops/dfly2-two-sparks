@@ -1,5 +1,38 @@
 # Recorded two-Spark results
 
+## Fresh public-launcher GPU validation
+
+The portable public launcher and newly built public image completed serial,
+DFly2 and DSpark runs on two NVIDIA GB10 systems. All three modes used the same
+executable, image contents, launcher source, target configuration and six
+request payloads. All **959 output token IDs and all six finish reasons
+matched**, including the historical serial reference.
+
+| Mode | Estimated decode tokens/s | Total seconds including prefill | Accepted / proposed draft tokens |
+| --- | ---: | ---: | ---: |
+| Drafting disabled | 38.49 | 27.14 | 0 / 0 |
+| Existing DSpark | 74.98 | 15.16 | 690 / 916 |
+| Custom DFly2 | 45.06 | 24.56 | 685 / 1,351 |
+
+DFly2 was about 17% faster than drafting disabled and about 40% slower than
+DSpark on this estimated decode rate. The public path reproduced target output
+equivalence; DSpark remained faster on this workload. These were one run per
+mode, in serial/DFly2/DSpark order, with the same eager, one-stream, 8,192-token
+configuration and profiling enabled. They are not a statistical speed study.
+
+The complete sanitized receipts are
+[serial](../evidence/portable-validation/chat-serial.json),
+[DFly2](../evidence/portable-validation/chat-dfly2.json), and
+[DSpark](../evidence/portable-validation/chat-dspark.json). The
+[derived comparison](../evidence/portable-validation/comparison.json) includes
+the common executable SHA-256
+`0a3831df751158a6cada9b4efb266c958ed7ebfe7606803d7386abd52e248029`,
+launcher and image-content identities, the draft-pack identity, and the timing
+arithmetic. Prompt contents, settings and seeds are unchanged from the reviewed
+[request fixture](../evidence/portable-validation/chat-requests.json).
+
+## Historical integration run
+
 The native DFly2 port ran across two NVIDIA GB10 systems with the
 DeepSeek-V4.1-Flash-1017 EXL3 EAQ v1 2.9 bpw target. On six fixed chat-template
 requests, all **959 output token IDs and all six finish reasons matched** the
@@ -32,10 +65,14 @@ fixture. The native executable hashes stayed unchanged when this Python layer
 was added. The fresh build receipt is
 [public-build-validation.json](../evidence/public-build-validation.json).
 
-These are build, CPU-test, and tokenization checks. The rewritten portable
-launcher and newly built image have not been used for a new two-node GPU
-inference run. The performance table above remains the earlier recorded test,
-with its original executable hashes visible in the receipts.
+This build receipt records build, CPU-test and tokenization checks. The fresh
+two-node GPU comparison above is recorded separately under
+`evidence/portable-validation/`. The historical integration measurements and
+their original executable hashes remain unchanged.
+
+After adding the portable GPU receipts and image-store compatibility fix, all
+**55 public CPU checks** passed on Windows and ARM64 Linux. The Linux check ran
+from the exported release archive and verified both recorded comparisons.
 
 ## Recompute the comparison
 
@@ -43,7 +80,9 @@ From the repository root, using only the Python standard library:
 
 ```sh
 python3 tools/dfly2/verify_evidence.py
+python3 tools/dfly2/verify_portable_evidence.py
 python3 -m unittest discover -s tools/dfly2 -p test_evidence.py -v
+python3 -m unittest discover -s tools/dfly2 -p test_portable_evidence.py -v
 ```
 
 The verifier recomputes each reply's token digest, checks actual arrays and
@@ -52,6 +91,12 @@ reconciles counters, and calculates the rates from recorded elapsed times.
 It also checks both recorded weight-upload receipts, primitive-test receipts,
 and the original microbenchmark kernel's source hash. It checks the saved
 evidence; it does not rerun GPU inference.
+
+The portable verifier additionally binds all three runs to the executable
+recorded by the public build, checks the current published launcher bytes,
+requires identical image contents and target metadata, and recomputes equality
+against the fresh serial run. It also reports whether that serial output
+matches the historical serial run. Both comparisons retain their own times.
 
 The reviewed synthetic prompts, their complete tokenized inputs, sampling
 settings, and seeds are in [chat-requests.json](../evidence/chat-requests.json).
@@ -76,7 +121,8 @@ first token generated during each prefill. Native elapsed times are rounded to
 estimate with confidence intervals. Long-context serving, including 64K, was
 not measured in this chat comparison.
 
-The DSpark baseline was repeated after builds finished. Its initial run was
+In the historical integration test, the DSpark baseline was repeated after
+builds finished. Its initial run was
 73.20 estimated tokens/s; the repeated run shown above was 74.05. Both receipts
 are retained, including [the initial run](../evidence/chat-dspark-initial.json).
 The final DSpark and DFly2 runs used the same executable. The serial run used

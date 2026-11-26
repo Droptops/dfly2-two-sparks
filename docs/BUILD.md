@@ -30,15 +30,13 @@ The Dockerfile pins the public `nvcr.io/nvidia/pytorch:26.07-py3` image by diges
 
 The final build layer adds an isolated `/opt/dfly2-tools` Python environment that inherits the pinned image's Torch and other packages. Transformers 5.14.1, tokenizers 0.22.2 and the small Typer dependency set are installed from exact wheel URLs and SHA256 hashes in `build/tool-requirements.txt`, with dependency resolution disabled. The base's tokenizers 0.23.1 is newer than this Transformers release allows; the tool environment shadows it without changing the base installation. `python3` on the image's PATH uses this environment. The build checks scoped package requirements and the actual AutoTokenizer import. This also requires access to `files.pythonhosted.org`; no CUDA or Torch package is installed by this step.
 
-Build once, transfer that image to the other host, and compare image IDs:
+Build once and transfer that image to the other host:
 
 ```bash
-docker image inspect dfly2-two-sparks:experimental --format '{{.Id}}'
 docker save dfly2-two-sparks:experimental | ssh YOUR_WORKER docker load
-ssh YOUR_WORKER docker image inspect dfly2-two-sparks:experimental --format '{{.Id}}'
 ```
 
-Replace `YOUR_WORKER` with your existing SSH alias. The validation launcher requires the same image ID on both hosts. Do not independently rebuild each host and assume identical tags mean identical contents.
+Replace `YOUR_WORKER` with your existing SSH alias. After configuring both nodes, run the read-only preflight in [RUN.md](RUN.md). It requires matching image-content fingerprints over architecture, OS, variant, the complete image configuration, and ordered RootFS layers. Docker's containerd and overlay2 stores can report different image IDs after transferring the same image, so the launcher compares this content identity. Identical tags alone are insufficient; use the same transferred build on both hosts.
 
 ## Host tests and extracting binaries
 

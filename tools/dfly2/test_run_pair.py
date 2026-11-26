@@ -1,4 +1,5 @@
 import json
+import copy
 from pathlib import Path
 import subprocess
 import tempfile
@@ -11,6 +12,12 @@ import run_pair as pair
 import run_weights_probe as probe
 
 EXAMPLE = Path(__file__).resolve().parents[2] / "examples/cluster.example.json"
+
+
+def image_fixture():
+    return {"Id": "sha256:" + "a" * 64, "Architecture": "arm64", "Os": "linux",
+            "Config": {"Env": ["PATH=/usr/bin"], "Entrypoint": ["/bin/sh"], "WorkingDir": "/workspace"},
+            "RootFS": {"Type": "layers", "Layers": ["sha256:" + "b" * 64, "sha256:" + "c" * 64]}}
 
 
 class PairTests(unittest.TestCase):
@@ -155,21 +162,65 @@ class PairTests(unittest.TestCase):
         self.assertEqual(json.loads(command.call_args.kwargs["input_text"])["config"]["rank"], 1)
 
     def test_inherited_dfly_environment_refused_for_both_baselines(self):
-        def command(args):
-            return subprocess.CompletedProcess(args, 0, '["TF_DS_DFLY2_DIR="]' if "{{json .Config.Env}}" in args else "sha256:123", "")
-        with patch.object(pair, "command", side_effect=command):
+        info = image_fixture()
+        info["Config"]["Env"].append("TF_DS_DFLY2_DIR=")
+        with patch.object(pair, "command", return_value=subprocess.CompletedProcess([], 0, json.dumps(info), "")):
             for mode in ("serial", "dspark"):
                 with self.assertRaisesRegex(pair.Refusal, "inherits"):
                     pair.check_image(mode)
-            self.assertEqual(pair.check_image("dfly2"), "sha256:123")
+            self.assertEqual(pair.check_image("dfly2"), (info["Id"], pair.image_content_fingerprint(info)))
 
     def test_pair_refuses_different_image_or_script_bytes(self):
-        node = dict.fromkeys(("binary_sha256", "requests_sha256", "pack_manifest_sha256", "launcher_sha256", "config_identity", "image_id", "target_config_sha256"), "same")
-        for key in ("image_id", "launcher_sha256", "config_identity"):
+        node = dict.fromkeys(("binary_sha256", "requests_sha256", "pack_manifest_sha256", "launcher_sha256", "config_identity", "image_content_sha256", "target_config_sha256"), "same")
+        for key in ("image_content_sha256", "launcher_sha256", "config_identity"):
             other = {**node, key: "different"}
             with patch.object(pair, "hostname", return_value=pair.HEAD), patch.object(pair, "rpc", side_effect=[node, other]):
                 with self.assertRaisesRegex(pair.Refusal, key):
                     pair.preflight_pair(self.config)
+
+    def test_identical_runtime_with_different_store_ids_is_accepted(self):
+        original = image_fixture()
+        transferred = copy.deepcopy(original)
+        transferred.update(Id="sha256:" + "d" * 64, RepoTags=["copied:tag"], Variant="")
+        transferred["Config"] = dict(reversed(list(transferred["Config"].items())))
+        fingerprint = pair.image_content_fingerprint(original)
+        self.assertEqual(pair.image_content_fingerprint(transferred), fingerprint)
+        node = dict.fromkeys(("binary_sha256", "requests_sha256", "pack_manifest_sha256", "launcher_sha256", "config_identity", "target_config_sha256"), "same")
+        nodes = [{**node, "image_id": info["Id"], "image_content_sha256": pair.image_content_fingerprint(info)} for info in (original, transferred)]
+        with patch.object(pair, "hostname", return_value=pair.HEAD), patch.object(pair, "rpc", side_effect=nodes):
+            self.assertEqual(pair.preflight_pair(self.config)["nodes"], nodes)
+
+    def test_changed_environment_layers_or_variant_fails_pair_comparison(self):
+        original = image_fixture()
+        changed_env, changed_layers, reordered_layers, changed_variant, changed_command = [copy.deepcopy(original) for _ in range(5)]
+        changed_env["Config"]["Env"].append("CUDA_MODULE_LOADING=EAGER")
+        changed_layers["RootFS"]["Layers"][0] = "sha256:" + "f" * 64
+        reordered_layers["RootFS"]["Layers"].reverse()
+        changed_variant["Variant"] = "v8"
+        changed_command["Config"]["Entrypoint"] = ["/another/entrypoint"]
+        node = dict.fromkeys(("binary_sha256", "requests_sha256", "pack_manifest_sha256", "launcher_sha256", "config_identity", "target_config_sha256"), "same")
+        node["image_content_sha256"] = pair.image_content_fingerprint(original)
+        for changed in (changed_env, changed_layers, reordered_layers, changed_variant, changed_command):
+            other = {**node, "image_content_sha256": pair.image_content_fingerprint(changed)}
+            self.assertNotEqual(node["image_content_sha256"], other["image_content_sha256"])
+            with patch.object(pair, "hostname", return_value=pair.HEAD), patch.object(pair, "rpc", side_effect=[node, other]):
+                with self.assertRaisesRegex(pair.Refusal, "image_content_sha256"):
+                    pair.preflight_pair(self.config)
+
+    def test_image_content_refuses_missing_or_invalid_platform_config_layers(self):
+        for key, value in (("Architecture", "amd64"), ("Os", "windows"), ("Variant", None), ("Config", None), ("Config", []), ("RootFS", None),
+                           ("RootFS", {"Type": "layers", "Layers": []}), ("RootFS", {"Type": "layers", "Layers": ["not-a-digest"]}),
+                           ("Config", {"Env": [123]}), ("Config", {"Env": {}}), ("Config", {"Env": ""}),
+                           ("Config", {"bad": float("nan")})):
+            info = image_fixture()
+            info[key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(pair.Refusal):
+                pair.image_content_fingerprint(info)
+        for key in ("Architecture", "Os", "Config", "RootFS"):
+            info = image_fixture()
+            del info[key]
+            with self.subTest(missing=key), self.assertRaises(pair.Refusal):
+                pair.image_content_fingerprint(info)
 
     def test_output_and_request_boundaries(self):
         with tempfile.TemporaryDirectory() as tmp:
