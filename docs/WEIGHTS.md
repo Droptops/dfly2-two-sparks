@@ -10,13 +10,25 @@ dimension. Fusion and normalization tensors remain replicated.
 ```sh
 python3 tools/dfly2/pack_weights.py /path/to/DS-V4.1-Flash-DFly2-B6 /path/to/DFly2-TP2
 python3 -m unittest discover -s tools/dfly2 -p test_pack_weights.py -v
-tf-dsv41-dfly-weights /path/to/DFly2-TP2 0 /path/to/target-model
-tf-dsv41-dfly-weights /path/to/DFly2-TP2 1 /path/to/target-model
 ```
 
-Run the two upload checks separately on the intended hosts. They allocate only
-the draft weights, compare every GPU byte against the packed file, and release
-the allocations. They do not start a server or load the main DeepSeek model.
+For GPU upload checks, first build the image and stage its binaries as described
+in [BUILD.md](BUILD.md), then install the cluster configuration from
+[RUN.md](RUN.md). From the repository root on each idle node, use the public
+launcher so the staged binary runs inside the matching CUDA image:
+
+```sh
+# On the head; replace the config path with that node's configured config_path.
+python3 tools/dfly2/run_weights_probe.py --config /etc/dfly2-two-sparks/cluster.json --rank 0 --run
+# Separately on the worker; use its configured config_path.
+python3 tools/dfly2/run_weights_probe.py --config /etc/dfly2-two-sparks/cluster.json --rank 1 --run
+```
+
+Omit `--run` for read-only preflight. Each host needs a writable results path
+inside its configured experiment directory, as explained in RUN.md. These
+checks allocate only the draft weights, compare every GPU byte against the
+packed file, and release the allocations. They do not start a server or load
+the main DeepSeek model.
 
 Packing preserves every value's original bytes. Expert codes remain low-nibble
 first E2M1 and scales remain E8M0, one exponent per 32 input channels. Both are
