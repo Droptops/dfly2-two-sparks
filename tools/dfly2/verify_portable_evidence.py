@@ -7,11 +7,33 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 
-from verify_evidence import load, require, sha256, summarize_run
+from verify_evidence import load, relative_to_serial, require, sha256, summarize_run
 
 ROOT = Path(__file__).resolve().parents[2]
 MODES = ("serial", "dspark", "dfly2")
+LAUNCHER_FILES = ("tools/dfly2/run_pair.py", "tools/dfly2/cluster_config.py")
+HASH = re.compile(r"[0-9a-f]{64}\Z")
+
+
+def current_launcher_digest(root=ROOT):
+    return hashlib.sha256(b"".join((Path(root) / name).read_bytes() for name in LAUNCHER_FILES)).hexdigest()
+
+
+def provenance(evidence):
+    """The launcher bytes that produced a receipt set, pinned to their commit.
+
+    Receipts describe the launcher that ran, not whatever the repository holds
+    later. Editing the launcher must not silently re-label old measurements,
+    so the digest is recorded beside them together with its source commit.
+    """
+    record = load(Path(evidence) / "provenance.json")
+    require(record.get("schema") == "dfly2-evidence-provenance-v1", "unknown provenance schema")
+    require(record.get("launcher_files") == list(LAUNCHER_FILES), "unexpected launcher file list")
+    for key, pattern in (("launcher_sha256", HASH), ("repository_commit", re.compile(r"[0-9a-f]{40}\Z"))):
+        require(isinstance(record.get(key), str) and pattern.fullmatch(record[key]), f"invalid provenance {key}")
+    return record
 
 
 def verify(evidence, *, historical=None, launcher_digest=None):
@@ -25,10 +47,10 @@ def verify(evidence, *, historical=None, launcher_digest=None):
     build = load(historical / "public-build-validation.json")
     binary_hash = build["built_executable_sha256"]["/opt/tensorfold/bin/tf-dsv41-lanes"]
     pack_hash = sha256(historical / "draft-pack-manifest.json")
+    launcher_commit = None
     if launcher_digest is None:
-        launcher_digest = hashlib.sha256(
-            (ROOT / "tools/dfly2/run_pair.py").read_bytes()
-            + (ROOT / "tools/dfly2/cluster_config.py").read_bytes()).hexdigest()
+        record = provenance(evidence)
+        launcher_digest, launcher_commit = record["launcher_sha256"], record["repository_commit"]
     _, historical_reference = summarize_run(load(historical / "chat-serial.json"), requests, request_hash, None)
     reference, config, target_hash, image_hash, cache_bytes = None, None, None, None, None
     rows = []
@@ -37,7 +59,7 @@ def verify(evidence, *, historical=None, launcher_digest=None):
         run = load(evidence / filename)
         require(run["mode"] == mode and run.get("validation") == "portable-launcher", "wrong portable receipt")
         require(all(n["binary_sha256"] == binary_hash for n in run["nodes"]), "run differs from freshly built public binary")
-        require(all(n["launcher_sha256"] == launcher_digest for n in run["nodes"]), "run differs from published launcher source")
+        require(all(n["launcher_sha256"] == launcher_digest for n in run["nodes"]), "run differs from the recorded published launcher source")
         configs = {n["target_config_sha256"] for n in run["nodes"]}
         require(len(configs) == 1, "ranks used different target configurations")
         current_target = next(iter(configs))
@@ -60,16 +82,18 @@ def verify(evidence, *, historical=None, launcher_digest=None):
         reference = actual if reference is None else reference
         row["receipt"] = filename
         rows.append(row)
-    return {"schema": "dfly2-portable-comparison-v1", "request_count": len(requests),
+    return {"schema": "dfly2-portable-comparison-v2", "request_count": len(requests),
             "requests_sha256": request_hash, "binary_sha256": binary_hash,
-            "launcher_sha256": launcher_digest, "target_config_sha256": target_hash,
+            "launcher_sha256": launcher_digest, "launcher_source_commit": launcher_commit,
+            "target_config_sha256": target_hash,
             "image_content_sha256": image_hash,
             "draft_pack_manifest_sha256": pack_hash, "configuration": config,
             "all_token_arrays_and_finish_reasons_equal": True,
             "matches_historical_serial_tokens_and_finish_reasons": reference == historical_reference,
             "output_tokens_per_run": rows[0]["output_tokens"], "runs": rows,
-            "timing_method": "Post-first-token outputs divided by native total seconds minus summed prefill times; native times rounded to 0.01 seconds",
-            "scope": "Fresh public-launcher one-stream eager GPU runs, profiling enabled, six short prompts. Output equivalence is not a quality evaluation or a statistical throughput study."}
+            "relative_to_serial": relative_to_serial(rows),
+            "timing_method": "Post-first-token outputs divided by native total seconds minus summed prefill times; native times rounded to 0.01 seconds; cross-checked against per-reply seconds and the native step clock",
+            "scope": "Fresh public-launcher one-stream eager GPU runs, profiling enabled, six short prompts, one run per mode. Output equivalence is not a quality evaluation or a statistical throughput study. The drafting modes do not share a proposal policy; see docs/RESULTS.md."}
 
 
 def main():

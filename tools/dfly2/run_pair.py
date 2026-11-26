@@ -28,7 +28,14 @@ CLUSTER = None
 LABEL = "ai.spark-dfly2.experimental"
 RUN_LABEL = "ai.spark-dfly2.run"
 RANK_LABEL = "ai.spark-dfly2.rank"
-MODES = ("serial", "dspark", "dfly2")
+MODES = ("serial", "dspark", "dspark_fixed5", "dfly2")
+# The DFly2 lane proposes a fixed five drafts a round and reports each as
+# certain. dspark_fixed5 gives the existing drafter the same depth policy
+# (tf-dsv41-lanes --fix-k), so the two drafters can be compared without the
+# confidence-trimmed depth that plain dspark uses. Suffix-lookup copy
+# proposals stay enabled for both DSpark modes and disabled for DFly2: the
+# published executable has no switch for them in this runner.
+FIXED_DEPTH = {"dspark_fixed5": 5}
 
 
 def configure(value):
@@ -41,6 +48,19 @@ def configure(value):
     MODEL, ENGRAM = Path(paths["target_model"]), Path(paths["engram"])
     PORT, POOL = execution["port"], execution["pool"]
     MIN_AVAILABLE = execution["min_available_gib"] * 1024**3
+
+
+def execution_settings(mode):
+    """Inference settings this launcher fixes for a mode, recorded in each result.
+
+    create_argv is the only consumer of these choices. Recording them lets a
+    public receipt state what ran instead of an exporter asserting it.
+    """
+    if mode not in MODES:
+        raise Refusal("Unknown validation mode")
+    return {"world_size": 2, "streams": 1, "parallel": 1, "pool_tokens": POOL,
+            "cuda_graphs": False, "profiling": True, "drafting": mode != "serial",
+            "fixed_draft_depth": FIXED_DEPTH.get(mode)}
 
 
 def container_name(job):
@@ -302,12 +322,17 @@ def create_argv(config, preflight, cidfile):
         args.extend(["--memory", "12g", "--memory-swap", "12g", "--entrypoint", config["binary"],
                      image, config["pack"], str(rank), str(MODEL)])
         return args
+    settings = execution_settings(mode)
     args.extend(["--entrypoint", config["binary"], image, str(MODEL), CLUSTER["paths"]["rank_cache"],
-                 str(rank), "2", HEAD_IP, str(PORT), CLUSTER["paths"]["kit"],
+                 str(rank), str(settings["world_size"]), HEAD_IP, str(PORT), CLUSTER["paths"]["kit"],
                  "--requests", config["requests"], "--engram", str(ENGRAM), "--token-map", CLUSTER["paths"]["token_map"],
-                 "--pool", str(POOL), "--parallel", "1", "--streams", "1", "--graphs", "0",
-                 "--side", "0", "--prefetch", "0", "--aio", "1", "--profile", "1", "--rdma", preflight["fabric"]["hcas"],
-                 "--drafts", "0" if mode == "serial" else "1", "--serial", "1" if mode == "serial" else "0"])
+                 "--pool", str(settings["pool_tokens"]), "--parallel", str(settings["parallel"]),
+                 "--streams", str(settings["streams"]), "--graphs", str(int(settings["cuda_graphs"])),
+                 "--side", "0", "--prefetch", "0", "--aio", "1", "--profile", str(int(settings["profiling"])),
+                 "--rdma", preflight["fabric"]["hcas"],
+                 "--drafts", str(int(settings["drafting"])), "--serial", str(int(not settings["drafting"]))])
+    if settings["fixed_draft_depth"] is not None:
+        args.extend(["--fix-k", str(settings["fixed_draft_depth"])])
     return args
 
 
@@ -472,6 +497,7 @@ def new_output(output):
 
 def _run_pair(config, output, timeout, reference):
     report = {"run_id": config["run_id"], "mode": config["mode"], "success": False,
+              "execution": execution_settings(config["mode"]),
               "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
               "preflight": preflight_pair(config), "states": {}, "cleanup": {}, "equivalence": None}
     output = new_output(output)

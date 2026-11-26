@@ -52,8 +52,34 @@ def named_record(record):
     return {k: v if k in ("name", "reason", "token_sha") else numeric(v) for k, v in record.items()}
 
 
+MODES = ("serial", "dspark", "dspark_fixed5", "dfly2")
+# Settings every published run shares. Receipts from launchers that predate
+# the recorded "execution" block carry these as the exporter's assertion.
+SHARED_SETTINGS = {"world_size": 2, "streams": 1, "parallel": 1, "pool_tokens": 8192,
+                   "cuda_graphs": False, "profiling": True}
+
+
+def configuration(raw):
+    """Public inference settings: the launcher's own record when it made one."""
+    recorded = raw.get("execution")
+    if recorded is None:
+        return dict(SHARED_SETTINGS)
+    if set(recorded) != set(SHARED_SETTINGS) | {"drafting", "fixed_draft_depth"}:
+        raise ValueError("unreviewed execution settings")
+    for key, value in SHARED_SETTINGS.items():
+        if type(recorded[key]) is not type(value):
+            raise ValueError(f"invalid recorded {key}")
+    depth = recorded["fixed_draft_depth"]
+    if type(recorded["drafting"]) is not bool or not (depth is None or (type(depth) is int and 1 <= depth <= 16)):
+        raise ValueError("invalid recorded drafting settings")
+    if recorded["drafting"] != (raw["mode"] != "serial"):
+        raise ValueError("recorded drafting setting contradicts the run mode")
+    return {**{key: recorded[key] for key in SHARED_SETTINGS}, "recorded_by_launcher": True,
+            "drafting": recorded["drafting"], "fixed_draft_depth": depth}
+
+
 def sanitize_run(raw):
-    if raw["mode"] not in ("serial", "dspark", "dfly2"):
+    if raw["mode"] not in MODES:
         raise ValueError("unknown mode")
     nodes = []
     for n in raw["preflight"]["nodes"]:
@@ -80,8 +106,7 @@ def sanitize_run(raw):
                     records.append({"rank": numeric(r["rank"]), name: {k: numeric(v) for k, v in pick(r[name], keys).items()}})
     return {"schema": SCHEMA, "suite": "chat", "mode": raw["mode"],
             "success": raw["success"] is True, "complete": native["complete"] is True,
-            "configuration": {"world_size": 2, "streams": 1, "parallel": 1,
-                              "pool_tokens": 8192, "cuda_graphs": False, "profiling": True},
+            "configuration": configuration(raw),
             "nodes": nodes, "records": records,
             "summary": {k: numeric(v) for k, v in pick(native["summary"], SUMMARY_KEYS).items()}}
 
@@ -97,6 +122,8 @@ def sanitize_portable_run(raw, *, pool_tokens):
         raise ValueError("portable validation requires the configured 8192-token pool")
     result = sanitize_run(raw)
     result["validation"] = "portable-launcher"
+    if "execution" in raw and raw["execution"]["pool_tokens"] != pool_tokens:
+        raise ValueError("recorded pool differs from the reviewed configuration")
     result["configuration"]["pool_tokens"] = pool_tokens
     for clean, node in zip(result["nodes"], raw["preflight"]["nodes"]):
         for key in ("launcher_sha256", "target_config_sha256", "image_content_sha256"):

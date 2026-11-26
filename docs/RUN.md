@@ -124,7 +124,9 @@ python3 tools/dfly2/run_pair.py --config /etc/dfly2-two-sparks/cluster.json \
   --reference /srv/models/dfly2-experiment/results/chat-serial/result.json
 ```
 
-The bounded configuration is TP2, one text stream, eager execution, replicated KV, pool 8192, no side stream or prefetch, AIO enabled and replay floor 1. Serial uses zero drafts; DSpark uses the original drafter; DFly2 alone receives `TF_DS_DFLY2_DIR`. Native profiling is enabled. `--reference` compares every reply token and finish reason against a successful serial result using the same request-file hash. It does not compare abbreviated token hashes alone.
+The bounded configuration is TP2, one text stream, eager execution, replicated KV, pool 8192, no side stream or prefetch, AIO enabled and replay floor 1. Serial uses zero drafts; DSpark uses the original drafter; DFly2 alone receives `TF_DS_DFLY2_DIR`. Native profiling is enabled. Each `result.json` records these settings in an `execution` block, written from the same values the container arguments are built from.
+
+A fourth mode, `--mode dspark_fixed5`, runs the original drafter with the lane runner's `--fix-k 5`: five drafts every round, each treated as certain. That is the proposal-depth policy the DFly2 lane always uses, where plain `dspark` trims its depth by confidence. Use it when comparing the two drafters rather than the two lanes. Suffix-lookup copy proposals remain enabled for both DSpark modes and disabled for DFly2; this runner has no switch for them. `--reference` compares every reply token and finish reason against a successful serial result using the same request-file hash. It does not compare abbreviated token hashes alone.
 
 The launcher captures both ranks' stdout/stderr and writes `result.json` with preflight identities, completion state, cleanup and equivalence. Inspect native timing fields and readable outputs before making speed or quality claims. These small suites do not establish general quality equivalence, long-context correctness, serving compatibility or production readiness.
 
@@ -133,6 +135,52 @@ while the previous connection is in TCP `TIME_WAIT`, even after both containers
 have exited. Check the configured port locally, wait for normal TCP expiry, and
 retry preflight when it is free. Do not stop an unrelated listener to clear the
 port. This was encountered after a successful run during public validation.
+
+## Matched, repeated and long-context suite
+
+One run per mode in one fixed order cannot separate a mode from run order or run-to-run noise, and the six chat prompts never exceed 398 positions. `run_suite.py` runs every mode once per repeat, rotates which mode goes first, waits for the previous run's port to leave `TIME_WAIT`, and passes the first serial result as the reference for every later run, repeated serial runs included. It starts nothing itself: each run is an ordinary `run_pair` run with its own fresh directory, lock and cleanup.
+
+Stage the reviewed long-context fixture at the same path on both nodes. It was generated with the target's own tokenizer and template, so regenerating it inside the image with `make_requests.py --suite long` must give the same bytes:
+
+```bash
+cp evidence/fixtures/long-requests.json /srv/models/dfly2-experiment/requests-long.json
+sha256sum /srv/models/dfly2-experiment/requests-long.json
+# 856411dc8409168f65ad1e2bb6640ae2a5d3b526b36b8101f0ffb22715cae539
+```
+
+Without `--run` the suite only performs each mode's read-only preflight and prints the planned order:
+
+```bash
+python3 tools/dfly2/run_suite.py --config /etc/dfly2-two-sparks/cluster.json \
+  --requests /srv/models/dfly2-experiment/requests-chat.json
+```
+
+Then run both fixtures from the head, on otherwise idle nodes:
+
+```bash
+python3 tools/dfly2/run_suite.py --config /etc/dfly2-two-sparks/cluster.json --run --repeats 3 \
+  --requests /srv/models/dfly2-experiment/requests-chat.json \
+  --output /srv/models/dfly2-experiment/results/suite-chat
+
+python3 tools/dfly2/run_suite.py --config /etc/dfly2-two-sparks/cluster.json --run --repeats 3 \
+  --requests /srv/models/dfly2-experiment/requests-long.json \
+  --output /srv/models/dfly2-experiment/results/suite-long
+```
+
+The default is all four modes, twelve runs per fixture. Every run reloads the model: the published chat runs took 77 to 96 seconds each, and the port wait adds about a minute between runs, so allow roughly half an hour for the chat fixture and longer for the long one. A run that fails stops the suite and is recorded in `suite.json`; nothing is retried.
+
+The long fixture is the first time DFly2's prompt capture sees multi-chunk prompts and a selection that leaves positions out. If a DFly2 run refuses or its tokens differ from the serial run, keep the result directory. That is a finding about the port, and worth more than a clean number.
+
+Export from the same checkout that launched the suite, so the recorded commit is the one whose launcher bytes ran, then re-run the checks:
+
+```bash
+python3 tools/dfly2/export_suite_evidence.py --suite-dir /srv/models/dfly2-experiment/results/suite-long \
+  --requests /srv/models/dfly2-experiment/requests-long.json --pool-tokens 8192 \
+  --commit "$(git rev-parse HEAD)" --output evidence/suite-long
+python3 scripts/check.py
+```
+
+The export refuses an incomplete suite, a request file that is not one of the repository's reviewed fixtures, and a launcher that differs from the one the suite recorded. `comparison.json` then holds a median and range per mode, per-request medians, and the `dspark_fixed5` against DFly2 comparison.
 
 ## Cleanup and interrupted runs
 

@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from tokenizers import Tokenizer
 
+import long_tasks
+
 
 def chat_tasks():
     """Six distinct tasks, including an assistant-history turn and bounded outputs."""
@@ -35,7 +37,16 @@ def chat_tasks():
     return [(name, temperature, [system.copy(), *messages]) for name, temperature, messages in tasks]
 
 
-def chat_requests(model, tok):
+SUITES = {
+    # name: (tasks, first seed). The long suite keeps every prompt above the
+    # target's top-512 selection size; see long_tasks.py.
+    "chat": (lambda: chat_tasks(), 262611),
+    "long": (lambda: long_tasks.tasks(), 262711),
+}
+
+
+def chat_requests(model, tok, suite="chat"):
+    tasks, first_seed = SUITES[suite]
     # Lazy import leaves the original suite's dependencies and execution path
     # intact. local_files_only prevents any checkpoint/network lookup.
     from transformers import AutoTokenizer
@@ -44,7 +55,7 @@ def chat_requests(model, tok):
     template = template_path.read_text(encoding="utf-8")
     renderer = AutoTokenizer.from_pretrained(str(model), local_files_only=True, trust_remote_code=False)
     requests = []
-    for index, (name, temperature, messages) in enumerate(chat_tasks()):
+    for index, (name, temperature, messages) in enumerate(tasks()):
         # Pass the actual file explicitly, rather than an embedded/config default.
         # Chat mode spends the bounded output allowance on the requested answer.
         text = renderer.apply_chat_template(messages, chat_template=template, tokenize=False,
@@ -57,11 +68,11 @@ def chat_requests(model, tok):
             raise ValueError(f"{name} does not fit the validation pool of 8192 tokens")
         requests.append({"name": name, "prompt": ids, "max_tokens": 256,
                          "temperature": temperature, "top_p": 1, "top_k": 20,
-                         "seed": 262611 + index})
-    metadata = {"suite": "chat", "thinking_mode": "chat",
+                         "seed": first_seed + index})
+    metadata = {"suite": suite, "thinking_mode": "chat",
                 "chat_template_sha256": hashlib.sha256(template_path.read_bytes()).hexdigest(),
                 "tokenizer_sha256": hashlib.sha256((model / "tokenizer.json").read_bytes()).hexdigest(),
-                "tasks": [{"name": name, "messages": messages} for name, _, messages in chat_tasks()]}
+                "tasks": [{"name": name, "messages": messages} for name, _, messages in tasks()]}
     return requests, metadata
 
 
@@ -69,13 +80,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("model", type=Path)
     parser.add_argument("output", type=Path)
-    parser.add_argument("--suite", choices=("default", "chat"), default="default",
-                        help="default preserves the original six inputs; chat uses the target's actual chat template")
+    parser.add_argument("--suite", choices=("default", "chat", "long"), default="default",
+                        help="default preserves the original six inputs; chat uses the target's actual chat template; "
+                             "long uses the same template with one- to seven-thousand-token prompts")
     args = parser.parse_args()
     tok = Tokenizer.from_file(str(args.model / "tokenizer.json"))
     metadata = None
-    if args.suite == "chat":
-        requests, metadata = chat_requests(args.model, tok)
+    if args.suite in SUITES:
+        requests, metadata = chat_requests(args.model, tok, args.suite)
     else:
         code = "Write a Python function that returns the prime numbers less than n. Explain the algorithm."
         base = tok.encode("A notebook contains sequential observations of a simple counting task. ", add_special_tokens=False).ids
