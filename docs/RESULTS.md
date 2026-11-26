@@ -1,15 +1,91 @@
 # Recorded two-Spark results
 
+The repeated validation completed **24 GPU runs**, twelve per fixture. Each
+fixture runs serial, DFly2, fixed-five DSpark and ordinary DSpark three times
+with the starting mode rotating. All runs match their fixture's first serial
+reference in every output token and finish reason. Both fixtures use the same
+native executable, image contents, target configuration, 8,192-token pool and
+launcher commit `bfd3a816fabbb749146a9eadededad5052e3e43c`.
+
+## Repeated short-chat GPU suite
+
+The six short prompts contain **82 to 142 tokens**, with a 256-token output
+budget each. Every one of the twelve runs produced the same **959 output token
+IDs and all six finish reasons**. Three requests are greedy; three use
+temperature 0.7, top-p 1, top-k 20 and fixed seeds.
+
+| Mode | Estimated decode tok/s, median (min–max) | End-to-end tok/s, median (min–max) | Median tokens landed per round |
+| --- | ---: | ---: | ---: |
+| No drafting | 38.76 (38.32–38.85) | 35.53 (35.09–35.56) | 1.00 |
+| DSpark | 73.65 (73.20–74.28) | 62.35 (61.95–62.68) | 3.56 |
+| DSpark, fixed five drafts | 66.23 (65.01–67.78) | 55.72 (55.50–58.09) | 3.71 |
+| DFly2 | 45.34 (44.47–45.47) | 39.37 (39.21–39.96) | 3.52 |
+
+DFly2's median decode gain over no drafting was 17.0%; including prefill, 10.8%.
+Its median decode rate remained 31.5% below fixed-five DSpark. The short prose
+request remains a negative result: DFly2's median estimated rate was 27.61
+tok/s against 38.52 without drafting, about 28.3% slower. The respective rates
+were 43.93 for fixed-five DSpark and 53.65 for ordinary DSpark. DFly2 was the
+only mode with a request slower than no drafting by median decode time.
+
+The complete [suite manifest](../evidence/suite-chat/suite.json),
+[request bytes](../evidence/suite-chat/requests.json),
+[provenance](../evidence/suite-chat/provenance.json), and
+[recomputed comparison](../evidence/suite-chat/comparison.json) retain all
+twelve runs and per-request measurements. No run was dropped or retried within
+this suite. The earlier single-run chat measurements below are preserved
+separately; they are not pooled into these medians.
+
+## Repeated longer-input GPU suite
+
+The merged suite launcher completed all **12 runs** on two NVIDIA GB10 systems:
+four modes, three repeats each, with the starting mode rotating. Every run
+matched all **1,169 output token IDs and all six finish reasons** of the first
+serial run. The six reviewed prompts contain **1,210 to 6,892 tokens**, with a
+256-token output budget each. The native executable and image contents were
+unchanged from the earlier public build; this run used launcher commit
+`bfd3a816fabbb749146a9eadededad5052e3e43c`.
+
+| Mode | Estimated decode tok/s, median (min–max) | End-to-end tok/s, median (min–max) | Median tokens landed per round |
+| --- | ---: | ---: | ---: |
+| No drafting | 38.21 (38.18–38.50) | 25.61 (25.34–25.65) | 1.00 |
+| DSpark | 81.39 (80.88–81.96) | 39.53 (39.28–39.55) | 4.21 |
+| DSpark, fixed five drafts | 76.66 (75.86–77.69) | 38.00 (37.50–38.09) | 4.32 |
+| DFly2 | 55.75 (54.86–56.10) | 32.04 (29.68–32.28) | 4.31 |
+
+On this fixture, DFly2's median decode rate was 45.9% above no drafting and its
+median prefill-inclusive rate was 25.1% above it. DSpark remained faster:
+DFly2's median decode rate was 27.3% below fixed-five DSpark. Fixed-five DSpark
+and DFly2 landed almost the same number of tokens per round, while their median
+draft-pass times were 3.71 ms and 27.01 ms respectively. The fixed-depth mode
+matches draft depth only; DSpark still has suffix-copy proposals and DFly2 does
+not. This does not isolate a general difference between the two algorithms.
+
+The complete [suite manifest](../evidence/suite-long/suite.json),
+[request bytes](../evidence/suite-long/requests.json),
+[provenance](../evidence/suite-long/provenance.json), and
+[recomputed comparison](../evidence/suite-long/comparison.json) retain every
+run, per-request timing and draft count. DFly2's third repeat had 18.19 seconds
+of reported prefill and the lowest end-to-end rate, 29.68 tok/s; it is retained
+in the range above. No run was dropped or retried within this suite.
+
+These results extend observed output preservation to the longer-input capture
+path. They do not establish AngelSpec hidden-state/proposal parity, 64K
+context support, concurrent serving or CUDA-graph correctness. Three repeats
+provide a measured range, not a confidence interval. The long and short
+fixtures contain different tasks, so their rate differences cannot be
+attributed to context length alone.
+
 ## What this comparison controls and what it does not
 
-Three things limit what the numbers below can support. They are stated first
-because the tables are easy to read as a ranking of two drafters, and they are
-not one.
+The earlier single-run chat comparison below motivated the repeated suites.
+Its limitations remain relevant when interpreting either set of results as a
+ranking of two drafters.
 
 **Matching tokens test the hooks, not the drafter.** Target verification and
 sampling are exact: a proposed token is kept only when it equals the token the
 target itself produces. Output therefore matches the serial run whatever the
-drafter proposes. The 959 matching tokens show that capturing the target's
+drafter proposes. Matching tokens show that capturing the target's
 hidden state and selections, and discarding rejected rows, leave the target
 undisturbed. They say nothing about whether this port computes what the
 AngelSpec reference computes. No test here runs the released checkpoint through
@@ -26,7 +102,8 @@ gives the DFly2 lane a fixed policy and leaves DSpark its usual one:
 | Suffix-lookup copy proposals | Enabled (the lane runner has no switch) | Disabled by the patch |
 | Scheduler's draft cost | 3.5 ms constant, close to the measured 3.59 ms | The same 3.5 ms constant; measured 28.92 ms |
 
-The patch also forces draft-survival calibration off for DFly2; the lane runner
+The table's measured costs and row counts describe the earlier single-run chat
+comparison. The patch also forces draft-survival calibration off for DFly2; the lane runner
 leaves it off for DSpark as well, so that is not a difference in these runs.
 The released DFly2 checkpoint carries no confidence head, so the lane has no
 acceptance estimate to give the scheduler. The result is that DFly2 verified
@@ -35,19 +112,19 @@ acceptance estimate to give the scheduler. The result is that DFly2 verified
 and removes the first row of that table as a difference. Copies cannot be
 switched off for DSpark without a native change, so that row remains.
 
-**The prompts sit outside DFly2's design point.** The longest request reaches
+**The earlier chat prompts were short.** Their longest request reaches
 398 positions including its reply. The target's sparse layers select the top
 512 positions, so at this length they select every position, and the selection
 DFly2 shares with the target is never a real choice. DFly2's published results
-are for 2K to 128K contexts. Nothing longer than 398 positions has a published
-receipt, although the launcher admits up to 8,192. The
+are for 2K to 128K contexts. The subsequent
 [long-context fixture](../evidence/fixtures/long-requests.json) (1,210 to 6,892
-prompt tokens) exists to close this and has not yet been run.
+prompt tokens) now has twelve completed GPU receipts above. Coverage still
+stops at these six longer prompts and the configured 8,192-token pool.
 
-Each mode was also run once, in the order serial, DFly2, DSpark, on six prompts
+In the earlier comparison each mode was run once, in the order serial, DFly2, DSpark, on six prompts
 of which five ask for code or structured output.
 
-## Fresh public-launcher GPU validation
+## Earlier single-run public-launcher GPU validation
 
 The portable public launcher and newly built public image completed serial,
 DFly2 and DSpark runs on two NVIDIA GB10 systems. All three modes used the same
@@ -203,9 +280,13 @@ After adding the portable GPU receipts and image-store compatibility fix, all
 from the exported release archive and verified both recorded comparisons.
 
 The verifier cross-checks, matched-depth mode, suite tools and long-context
-fixture were added after those runs. The suite now has **73 CPU checks**, which
-have been run on x86-64 Linux only, and none of the added launcher paths has
-been exercised on the two GB10 systems yet.
+fixture were added after those runs. The merged PR passed **73 CPU checks** on
+x86-64 Linux. The subsequent two-fixture validation above exercises the added
+launcher paths in 24 runs on the two GB10 systems, including fixed-five DSpark.
+After both suites were exported, **73 CPU checks** and all published-evidence
+verifiers passed on Windows, with **three launcher pins confirmed from Git
+history and none unreadable**. This checks the recorded evidence; it is
+separate from the GPU runs themselves.
 
 ## Recompute the comparison
 
@@ -214,6 +295,8 @@ From the repository root, using only the Python standard library:
 ```sh
 python3 tools/dfly2/verify_evidence.py
 python3 tools/dfly2/verify_portable_evidence.py
+python3 tools/dfly2/verify_suite_evidence.py evidence/suite-chat
+python3 tools/dfly2/verify_suite_evidence.py evidence/suite-long
 python3 -m unittest discover -s tools/dfly2 -p test_evidence.py -v
 python3 -m unittest discover -s tools/dfly2 -p test_portable_evidence.py -v
 ```
@@ -251,10 +334,10 @@ Outputs and timings are in [chat-serial.json](../evidence/chat-serial.json),
 [chat-dfly2.json](../evidence/chat-dfly2.json). The generated calculation is
 [comparison.json](../evidence/comparison.json).
 
-## A better test, ready to run and not yet measured
+## Repeated suite design
 
-The launcher now has what the comparison above lacks. Nothing in this section
-has a receipt yet.
+The repeated suite adds the following controls to the earlier single-run
+comparison. Both fixtures above are completed applications of it.
 
 - **Matched depth.** `--mode dspark_fixed5` runs DSpark with the lane runner's
   existing `--fix-k 5`: five drafts every round, each treated as certain, the
@@ -264,33 +347,34 @@ has a receipt yet.
   synthetic requests of 1,210 to 6,892 prompt tokens, three greedy and three
   sampled, generated with the target's own tokenizer and template. Every one is
   more than twice the top-512 selection size, so the selection has to leave
-  positions out and DFly2's prompt-capture path runs on real multi-chunk
-  prompts for the first time.
+  positions out and DFly2's prompt-capture path sees multi-chunk prompts.
 - **Repeats and order.** `run_suite.py` runs every mode once per repeat and
   rotates which mode goes first, comparing every run, including repeated
   serial runs, with the first serial run. The suite verifier reports a median
   and range per mode.
 
 [RUN.md](RUN.md#matched-repeated-and-long-context-suite) has the commands. The
-long-context suite is the first run of DFly2's capture path beyond 398
-positions; a refusal or a token mismatch there would be a finding about the
-port and should be published as one.
+first longer-input suite preserved the serial output in all twelve runs.
+Future refusals or token mismatches remain findings about the port and should
+be retained, rather than removed from a comparison.
 
 ## Timing scope and limits
 
-These were one-stream eager runs with CUDA graphs disabled and profiling
-enabled, an 8,192-token pool, and fixed requests. Prompt lengths were 82–142
-tokens. Each output budget was 256 tokens; the combined output was 959 tokens.
-One response reached its output budget. Matching token IDs establishes that the
+All measurements here use one-stream eager runs with CUDA graphs disabled and
+profiling enabled, an 8,192-token pool, and fixed requests. The earlier chat
+prompts were 82–142 tokens; the longer-input prompts are 1,210–6,892 tokens.
+Each output budget is 256 tokens. Combined output is 959 tokens for chat and
+1,169 for the longer fixture. Matching token IDs establishes that the
 verified speculative path retained these target outputs; it does not grade the
 answers or establish correctness for all inputs and sampling settings.
 
 Estimated decode seconds equal the native recorder's total request time minus
-the sum of six recorded prefill times. The rate counts 953 tokens, excluding the
-first token generated during each prefill. Native elapsed times are rounded to
+the sum of six recorded prefill times. The rate counts 953 tokens for chat and
+1,163 for the longer fixture, excluding the first token generated during each
+prefill. Native elapsed times are rounded to
 0.01 seconds. This is not a production throughput benchmark or a statistical
-estimate with confidence intervals. Long-context serving, including 64K, was
-not measured in this chat comparison.
+estimate with confidence intervals. Serving at 64K was not measured by any
+of these suites.
 
 In the historical integration test, the DSpark baseline was repeated after
 builds finished. Its initial run was

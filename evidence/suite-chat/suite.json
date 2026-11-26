@@ -1,0 +1,85 @@
+{
+  "schema": "dfly2-public-suite-v1",
+  "suite": "chat",
+  "modes": [
+    "serial",
+    "dfly2",
+    "dspark_fixed5",
+    "dspark"
+  ],
+  "repeats": 3,
+  "runs": [
+    {
+      "order": 1,
+      "file": "run-01-serial-r1.json",
+      "mode": "serial",
+      "repeat": 1
+    },
+    {
+      "order": 2,
+      "file": "run-02-dfly2-r1.json",
+      "mode": "dfly2",
+      "repeat": 1
+    },
+    {
+      "order": 3,
+      "file": "run-03-dspark_fixed5-r1.json",
+      "mode": "dspark_fixed5",
+      "repeat": 1
+    },
+    {
+      "order": 4,
+      "file": "run-04-dspark-r1.json",
+      "mode": "dspark",
+      "repeat": 1
+    },
+    {
+      "order": 5,
+      "file": "run-05-dfly2-r2.json",
+      "mode": "dfly2",
+      "repeat": 2
+    },
+    {
+      "order": 6,
+      "file": "run-06-dspark_fixed5-r2.json",
+      "mode": "dspark_fixed5",
+      "repeat": 2
+    },
+    {
+      "order": 7,
+      "file": "run-07-dspark-r2.json",
+      "mode": "dspark",
+      "repeat": 2
+    },
+    {
+      "order": 8,
+      "file": "run-08-serial-r2.json",
+      "mode": "serial",
+      "repeat": 2
+    },
+    {
+      "order": 9,
+      "file": "run-09-dspark_fixed5-r3.json",
+      "mode": "dspark_fixed5",
+      "repeat": 3
+    },
+    {
+      "order": 10,
+      "file": "run-10-dspark-r3.json",
+      "mode": "dspark",
+      "repeat": 3
+    },
+    {
+      "order": 11,
+      "file": "run-11-serial-r3.json",
+      "mode": "serial",
+      "repeat": 3
+    },
+    {
+      "order": 12,
+      "file": "run-12-dfly2-r3.json",
+      "mode": "dfly2",
+      "repeat": 3
+    }
+  ]
+}

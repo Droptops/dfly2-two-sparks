@@ -1,0 +1,9 @@
+{
+  "schema": "dfly2-evidence-provenance-v1",
+  "launcher_sha256": "8bddce849d8c11e9ee29c9de47723e85604e11ffe582b8d07f094beb932e5f83",
+  "launcher_files": [
+    "tools/dfly2/run_pair.py",
+    "tools/dfly2/cluster_config.py"
+  ],
+  "repository_commit": "bfd3a816fabbb749146a9eadededad5052e3e43c"
+}

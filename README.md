@@ -2,11 +2,11 @@
 
 Experimental Tencent DFly2 speculative decoding for DeepSeek-V4.1-Flash-1017 on two NVIDIA GB10 nodes, using TensorFold's native Zig/CUDA runtime.
 
-The public launcher and freshly built image ran on two GB10 systems and matched all **959 reference output tokens and all six finish reasons**. In that small chat test, estimated decode speed was **45.06 tok/s with DFly2**, **74.98 tok/s with the existing DSpark drafter**, and **38.49 tok/s without drafting**. DSpark was faster on this workload.
+The repeated suites completed **24 GPU runs** on two GB10 systems: four modes, three repeats each, on both short chat prompts and longer inputs, with the starting mode rotating. Every run matched its fixture's serial reference: **959 output tokens for chat**, **1,169 for longer inputs**, and all six finish reasons in each case. DFly2's median estimated decode rate was **45.34 tok/s on chat** and **55.75 tok/s on the longer fixture**. Both DSpark modes remained faster on both fixtures.
 
-Read those two results for what they are. Target verification is exact, so matching tokens show that the DFly2 hooks leave the target's output intact; any drafter, good or broken, would produce the same tokens. And the two drafting lanes did not run under the same proposal policy: DSpark trims its draft depth by confidence and may use suffix-lookup copy proposals, while this DFly2 lane always proposes five drafts and uses no copies. The numbers describe this integration, not the two drafters. [What the comparison controls](docs/RESULTS.md#what-this-comparison-controls-and-what-it-does-not) has the details, and a matched, repeated, long-context suite is ready to run but not yet measured.
+Target verification is exact, so matching tokens establish output preservation on these requests, not fidelity to Tencent's drafter implementation. The fixed-five comparison matches draft depth, but DSpark still has suffix-copy proposals while DFly2 does not. Ordinary DSpark also adjusts depth by confidence. These numbers describe the implemented lanes on these fixtures. [Results and limitations](docs/RESULTS.md) retain the full ranges, per-request evidence and earlier single-run measurements.
 
-This repository publishes the implementation, tests, setup recipe, and measured results so others can reproduce and improve it. It is an experimental port, with text, tensor parallelism across two nodes, one active stream, replicated KV, and eager execution. CUDA graphs, concurrent requests, vision, long contexts including 64K, and production serving flows have not been qualified.
+This repository publishes the implementation, tests, setup recipe, and measured results so others can reproduce and improve it. It is an experimental port, with text, tensor parallelism across two nodes, one active stream, replicated KV, and eager execution. CUDA graphs, concurrent requests, vision, contexts beyond the measured fixtures including 64K, and production serving flows have not been qualified.
 
 ## What is included
 
@@ -28,21 +28,24 @@ Use ARM64 Linux on the two GB10 nodes with working NVIDIA drivers, NVIDIA Contai
 3. Copy [the example cluster configuration](examples/cluster.example.json) to `cluster.local.json`, fill in both nodes and paths, and follow [the run guide](docs/RUN.md).
 4. Run the read-only preflight first. An explicit `--run` starts an isolated test pair after the checks pass. The launcher does not stop existing workloads.
 
-The public build and portable launcher have completed a fresh two-node GPU comparison. [Results and methodology](docs/RESULTS.md) separate those measurements from build/CPU checks and retain the earlier integration results.
+The public build and portable launcher have completed both repeated GPU suites. [Results and methodology](docs/RESULTS.md) separate those measurements from build/CPU checks and retain the earlier integration results.
 
 ## Results and limits
 
-| Backend | Estimated decode tok/s | End-to-end tok/s | Total seconds including prefill | Tokens landed per round |
-| --- | ---: | ---: | ---: | ---: |
-| No drafting | 38.49 | 35.34 | 27.14 | 1.00 |
-| DSpark | 74.98 | 63.26 | 15.16 | 3.56 |
-| DFly2 | 45.06 | 39.05 | 24.56 | 3.52 |
+Median estimated decode tokens/s over three repeats per mode and fixture:
 
-Decode-only, DFly2 was 17% faster than no drafting; end to end, including its slower prefill, 10.5%. On the one prose request it was slower than no drafting (27.65 against 38.34 tok/s). Both drafters landed about the same number of tokens per round, so the gap to DSpark is cost, not acceptance: a DFly2 draft pass took 28.92 ms against 3.59 ms, and its fixed depth verifies six rows every round.
+| Backend | Short chat: 82–142 prompt tokens | Longer inputs: 1,210–6,892 prompt tokens |
+| --- | ---: | ---: |
+| No drafting | 38.76 | 38.21 |
+| DSpark | 73.65 | 81.39 |
+| DSpark, fixed five drafts | 66.23 | 76.66 |
+| DFly2 | 45.34 | 55.75 |
 
-These are single-stream eager measurements with profiling enabled, one run per mode in a fixed order, using the same freshly built executable and image contents for all three modes. Three requests were greedy; three used temperature 0.7, top-p 1, top-k 20, and fixed seeds. Prompts were 82–142 tokens; the combined output was 959 tokens. Decode seconds are estimated by subtracting recorded prefill time from total request time; the rate's token count excludes the first output token produced during each prefill. Native timings are rounded to 0.01 seconds. [Portable-run evidence](evidence/portable-validation/comparison.json) records the calculation. These results are neither a general performance ranking nor a claim to reproduce Tencent's published speedups.
+Compared with no drafting, DFly2's median decode gains were 17.0% on chat and 45.9% on the longer fixture. Including prefill, the gains were 10.8% and 25.1%. On the short prose request DFly2 was about 28% slower than no drafting (27.61 against 38.52 tok/s). It remained 31.5% below fixed-five DSpark on chat and 27.3% below it on longer-input median decode rate. [Full results](docs/RESULTS.md) include end-to-end rates, measured minimum/maximum ranges and the slower DFly2 prefill repeat. Different tasks are used in the two fixtures; their rate differences cannot be attributed to context length alone.
 
-[Results and methodology](docs/RESULTS.md) explain the exact checks, numerical differences from the reference implementation, omissions from public receipts, and untested cases. Final target-token equality does not establish whole-drafter numerical parity or identical proposal acceptance: no test yet compares this port's hidden states or proposals with the AngelSpec reference on the released weights. Every published prompt is under 400 tokens with its reply, so the target's top-512 selection keeps every position and DFly2's shared-selection path has only been exercised in that trivial form. The drafter was released for the unsuffixed DeepSeek-V4.1-Flash target; this experiment uses the 1017 target and verifies compatible geometry and RoPE settings.
+These are single-stream eager measurements with profiling enabled, the same native executable and image contents for all modes, and an 8,192-token pool. Each fixture has three greedy requests and three using temperature 0.7, top-p 1, top-k 20, and fixed seeds. Decode seconds are estimated by subtracting recorded prefill time from total request time; the rate's token count excludes the first output token produced during each prefill. Native timings are rounded to 0.01 seconds. The [chat](evidence/suite-chat/comparison.json) and [longer-input](evidence/suite-long/comparison.json) evidence records every run and the calculation. Three repeats give a measured range, not a confidence interval or a general performance ranking.
+
+[Results and methodology](docs/RESULTS.md) explain the exact checks, numerical differences from the reference implementation, omissions from public receipts, and untested cases. Final target-token equality does not establish whole-drafter numerical parity or identical proposal acceptance: no test yet compares this port's hidden states or proposals with the AngelSpec reference on the released weights. The longer-input suite extends observed capture-path coverage to these prompts; it does not qualify 64K context or production serving. The drafter was released for the unsuffixed DeepSeek-V4.1-Flash target; this experiment uses the 1017 target and verifies compatible geometry and RoPE settings.
 
 ## Validation
 
@@ -56,7 +59,7 @@ The check recomputes every published rate from the receipts, cross-checks each a
 
 GPU primitive checks, byte-upload checks, and full two-node comparisons are separate procedures in [the run guide](docs/RUN.md). They require the relevant hardware and prepared model assets. Small synthetic kernel tests are not end-to-end performance measurements.
 
-For a comparison worth citing, run the [matched suite](docs/RUN.md#matched-repeated-and-long-context-suite): all four modes, three rotated repeats, on both the chat fixture and the long-context fixture.
+Use the [suite instructions](docs/RUN.md#matched-repeated-and-long-context-suite) to reproduce all four modes with rotated repeats. The two published suites retain all 24 successful runs and the full ranges of timings.
 
 ## Contributing
 
@@ -65,7 +68,7 @@ Please report the target/checkpoint revisions, hardware, context length, samplin
 Useful next steps, most valuable first:
 
 1. A parity test that runs the released checkpoint through the AngelSpec reference and this port on the same captured context and compares hidden states and proposals. Nothing else can show the port is a faithful DFly2.
-2. Publishing the matched suite on the long-context fixture, which is where DFly2 is designed to help.
+2. Repeating the comparison on additional independently chosen tasks and extending context coverage beyond the six measured longer prompts.
 3. A runner switch for suffix-lookup copy proposals, so DSpark and DFly2 can be compared with copies off for both. This needs a native change and a rebuild.
 4. An acceptance estimate for DFly2, for example from its own softmax, so the scheduler can trim depth instead of always verifying six rows.
 5. Profiling the draft pass. The custom kernels account for about 5 to 6 ms of its 29 ms; the remainder is spread over dense projections, five evaluations of the shared target head, 21 cross-rank gathers and five blocking host readbacks.

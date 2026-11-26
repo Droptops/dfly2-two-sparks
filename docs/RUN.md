@@ -1,6 +1,6 @@
 # Configure and validate two Sparks
 
-The public two-node inference launcher and freshly built image completed serial, DSpark and DFly2 GPU runs with matching 959 output tokens and all six finish reasons. [RESULTS.md](RESULTS.md) separates this fresh portable validation from the earlier integration measurements. A successful preflight alone does not reproduce GPU results.
+The public two-node inference launcher and freshly built image completed both repeated GPU suites: all four modes, including fixed-five DSpark, three times each on both fixtures, for 24 runs. Every run matched its fixture's serial reference: 959 output tokens for chat, 1,169 for the longer inputs, and all six finish reasons. [RESULTS.md](RESULTS.md) keeps these repeated measurements separate from the earlier single-run results. A successful preflight alone does not reproduce GPU results.
 
 Complete [BUILD.md](BUILD.md) first. Runtime commands below are for Linux on the two configured GB10 nodes. Python 3.10+, Docker access, `ip`, `nvidia-smi`, existing SSH host keys and passwordless head-to-worker SSH are required. The launchers never stop services, change network configuration, download weights or restore a previously running model.
 
@@ -159,17 +159,19 @@ Then run both fixtures from the head, on otherwise idle nodes:
 
 ```bash
 python3 tools/dfly2/run_suite.py --config /etc/dfly2-two-sparks/cluster.json --run --repeats 3 \
+  --modes serial dfly2 dspark_fixed5 dspark \
   --requests /srv/models/dfly2-experiment/requests-chat.json \
   --output /srv/models/dfly2-experiment/results/suite-chat
 
 python3 tools/dfly2/run_suite.py --config /etc/dfly2-two-sparks/cluster.json --run --repeats 3 \
+  --modes serial dfly2 dspark_fixed5 dspark \
   --requests /srv/models/dfly2-experiment/requests-long.json \
   --output /srv/models/dfly2-experiment/results/suite-long
 ```
 
-The default is all four modes, twelve runs per fixture. Every run reloads the model: the published chat runs took 77 to 96 seconds each, and the port wait adds about a minute between runs, so allow roughly half an hour for the chat fixture and longer for the long one. A run that fails stops the suite and is recorded in `suite.json`; nothing is retried.
+The default is all four modes, twelve runs per fixture. The explicit order above is the order used in the published repeated suites; the first mode rotates on subsequent repeats. Every run reloads the model: the earlier single-run chat checks took 77 to 96 seconds each, and the port wait adds about a minute between runs, so allow roughly half an hour for the chat fixture and longer for the long one. A run that fails stops the suite and is recorded in `suite.json`; nothing is retried.
 
-The long fixture is the first time DFly2's prompt capture sees multi-chunk prompts and a selection that leaves positions out. If a DFly2 run refuses or its tokens differ from the serial run, keep the result directory. That is a finding about the port, and worth more than a clean number.
+The long fixture extends DFly2's prompt-capture coverage beyond the short chat requests. Its first twelve-run suite completed with exact serial output equality; see [the recorded results](RESULTS.md#repeated-longer-input-gpu-suite). This covers these six prompts up to 6,892 input tokens, not 64K serving or AngelSpec internal parity. If a later DFly2 run refuses or its tokens differ from the serial run, keep the result directory. That is a finding about the port, and worth more than a clean number.
 
 Export from the same checkout that launched the suite, so the recorded commit is the one whose launcher bytes ran, then re-run the checks:
 

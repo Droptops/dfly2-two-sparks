@@ -70,9 +70,9 @@ identifies canonical architecture, OS, variant, image configuration and ordered
 RootFS content. Docker storage backends can report different image IDs for the
 same transferred image, so those private IDs are neither exported nor used as
 the cross-node content identity. The private cluster configuration and its digest
-remain excluded. The pool size is supplied explicitly from the reviewed
-configuration because the raw run receipt does not embed that setting; this
-published suite requires exactly 8,192 tokens. Other
+remain excluded. For these earlier portable receipts, the pool size was supplied
+explicitly from the reviewed configuration because the raw run receipt did not
+embed that setting; this published suite requires exactly 8,192 tokens. Other
 published execution settings are fixed by the launcher. The exporter requires
 a new output directory and writes its derived comparison only after the
 cross-run checks pass. It also requires the reviewed historical request-file
@@ -132,6 +132,10 @@ or tempt an edit to the receipts. `scripts/check.py` confirms each pinned
 commit really holds the recorded bytes when Git history is available, and
 reports when it is not.
 
+The GitHub workflow fetches full history so CI can verify the historical and
+suite launcher pins. An exported archive without Git history still reports
+those commit checks as unreadable; it does not turn them into verified pins.
+
 ## Target identity
 
 The recorded `target_config_sha256` equals the SHA-256 of `config.json` at the
@@ -158,3 +162,17 @@ when run from a checkout whose launcher matches the one the suite recorded.
 runs included, to match the first serial run's tokens and finish reasons, and
 reports a median and range per mode. A median over three repeats is a better
 summary than one run. It is not a confidence interval.
+
+`evidence/suite-chat/` and `evidence/suite-long/` contain the two completed
+twelve-run suites: four modes, three repeats each, with every output token and
+all six finish reasons equal to that fixture's first serial run. The chat
+fixture produces 959 output tokens and the longer fixture 1,169. All 24
+individual receipts retain the full measured ranges, including the short
+prose slowdown and the longer fixture's slower DFly2 prefill repeat. These
+records are separate from all earlier single-run evidence.
+
+In recorded execution settings, `fixed_draft_depth` describes a command-line
+override. It is `5` for `dspark_fixed5` and `null` for DFly2 because no
+`--fix-k` override is passed to that mode. The native DFly2 implementation
+itself always proposes five drafts. A null override does not mean adaptive
+DFly2 depth. The suite matches depth only: DSpark copy proposals remain enabled.
