@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.patch text eol=lf -whitespace
+# Published receipts contain byte-level SHA-256 identities. Preserve their bytes.
+evidence/** -text whitespace=cr-at-eol
+build/tool-requirements.txt -text whitespace=cr-at-eol
+# Retain upstream license formatting, including original final blank lines.
+LICENSES/** -whitespace
+*.png binary
+*.jpg binary
+*.zip binary

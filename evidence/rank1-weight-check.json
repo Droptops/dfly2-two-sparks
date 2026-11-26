@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "rank": 1,
+  "sm": 121,
+  "tensors": 106,
+  "device_bytes": 4529862920,
+  "identity": "cdb1a38bb46af18fee74357562f4b855f67f5d70897f1ef9dd8976dbaf269ac4",
+  "all_uploaded_bytes_equal": true,
+  "allocation_released": true
+}

@@ -1,0 +1,47 @@
+DFly2 for two Sparks
+Copyright 2026 DFly2 two-Spark integration contributors
+
+This distribution contains an experimental native DFly2 integration patch and
+supporting tools, documentation, and measured test evidence. New integration
+code is provided under the Apache License, Version 2.0 (LICENSE). Existing code
+and diff context retain their original notices and licenses.
+
+TensorFold
+Copyright 2026 TensorFold contributors
+https://github.com/ashhart/TensorFold
+
+The DeepSeek-V4.1 native TensorFold family was written by BertholomusAI
+(Albert Lee, https://github.com/bertholomus), Copyright 2026, under Apache-2.0.
+The complete, unmodified upstream notice is LICENSES/TensorFold-NOTICE.txt.
+The upstream third-party and dsv41 attribution documents are preserved in
+LICENSES/TensorFold-THIRD_PARTY_NOTICES.md and
+LICENSES/TensorFold-dsv41-ATTRIBUTION.md. Associated license texts are retained
+in LICENSES/, including the notice for TensorFold's earlier MIT code.
+
+DeepSeek-V4.1-Flash-1017 EXL3 2.9 bpw on 2x DGX Spark with TensorFold
+Copyright 2026 MiaAI-Lab
+https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks
+Apache-2.0. The complete recipe license, notice, and contributor credits are
+LICENSES/MiaAI-Lab-DeepSeek-Recipe-LICENSE.txt,
+LICENSES/MiaAI-Lab-DeepSeek-Recipe-NOTICE.txt, and
+LICENSES/MiaAI-Lab-DeepSeek-Recipe-CREDITS.md.
+
+AngelSpec
+Copyright (C) 2026 Tencent. All rights reserved.
+https://github.com/Tencent/AngelSpec
+DFly2's architecture and arithmetic were reimplemented for TensorFold using
+the AngelSpec reference. Its full license and third-party notices are retained
+in LICENSES/AngelSpec-LICENSE.txt.
+
+Changes made by this integration:
+- Added DFly2 configuration and byte-preserving TP2 weight loading.
+- Added target-cache/index capture, accepted-anchor handling, a native DFly2
+  forward path and CUDA primitives, and optional model/lanes dispatch.
+- Added isolated build and validation tools and sanitized numerical evidence.
+- Optimized the DFly2 FP4 value decoding without changing its finite values.
+
+The original pre-optimization CUDA implementation is retained under the same
+Apache-2.0 integration license in evidence/kernels/ for benchmark reproduction.
+
+No model weights, NVIDIA container image, or deployment kernel kit are included.
+ATTRIBUTION.md records the source revisions and the role of each component.

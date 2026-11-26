@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "image": "dfly2-two-sparks:experimental",
+  "nodes": [
+    {
+      "hostname": "spark-head",
+      "address": "192.0.2.10",
+      "repo_dir": "/opt/dfly2-two-sparks",
+      "config_path": "/etc/dfly2-two-sparks/cluster.json",
+      "fabric": {"interface": "enp1s0f0", "hcas": ["mlx5_0"], "gid_index": 3}
+    },
+    {
+      "hostname": "spark-worker",
+      "address": "192.0.2.11",
+      "ssh_target": "YOUR_USER@spark-worker",
+      "ssh_port": 22,
+      "repo_dir": "/opt/dfly2-two-sparks",
+      "config_path": "/etc/dfly2-two-sparks/cluster.json",
+      "fabric": {"interface": "enp1s0f0", "hcas": ["mlx5_0"], "gid_index": 3}
+    }
+  ],
+  "paths": {
+    "model_root": "/srv/models",
+    "experiment_root": "/srv/models/dfly2-experiment",
+    "target_model": "/srv/models/target",
+    "engram": "/srv/models/engram",
+    "rank_cache": "/srv/models/rank-cache",
+    "kit": "/srv/models/kernel-kit/kit",
+    "token_map": "/srv/models/assets/dsv41_token_map.json",
+    "binary": "/srv/models/dfly2-experiment/bin/tf-dsv41-lanes",
+    "weights_probe": "/srv/models/dfly2-experiment/bin/tf-dsv41-dfly-weights",
+    "requests": "/srv/models/dfly2-experiment/requests.json",
+    "draft_pack": "/srv/models/DFly2-B6-TP2",
+    "results": "/srv/models/dfly2-experiment/results"
+  },
+  "execution": {"port": 4460, "pool": 8192, "min_available_gib": 112, "timeout_seconds": 1800},
+  "stopped": {
+    "dashboard_url": null,
+    "systemd_user_units": [],
+    "systemd_units": [],
+    "container_labels": [],
+    "container_names": []
+  }
+}

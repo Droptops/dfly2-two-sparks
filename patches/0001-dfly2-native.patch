@@ -1,0 +1,2112 @@
+diff --git a/zig/build/cuda.zig b/zig/build/cuda.zig
+index 57f775050..1eca7b2f9 100644
+--- a/zig/build/cuda.zig
++++ b/zig/build/cuda.zig
+@@ -30,6 +30,7 @@ const kernels = [_]Kernel{
+     .{ .name = "torch_movement", .src = "torch_ops/movement", .flags = torch_ops },
+     .{ .name = "torch_nemotron_constants", .src = "torch_ops/nemotron_constants", .flags = torch_ops },
+     .{ .name = "dsv41_ops", .flags = torch_ops }, // ours: the DeepSeek-V4.1 casts torch_ops/ lacks
++    .{ .name = "dsv41_dfly2", .flags = torch_ops }, // standalone DFly2 drafter, native MXFP4 experts
+     .{ .name = "dsv41_torch", .flags = torch_ops }, // ours: DeepSeek-V4.1 torch arithmetic at torch's rounding points
+     .{ .name = "dsv41_shard", .flags = torch_ops }, // ours: TF_DS_KV_SHARD's fetch and select byte movers (GLM 0118 port)
+     .{ .name = "dsv41_rdma", .src = "dsv41/rdma_gather", .flags = &.{"-O3"} }, // ours: the decode gathers' RDMA kernel pair
+@@ -126,6 +127,10 @@ pub fn targets(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bu
+     ds_load.addImport("dsv41", ds_check.import_table.get("dsv41").?);
+     ds_load.addImport("cuda", cuda);
+     b.installArtifact(b.addExecutable(.{ .name = "tf-dsv41-load", .root_module = ds_load }));
++    const dfly_load = b.createModule(.{ .root_source_file = b.path("zig/src/families/dsv41/dfly_weights_main.zig"), .target = target, .optimize = optimize, .link_libc = true });
++    dfly_load.addImport("dsv41", ds_check.import_table.get("dsv41").?);
++    dfly_load.addImport("cuda", cuda);
++    b.installArtifact(b.addExecutable(.{ .name = "tf-dsv41-dfly-weights", .root_module = dfly_load }));
+     const ds_comm = b.createModule(.{ .root_source_file = b.path("zig/src/families/dsv41/comm_main.zig"), .target = target, .optimize = optimize, .link_libc = true });
+     ds_comm.addImport("dsv41", ds_check.import_table.get("dsv41").?);
+     ds_comm.addImport("cuda", cuda);
+diff --git a/zig/kernels/cuda/dsv41_dfly2.cu b/zig/kernels/cuda/dsv41_dfly2.cu
+new file mode 100644
+index 000000000..ee253acd6
+--- /dev/null
++++ b/zig/kernels/cuda/dsv41_dfly2.cu
+@@ -0,0 +1,191 @@
++// Native DFly2 primitives. Correctness-first, architecture-neutral CUDA: no SM90
++// instructions and no change to target KV. FP4 expert scales are E8M0 / 32;
++// target cache scales are E4M3 / 16. These formats must never be interchanged.
++#include <cuda_runtime.h>
++#include <cuda_bf16.h>
++#include <stdint.h>
++#include <math.h>
++using B = __nv_bfloat16;
++__device__ float bf(B x) { return __bfloat162float(x); }
++__device__ B rb(float x) { return __float2bfloat16_rn(x); }
++__device__ float e2m1(unsigned c) {
++    unsigned m = c & 7;
++    unsigned bits = m < 2 ? (m ? 0x3f000000u : 0u)
++                         : ((126u + (m >> 1)) << 23) | ((m & 1) << 22);
++    return __uint_as_float(bits | ((c & 8) << 28));
++}
++__device__ float e8m0(unsigned c) {
++    // Code zero is 2^-127 (a FLOAT32 subnormal), not zero. Constructing
++    // exact IEEE values avoids a runtime table and exponent helper in GEMV.
++    return __uint_as_float(c == 0 ? 0x00400000u : c == 255 ? 0x7fc00000u : c << 23);
++}
++__device__ float e4m3(unsigned c) {
++    unsigned e = (c >> 3) & 15, m = c & 7;
++    float v = e ? ldexpf(1.f + float(m) / 8, int(e) - 7) : ldexpf(float(m), -9);
++    if (e == 15 && m == 7) v = nanf("");
++    return c & 128 ? -v : v;
++}
++__device__ float warp_sum(float x) {
++    for (int o=16;o;o/=2) x += __shfl_down_sync(0xffffffff, x, o);
++    return x;
++}
++__device__ float block_sum(float x) {
++    __shared__ float tmp[32];
++    int lane=threadIdx.x&31, warp=threadIdx.x>>5;
++    x=warp_sum(x); if (!lane) tmp[warp]=x; __syncthreads();
++    x=threadIdx.x < blockDim.x/32 ? tmp[lane] : 0;
++    if (!warp) x=warp_sum(x);
++    if (!threadIdx.x) tmp[0]=x; __syncthreads();
++    float result=tmp[0]; __syncthreads(); return result;
++}
++
++// Normalize two independent vectors then concatenate, using the fused serving
++// RMSNorm rounding (multiply norm weight in FP32, then materialize BF16).
++extern "C" __global__ void tf_dfly_norm_concat(const B* x,const B* y,const B* wx,const B* wy,
++                                               B* out,int d,float eps) {
++    float sx=0,sy=0;
++    for(int i=threadIdx.x;i<d;i+=blockDim.x) { float a=bf(x[i]),b=bf(y[i]);sx+=a*a;sy+=b*b; }
++    sx=rsqrtf(block_sum(sx)/d+eps);sy=rsqrtf(block_sum(sy)/d+eps);
++    for(int i=threadIdx.x;i<d;i+=blockDim.x) {out[i]=rb(bf(x[i])*sx*bf(wx[i]));out[d+i]=rb(bf(y[i])*sy*bf(wy[i]));}
++}
++extern "C" __global__ void tf_dfly_init_block(const B* embed,const int64_t* ids,const B* fusion,
++                                              const B* gate,B* h,float* pre,int d,int rows) {
++    int row=blockIdx.x;
++    for(int i=threadIdx.x;i<d;i+=blockDim.x) {
++        B v=embed[ids[row]*int64_t(d)+i];
++        // multiplication and addition each round in BF16 in the reference.
++        if(!row) v=rb(bf(v)+bf(rb(bf(fusion[i])*bf(gate[i]))));
++        for(int c=0;c<4;c++) h[(row*4+c)*d+i]=v;
++    }
++    if(threadIdx.x<4) pre[row*4+threadIdx.x]=threadIdx.x==0 ? 1.f:0.f;
++}
++extern "C" __global__ void tf_dfly_add(const B* a,const B* b,B* out,int n) {
++    for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) out[i]=rb(bf(a[i])+bf(b[i]));
++}
++extern "C" __global__ void tf_dfly_silu(const B* gate,const B* up,B* out,int n,float limit) {
++    for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x) {
++        float g=bf(gate[i]),u=bf(up[i]);
++        if(limit>0) {g=fminf(g,limit);u=fmaxf(-limit,fminf(u,limit));}
++        // DFly2 expert/MLP activation materializes SiLU in BF16 before multiply.
++        out[i]=rb(bf(rb(g/(1.f+expf(-g))))*u);
++    }
++}
++
++// Replicated BF16 router, FP32 dot products. Select by sqrt(softplus)+bias,
++// normalize the ORIGINAL unbiased top-3 scores, then scale by 1.5.
++extern "C" __global__ void tf_dfly_route(const B* x,const B* gate,const float* bias,
++                                         int* ids,float* weights,int d) {
++    __shared__ float scores[128],ranked[128];
++    int row=blockIdx.x,warp=threadIdx.x/32,lane=threadIdx.x%32;
++    for(int e=warp;e<128;e+=blockDim.x/32) {
++        float v=0;for(int k=lane;k<d;k+=32) v+=bf(x[row*d+k])*bf(gate[e*d+k]);
++        v=warp_sum(v);
++        if(!lane) {float s=sqrtf(v>20 ? v:log1pf(expf(v)));scores[e]=s;ranked[e]=s+bias[e];}
++    }
++    __syncthreads();
++    if(!threadIdx.x) {
++        float sum=0;
++        for(int j=0;j<3;j++) {int best=0;for(int e=1;e<128;e++) if(ranked[e]>ranked[best]) best=e;
++            ids[row*3+j]=best;weights[row*3+j]=scores[best];sum+=scores[best];ranked[best]=-INFINITY;}
++        for(int j=0;j<3;j++) weights[row*3+j]=weights[row*3+j]/(sum+1e-20f)*1.5f;
++    }
++}
++
++// Each CTA computes four output channels of one selected expert. The intermediate
++// shard's K is contiguous; loader slices gate/up N and down K at multiples of32.
++extern "C" __global__ void tf_dfly_fp4(const uint8_t* codes,const uint8_t* scales,const B* x,
++                                       const int* ids,B* out,int n,int k,int rows,int expert_input) {
++    int channel=blockIdx.x*4+threadIdx.x/32;
++    int sel=blockIdx.y,row=sel/3,lane=threadIdx.x%32;
++    if(channel>=n||row>=rows) return;
++    int expert=ids[sel]; int64_t wr=(int64_t(expert)*n+channel);
++    const B* in=x+(expert_input ? int64_t(sel)*k:int64_t(row)*k);
++    float sum=0;
++    for(int i=lane;i<k;i+=32) {
++        unsigned p=codes[wr*(k/2)+i/2],c=(i&1)?p>>4:p&15;
++        float w=e2m1(c)*e8m0(scales[wr*(k/32)+i/32]);
++        sum+=bf(in[i])*w;
++    }
++    sum=warp_sum(sum);if(!lane) out[int64_t(sel)*n+channel]=rb(sum);
++}
++extern "C" __global__ void tf_dfly_mix_experts(const B* routed,const B* shared,const float* weights,
++                                               float* out,int d,int rows) {
++    for(int p=blockIdx.x*blockDim.x+threadIdx.x;p<rows*d;p+=blockDim.x*gridDim.x) {
++        int row=p/d,col=p%d;float v=bf(shared[p]);
++        for(int j=0;j<3;j++) v+=bf(routed[(row*3+j)*d+col])*weights[row*3+j];out[p]=v;
++    }
++}
++
++// Compact the512 selected target FP4 latents and128 local BF16 keys. Invalid keys
++// get a separate mask; zero vectors would otherwise change the softmax denominator.
++extern "C" __global__ void tf_dfly_gather_context(const uint8_t* codes,const uint8_t* scales,
++    const int64_t* indices,const B* ring,B* out,int* valid,int64_t compressed_base,
++    int64_t ring_base,int ring_rows,int64_t anchor,int64_t window_start) {
++    int key=blockIdx.x,c=threadIdx.x;
++    int64_t pos=key<512 ? indices[key]:anchor-127+(key-512);
++    bool ok=key<512 ? pos>=0 && pos<=anchor : pos>=window_start && pos>=0 && pos<=anchor;
++    if(!c) valid[key]=ok;
++    for(int d=c;d<512;d+=blockDim.x) {
++        float v=0;
++        if(ok) {
++            // TensorFold cache packs the two HALVES of a512-vector, unlike
++            // the checkpoint expert format (adjacent low/high nibbles).
++            if(key<512) {int64_t row=compressed_base+pos;unsigned p=codes[row*256+d%256];
++                v=e2m1(d>=256?p>>4:p&15)*e4m3(scales[row*32+d/16]);}
++            else v=bf(ring[(ring_base+pos%ring_rows)*512+d]);
++        }
++        out[key*512+d]=rb(v);
++    }
++}
++
++// Context attention plus optional noncausal draft keys. Per-head sink contributes
++// only to the denominator. One CTA per query/head, FP32 accumulation.
++extern "C" __global__ void tf_dfly_attention(const B* q,const B* context,const int* valid,
++    const B* block,const float* sink,B* out,int heads,int rows,int block_rows) {
++    __shared__ float logits[656],probs[656],reduce[8];
++    int pair=blockIdx.x,row=pair/heads,head=pair%heads,lane=threadIdx.x%32,warp=threadIdx.x/32;
++    if(row>=rows)return;const B* qr=q+int64_t(pair)*512;int keys=640+block_rows;
++    for(int key=warp;key<keys;key+=8) {
++        bool ok=key>=640 || valid[key];const B* kv=key<640?context+key*512:block+(key-640)*512;
++        float score=0;if(ok)for(int d=lane;d<512;d+=32)score+=bf(qr[d])*bf(kv[d]);
++        score=warp_sum(score);if(!lane)logits[key]=ok?score*0.04419417382415922f:-INFINITY;
++    }
++    __syncthreads();float mx=sink[head];
++    for(int key=threadIdx.x;key<keys;key+=256)mx=fmaxf(mx,logits[key]);
++    for(int o=16;o;o/=2)mx=fmaxf(mx,__shfl_down_sync(0xffffffff,mx,o));
++    if(!lane)reduce[warp]=mx;__syncthreads();
++    if(!threadIdx.x){mx=reduce[0];for(int i=1;i<8;i++)mx=fmaxf(mx,reduce[i]);reduce[0]=mx;}__syncthreads();mx=reduce[0];
++    float sum=threadIdx.x==0?expf(sink[head]-mx):0;
++    for(int key=threadIdx.x;key<keys;key+=256){float p=expf(logits[key]-mx);probs[key]=p;sum+=p;}
++    sum=block_sum(sum);__syncthreads();
++    for(int d=threadIdx.x;d<512;d+=256){float v=0;for(int key=0;key<keys;key++) {
++        const B* kv=key<640?context+key*512:block+(key-640)*512;v+=probs[key]/sum*bf(kv[d]);}
++        out[int64_t(pair)*512+d]=rb(v);}
++}
++
++// The correction's causal block read is separately normalized, then tanh gated
++// and added to context attention BEFORE its common inverse-RoPE/output projection.
++extern "C" __global__ void tf_dfly_block_attention(const B* q,const B* keys,const B* gate,
++    const float* sink,const float* rel_bias,const float* gate_bias,B* inout,int heads,int slot) {
++    __shared__ float probs[6];int head=blockIdx.x;
++    if(!threadIdx.x){float logits[6],mx=sink[head],sum;
++        for(int k=0;k<=slot;k++){float s=0;for(int d=0;d<512;d++)s+=bf(q[head*512+d])*bf(keys[k*512+d]);
++            logits[k]=s*0.04419417382415922f+rel_bias[head*16+slot-k];mx=fmaxf(mx,logits[k]);}
++        sum=expf(sink[head]-mx);for(int k=0;k<=slot;k++){probs[k]=expf(logits[k]-mx);sum+=probs[k];}
++        for(int k=0;k<=slot;k++)probs[k]/=sum;}
++    __syncthreads();float g=tanhf(bf(gate[head])+gate_bias[head*16+slot]);
++    for(int d=threadIdx.x;d<512;d+=blockDim.x){float s=0;for(int k=0;k<=slot;k++)s+=probs[k]*bf(keys[k*512+d]);
++        inout[head*512+d]=rb(bf(inout[head*512+d])+g*s);}
++}
++
++// Local vocabulary winner as two floats (score,id); ids<2^24 are exact. Deterministic
++// lowest-token tie breaking agrees across ranks, independent of collective ordering.
++extern "C" __global__ void tf_dfly_best(const float* logits,float* best,int n,int offset) {
++    __shared__ float scores[256];__shared__ int ids[256];int id=-1;float score=-INFINITY;
++    for(int i=threadIdx.x;i<n;i+=blockDim.x)if(logits[i]>score||(logits[i]==score&&(id<0||i<id))){score=logits[i];id=i;}
++    scores[threadIdx.x]=score;ids[threadIdx.x]=id;__syncthreads();
++    for(int stride=128;stride;stride/=2){if(threadIdx.x<stride){int j=threadIdx.x+stride;
++        if(scores[j]>scores[threadIdx.x]||(scores[j]==scores[threadIdx.x]&&ids[j]>=0&&(ids[threadIdx.x]<0||ids[j]<ids[threadIdx.x]))){scores[threadIdx.x]=scores[j];ids[threadIdx.x]=ids[j];}}
++        __syncthreads();}
++    if(!threadIdx.x){best[0]=scores[0];best[1]=float(ids[0]+offset);}
++}
+diff --git a/zig/src/cuda/kernels.zig b/zig/src/cuda/kernels.zig
+index 15b1421f6..85d2e9cec 100644
+--- a/zig/src/cuda/kernels.zig
++++ b/zig/src/cuda/kernels.zig
+@@ -31,6 +31,7 @@ pub const torch_indexing: []const u8 = if (available) &Blob("fatbin_torch_indexi
+ pub const torch_movement: []const u8 = if (available) &Blob("fatbin_torch_movement").bytes else &.{};
+ pub const torch_nemotron_constants: []const u8 = if (available) &Blob("fatbin_torch_nemotron_constants").bytes else &.{};
+ pub const dsv41_ops: []const u8 = if (available) &Blob("fatbin_dsv41_ops").bytes else &.{};
++pub const dsv41_dfly2: []const u8 = if (available) &Blob("fatbin_dsv41_dfly2").bytes else &.{};
+ pub const dsv41_torch: []const u8 = if (available) &Blob("fatbin_dsv41_torch").bytes else &.{};
+ pub const dsv41_shard: []const u8 = if (available) &Blob("fatbin_dsv41_shard").bytes else &.{};
+ pub const dsv41_rdma: []const u8 = if (available) &Blob("fatbin_dsv41_rdma").bytes else &.{};
+diff --git a/zig/src/families/dsv41/dfly.zig b/zig/src/families/dsv41/dfly.zig
+new file mode 100644
+index 000000000..e9cca06f1
+--- /dev/null
++++ b/zig/src/families/dsv41/dfly.zig
+@@ -0,0 +1,352 @@
++//! Standalone DeepSeek DFly2 B6 on a TP2 target. This is not DSpark: it reads
++//! target KV/index selections, fuses the preceding target hidden into slot0,
++//! and samples slots1..5 with sequential hidden/attentive correction.
++//! Initial implementation deliberately supports one stream, replicated KV,
++//! eager execution and greedy draft proposals. Target verification is unchanged.
++const std = @import("std");
++const prompt = @import("prompt.zig");
++const cache = @import("dfly_cache.zig");
++const weights = @import("dfly_weights.zig");
++const base_weights = @import("weights.zig");
++const basic = @import("tri_basic.zig");
++const hc = @import("tri_hc.zig");
++const norm = @import("tri_norm.zig");
++const Kernels = @import("dfly_kernels.zig").Kernels;
++const Engine = prompt.Engine;
++const Chunk = prompt.Chunk;
++const Linear = base_weights.Linear;
++
++pub const max_streams = 16;
++pub const block_size = 6;
++pub const max_drafts = 5;
++const D = 5120;
++const HD = 512;
++const H = 32;
++const Q = 1280;
++const I = 1152;
++const R = block_size;
++const mask_token: i64 = 128799;
++
++fn ci(v: usize) i32 {
++    return @intCast(v);
++}
++fn blocks(n: usize) usize {
++    return (n + 255) / 256;
++}
++
++pub const Drafter = struct {
++    w: *const weights.Weights,
++    k: Kernels,
++    ids: u64,
++    positions: u64,
++    single_position: u64,
++    none: u64,
++    h: u64,
++    h_alt: u64,
++    x: u64,
++    part: u64,
++    pre: u64,
++    pre_a: u64,
++    pre_f: u64,
++    post: u64,
++    comb: u64,
++    qa: u64,
++    qr: u64,
++    q: u64,
++    ykv: u64,
++    kvb: u64,
++    o: u64,
++    group_in: u64,
++    group_out: u64,
++    u: u64,
++    dense_out: u64,
++    partial: u64,
++    gathered: u64,
++    context: [3]u64,
++    valid: [3]u64,
++    pick: u64,
++    route_weights: u64,
++    mg: u64,
++    mu: u64,
++    ma: u64,
++    md: u64,
++    sg: u64,
++    su: u64,
++    sa: u64,
++    sd: u64,
++    collapsed: u64,
++    normalized: u64,
++    concat: u64,
++    fusion: u64,
++    cg: u64,
++    cu: u64,
++    ca: u64,
++    delta: u64,
++    corrected: u64,
++    correction_keys: u64,
++    block_gate: u64,
++    head_input: u64,
++    logits: u64,
++    best: u64,
++    best_all: u64,
++    drafts: [max_streams][max_drafts]i64 = undefined,
++    streams: usize = 0,
++    steps: usize = 0,
++
++    pub fn init(e: *const Engine, a: *prompt.Arena, w: *const weights.Weights) !Drafter {
++        if (e.world != 2 or e.two != null or e.kv != null) return error.DFly2RequiresReplicatedTP2;
++        if (e.c.hidden != D or e.c.head_dim != HD or e.c.hc != 4) return error.DFly2TargetShapeMismatch;
++        var k = try Kernels.load(e.d);
++        errdefer k.deinit();
++        var dr: Drafter = undefined;
++        dr.w = w;
++        dr.k = k;
++        dr.streams = 0;
++        dr.steps = 0;
++        dr.ids = try a.take(R * 8);
++        dr.positions = try a.take(R * 8);
++        // The deployed AOT RoPE variants require a16-byte-aligned POS pointer,
++        // including one-row calls. Odd slot offsets in positions are only8-aligned.
++        dr.single_position = try a.take(16);
++        dr.none = try a.take(R * 8);
++        dr.h = try a.take(R * 4 * D * 2);
++        dr.h_alt = try a.take(R * 4 * D * 2);
++        dr.x = try a.take(R * D * 2);
++        dr.part = try a.take(R * basic.hc_blocks * 32 * 4);
++        dr.pre = try a.take(R * 4 * 4);
++        dr.pre_a = try a.take(R * 4 * 4);
++        dr.pre_f = try a.take(R * 4 * 4);
++        dr.post = try a.take(R * 4 * 4);
++        dr.comb = try a.take(R * 16 * 4);
++        dr.qa = try a.take(R * Q * 2);
++        dr.qr = try a.take(R * Q * 2);
++        dr.q = try a.take(R * H * HD * 2);
++        dr.ykv = try a.take(R * HD * 2);
++        dr.kvb = try a.take(R * HD * 2);
++        dr.o = try a.take(R * H * HD * 2);
++        dr.group_in = try a.take(R * 4096 * 2);
++        dr.group_out = try a.take(R * 1024 * 2);
++        dr.u = try a.take(R * 4096 * 2);
++        dr.dense_out = try a.take(R * D * 2);
++        dr.partial = try a.take(R * D * 4);
++        dr.gathered = try a.take(2 * R * D * 4);
++        for (0..3) |j| {
++            dr.context[j] = try a.take(640 * HD * 2);
++            dr.valid[j] = try a.take(640 * 4);
++        }
++        dr.pick = try a.take(R * 3 * 4);
++        dr.route_weights = try a.take(R * 3 * 4);
++        dr.mg = try a.take(R * 3 * I * 2);
++        dr.mu = try a.take(R * 3 * I * 2);
++        dr.ma = try a.take(R * 3 * I * 2);
++        dr.md = try a.take(R * 3 * D * 2);
++        dr.sg = try a.take(R * I * 2);
++        dr.su = try a.take(R * I * 2);
++        dr.sa = try a.take(R * I * 2);
++        dr.sd = try a.take(R * D * 2);
++        dr.collapsed = try a.take(R * D * 2);
++        dr.normalized = try a.take(R * D * 2);
++        dr.concat = try a.take(2 * D * 2);
++        dr.fusion = try a.take(D * 2);
++        const correction_width: usize = w.correction.gate_proj.n;
++        dr.cg = try a.take(correction_width * 2);
++        dr.cu = try a.take(correction_width * 2);
++        dr.ca = try a.take(correction_width * 2);
++        dr.delta = try a.take(D * 2);
++        dr.corrected = try a.take(D * 2);
++        dr.correction_keys = try a.take(R * HD * 2);
++        dr.block_gate = try a.take(H * 2);
++        // prompt.grouped may pad the single-row shared target head. Keep its
++        // input separate from correction scratch, with initialized padding.
++        const head_rows = @max(R, e.plain_rows);
++        dr.head_input = try a.take(head_rows * D * 2);
++        try prompt.fill(e, dr.head_input, 0, head_rows * D * 2);
++        dr.logits = try a.take(head_rows * e.w.head.n * 4);
++        dr.best = try a.take(2 * 4);
++        dr.best_all = try a.take(2 * 2 * 4);
++        var no: [R]i64 = @splat(-1);
++        try prompt.upload(e, dr.none, &no, no.len * 8);
++        try e.s.synchronize(); // upload source has automatic storage
++        return dr;
++    }
++
++    pub fn deinit(dr: *Drafter) void {
++        dr.k.deinit();
++    }
++
++    fn linear(e: *const Engine, l: Linear, x: u64, y: u64, rows: usize) !void {
++        if (l.plain == 0) return error.DFly2DenseWeightsRequired;
++        try e.blas.linearBf16(x, l.plain, y, rows, l.k, l.n);
++    }
++
++    fn concatNorm(dr: *Drafter, e: *const Engine, x: u64, y: u64, wx: u64, wy: u64) !void {
++        try dr.k.run(e.s, "norm_concat", .{ 1, 1, 1 }, 256, .{ x, y, wx, wy, dr.concat, ci(D), e.c.eps });
++    }
++
++    fn normQuery(dr: *Drafter, e: *const Engine, q_norm: u64, wq_b: Linear, rows: usize, positions: u64) !void {
++        try basic.rmsnorm(e.t, dr.qa, Q, q_norm, dr.qr, Q, e.c.eps, rows, Q);
++        try linear(e, wq_b, dr.qr, dr.q, rows);
++        try norm.ropeHeads(e.t, dr.q, e.compressed.cos, e.compressed.sin, positions, 64, false, rows, H, HD);
++    }
++
++    fn output(dr: *Drafter, e: *const Engine, wo_a: [4]Linear, wo_b: Linear, rows: usize, positions: u64) !void {
++        try norm.ropeHeads(e.t, dr.o, e.compressed.cos, e.compressed.sin, positions, 64, true, rows, H, HD);
++        for (wo_a, 0..) |wa, g| {
++            if (wa.k != 4096 or wa.n != 1024) return error.DFly2OutputShapeMismatch;
++            try e.ops.copyRows(e.s, dr.o + g * 4096 * 2, H * HD * 2, dr.group_in, 4096 * 2, 4096 * 2, rows);
++            try linear(e, wa, dr.group_in, dr.group_out, rows);
++            try e.ops.copyRows(e.s, dr.group_out, 1024 * 2, dr.u + g * 1024 * 2, 4096 * 2, 1024 * 2, rows);
++        }
++        try linear(e, wo_b, dr.u, dr.dense_out, rows);
++        try e.ops.toF32(e.s, dr.dense_out, dr.partial, rows * D);
++    }
++
++    fn gatherPartial(dr: *Drafter, e: *const Engine, rows: usize) !void {
++        try e.gatherF32(dr.partial, dr.gathered, rows * D);
++    }
++
++    fn sumPartial(dr: *Drafter, e: *const Engine, out: u64, rows: usize) !void {
++        try dr.gatherPartial(e, rows);
++        try e.ops.add2Bf16(e.s, dr.gathered, dr.gathered + rows * D * 4, out, rows * D);
++    }
++
++    fn mixes(dr: *Drafter, e: *const Engine, h: u64, spare: *u64, pending: *bool, params: [3]u64, pre_in: u64, norm_w: u64, pre_out: u64) !u64 {
++        // The installed kit has plain RB2 and posted RB3/4/8, but no posted
++        // RB2 specialization (our six-row block). Materialize the identical
++        // post separately, then use the recorded plain six-row mix.
++        var src = h;
++        if (pending.*) {
++            src = spare.*;
++            try basic.hcPost(e.t, dr.gathered, h, dr.post, dr.comb, src, 2, R, D);
++            spare.* = h;
++            pending.* = false;
++        }
++        return hc.hcPre2(e.t, src, params[0], params[1], params[2], pre_in, norm_w, e.c.eps, e.c.hc_eps, e.c.hc_iters, dr.x, pre_out, dr.post, dr.comb, dr.part, null, null, R, D);
++    }
++
++    fn attend(dr: *Drafter, e: *const Engine, layer: usize) !void {
++        const l = dr.w.layers[layer].attn;
++        try linear(e, l.wq_a, dr.x, dr.qa, R);
++        try dr.normQuery(e, l.q_norm, l.wq_b, R, dr.positions);
++        try linear(e, l.wkv, dr.x, dr.ykv, R);
++        // DFly2 block latents are BF16, not the target's FP8-quantized SWA rows.
++        try basic.rmsnorm(e.t, dr.ykv, HD, l.kv_norm, dr.kvb, HD, e.c.eps, R, HD);
++        try norm.ropeHeads(e.t, dr.kvb, e.compressed.cos, e.compressed.sin, dr.positions, 64, false, R, 1, HD);
++        try dr.k.run(e.s, "attention", .{ R * H, 1, 1 }, 256, .{ dr.q, dr.context[layer], dr.valid[layer], dr.kvb, l.sink, dr.o, ci(H), ci(R), ci(R) });
++        try dr.output(e, l.wo_a, l.wo_b, R, dr.positions);
++    }
++
++    fn fp4(dr: *Drafter, e: *const Engine, m: weights.Mxfp4Experts, x: u64, out: u64, expert_input: bool) !void {
++        if (m.count != 128 or m.k % 32 != 0) return error.DFly2ExpertShapeMismatch;
++        try dr.k.run(e.s, "fp4", .{ (@as(usize, m.n) + 3) / 4, R * 3, 1 }, 128, .{ m.codes, m.scales, x, dr.pick, out, @as(i32, @intCast(m.n)), @as(i32, @intCast(m.k)), ci(R), @as(i32, @intFromBool(expert_input)) });
++    }
++
++    fn moe(dr: *Drafter, e: *const Engine, j: usize) !void {
++        const l = dr.w.layers[j];
++        try dr.k.run(e.s, "route", .{ R, 1, 1 }, 256, .{ dr.x, l.attn.gate_w, l.attn.gate_b, dr.pick, dr.route_weights, ci(D) });
++        try dr.fp4(e, l.w1, dr.x, dr.mg, false);
++        try dr.fp4(e, l.w3, dr.x, dr.mu, false);
++        try dr.k.run(e.s, "silu", .{ blocks(R * 3 * I), 1, 1 }, 256, .{ dr.mg, dr.mu, dr.ma, ci(R * 3 * I), @as(f32, 10) });
++        try dr.fp4(e, l.w2, dr.ma, dr.md, true);
++        try linear(e, l.shared_w1, dr.x, dr.sg, R);
++        try linear(e, l.shared_w3, dr.x, dr.su, R);
++        try dr.k.run(e.s, "silu", .{ blocks(R * I), 1, 1 }, 256, .{ dr.sg, dr.su, dr.sa, ci(R * I), @as(f32, 10) });
++        try linear(e, l.shared_w2, dr.sa, dr.sd, R);
++        try dr.k.run(e.s, "mix_experts", .{ blocks(R * D), 1, 1 }, 256, .{ dr.md, dr.sd, dr.route_weights, dr.partial, ci(D), ci(R) });
++    }
++
++    fn correctionInput(dr: *Drafter, e: *const Engine, slot: usize, previous: i64) !void {
++        const c = dr.w.correction;
++        try e.ops.copyRows(e.s, dr.positions + slot * 8, 8, dr.single_position, 8, 8, 1);
++        try dr.concatNorm(e, dr.normalized + slot * D * 2, e.w.embed + @as(u64, @intCast(previous)) * D * 2, c.hidden_norm, c.embed_norm);
++        // Every previous token's embedding changes the correction key, so keys are
++        // appended as proposals become known. Slot0 uses the anchor and is unsampled.
++        try linear(e, c.attention.kv_in, dr.concat, dr.ykv, 1);
++        const key = dr.correction_keys + slot * HD * 2;
++        try basic.rmsnorm(e.t, dr.ykv, HD, c.attention.kv_norm, key, HD, e.c.eps, 1, HD);
++        try norm.ropeHeads(e.t, key, e.compressed.cos, e.compressed.sin, dr.single_position, 64, false, 1, 1, HD);
++    }
++
++    fn correct(dr: *Drafter, e: *const Engine, slot: usize) !void {
++        const c = dr.w.correction;
++        const at = c.attention;
++        const pos = dr.single_position;
++        try linear(e, c.gate_proj, dr.concat, dr.cg, 1);
++        try linear(e, c.up_proj, dr.concat, dr.cu, 1);
++        try dr.k.run(e.s, "silu", .{ blocks(c.gate_proj.n), 1, 1 }, 256, .{ dr.cg, dr.cu, dr.ca, @as(i32, @intCast(c.gate_proj.n)), @as(f32, 0) });
++        try linear(e, c.down_proj, dr.ca, dr.dense_out, 1);
++        try e.ops.toF32(e.s, dr.dense_out, dr.partial, D);
++        try dr.sumPartial(e, dr.delta, 1);
++        try linear(e, at.q_in, dr.concat, dr.qa, 1);
++        try dr.normQuery(e, at.q_norm, at.wq_b, 1, pos);
++        try dr.k.run(e.s, "attention", .{ H, 1, 1 }, 256, .{ dr.q, dr.context[2], dr.valid[2], dr.kvb, at.sink, dr.o, ci(H), @as(i32, 1), @as(i32, 0) });
++        try linear(e, at.block_gate, dr.concat, dr.block_gate, 1);
++        try dr.k.run(e.s, "block_attention", .{ H, 1, 1 }, 256, .{ dr.q, dr.correction_keys, dr.block_gate, at.block_sink, at.block_rel_bias, at.block_gate_bias, dr.o, ci(H), ci(slot) });
++        try dr.output(e, at.wo_a, at.wo_b, 1, pos);
++        try dr.sumPartial(e, dr.corrected, 1);
++        try dr.k.run(e.s, "add", .{ blocks(D), 1, 1 }, 256, .{ dr.delta, dr.corrected, dr.delta, ci(D) });
++        try dr.k.run(e.s, "add", .{ blocks(D), 1, 1 }, 256, .{ dr.normalized + slot * D * 2, dr.delta, dr.corrected, ci(D) });
++    }
++
++    fn sample(dr: *Drafter, e: *const Engine, ch: *const Chunk) !i64 {
++        // The shared target head can be EXL3; only it needs the target's grouped path.
++        try e.ops.copyRows(e.s, dr.corrected, D * 2, dr.head_input, D * 2, D * 2, 1);
++        try prompt.grouped(e, ch, 1, &.{e.w.head}, &.{dr.head_input}, &.{D}, &.{dr.logits}, &.{e.w.head.n}, &.{.f32});
++        try dr.k.run(e.s, "best", .{ 1, 1, 1 }, 256, .{ dr.logits, dr.best, @as(i32, @intCast(e.w.head.n)), ci(e.w.vocab_lo) });
++        try e.gatherF32(dr.best, dr.best_all, 2);
++        try e.s.synchronize();
++        var best: [4]f32 = undefined;
++        try e.d.check(e.d.api.cuMemcpyDtoH_v2(&best, dr.best_all, @sizeOf(@TypeOf(best))), "cuMemcpyDtoH");
++        const second = best[2] > best[0] or (best[2] == best[0] and best[3] < best[1]);
++        const token = best[if (second) 3 else 1];
++        if (!std.math.isFinite(token) or token < 0 or token >= @as(f32, @floatFromInt(e.c.vocab))) return error.DFly2InvalidProposal;
++        return @intFromFloat(token);
++    }
++
++    pub fn pass(dr: *Drafter, e: *const Engine, ch: *const Chunk, view: cache.View, token: i64, q0: i64, steps: usize) !void {
++        if (steps == 0 or steps > max_drafts or q0 < 1 or token < 0 or token >= e.c.vocab) return error.BadDraftPass;
++        if (view.position + 1 != @as(usize, @intCast(q0))) return error.DFly2StaleAnchor;
++        var ids: [R]i64 = @splat(mask_token);
++        ids[0] = token;
++        var positions: [R]i64 = undefined;
++        for (0..R) |i| positions[i] = q0 + @as(i64, @intCast(i));
++        try prompt.upload(e, dr.ids, &ids, @sizeOf(@TypeOf(ids)));
++        try prompt.upload(e, dr.positions, &positions, @sizeOf(@TypeOf(positions)));
++        for (view.stages, 0..) |v, j| {
++            try dr.k.run(e.s, "gather_context", .{ 640, 1, 1 }, 256, .{ v.codes, v.scales, v.indices, v.ring, dr.context[j], dr.valid[j], @as(i64, @intCast(v.compressed_base)), @as(i64, @intCast(v.ring_base)), ci(v.ring_rows), @as(i64, @intCast(v.anchor_position)), @as(i64, @intCast(v.window_start)) });
++        }
++        try dr.concatNorm(e, e.w.embed + @as(u64, @intCast(token)) * D * 2, view.hidden, dr.w.mtp.enorm, dr.w.mtp.hnorm);
++        try linear(e, dr.w.mtp.eh_proj, dr.concat, dr.fusion, 1);
++        try dr.k.run(e.s, "init_block", .{ R, 1, 1 }, 256, .{ e.w.embed, dr.ids, dr.fusion, dr.w.mtp.gate, dr.h, dr.pre, ci(D), ci(R) });
++        var h = dr.h;
++        var spare = dr.h_alt;
++        var pre = dr.pre;
++        var next_pre = dr.pre_f;
++        var pending = false;
++        for (0..3) |j| {
++            const l = dr.w.layers[j].attn;
++            h = try dr.mixes(e, h, &spare, &pending, l.hc_attn, pre, l.attn_norm, dr.pre_a);
++            try dr.attend(e, j);
++            try dr.gatherPartial(e, R);
++            pending = true;
++            h = try dr.mixes(e, h, &spare, &pending, l.hc_ffn, dr.pre_a, l.ffn_norm, next_pre);
++            try dr.moe(e, j);
++            try dr.gatherPartial(e, R);
++            pending = true;
++            std.mem.swap(u64, &pre, &next_pre);
++        }
++        try basic.hcPost(e.t, dr.gathered, h, dr.post, dr.comb, h, 2, R, D);
++        try basic.collapse(e.t, h, pre, dr.collapsed, R, D);
++        try basic.rmsnorm(e.t, dr.collapsed, D, dr.w.final_norm, dr.normalized, D, e.c.eps, R, D);
++        try dr.correctionInput(e, 0, token);
++        var previous = token;
++        for (1..steps + 1) |slot| {
++            try dr.correctionInput(e, slot, previous);
++            try dr.correct(e, slot);
++            previous = try dr.sample(e, ch);
++            dr.drafts[0][slot - 1] = previous;
++        }
++        dr.streams = 1;
++        dr.steps = steps;
++    }
++};
+diff --git a/zig/src/families/dsv41/dfly_cache.zig b/zig/src/families/dsv41/dfly_cache.zig
+new file mode 100644
+index 000000000..8e99ac47a
+--- /dev/null
++++ b/zig/src/families/dsv41/dfly_cache.zig
+@@ -0,0 +1,552 @@
++//! Optional DFly2 target snapshots. Only indices and final normalized hidden states
++//! are copied; target FP4 compressed KV and BF16 near-window rings remain borrowed.
++//! Attach to Engine before a forward. Reset a slot on reuse, restore, or extent
++//! relocation. Before prompt/replay call beginPrompt; round.forward begins its own
++//! transaction. After success retain(e, slot, q0) selects the target row q0 - 1
++//! which predicted the pending token at q0. No tree or early-exit target execution.
++//!
++//! GPU copies use the engine stream, including graph capture/replay. The host
++//! transaction is begun/finished outside graphs. A failed/partial forward cannot
++//! expose snapshots. Keep this object and its device addresses alive until graphs
++//! using graphKey() are destroyed. Never mutate target caches while a View is used.
++const std = @import("std");
++
++pub const layers = [_]usize{ 28, 32, 36 };
++pub const source_layer: usize = 20;
++pub const top_k: usize = 512;
++
++pub const StageView = struct {
++    codes: u64,
++    scales: u64,
++    indices: u64, // int64 [512], padded with -1, sequence-relative ids
++    compressed_base: usize, // row offset into codes/scales, ratio 1
++    ring: u64, // bf16 [slots * ring_rows, head_dim]
++    ring_rows: usize,
++    ring_base: usize, // row offset of this slot in ring
++    anchor_position: usize, // q0 - 1 (the row whose hidden predicted the pending token)
++    window_start: usize, // inclusive; honor this floor after bounded replay
++};
++
++pub const View = struct {
++    hidden: u64, // bf16 [hidden_size], after target collapseNorm
++    position: usize,
++    stages: [layers.len]StageView,
++};
++
++/// Full-pool pointers for a round; a prompt hook records its already-offset views.
++pub const Borrowed = struct {
++    codes: u64,
++    scales: u64,
++    rings: [layers.len]u64,
++};
++
++const Row = struct {
++    slot: usize = 0,
++    pos: usize = 0,
++    base: usize = 0,
++    ring_base: usize = 0,
++    floor: usize = 0,
++    borrowed: Borrowed = .{ .codes = 0, .scales = 0, .rings = @splat(0) },
++};
++
++const Slot = struct {
++    retained: ?Row = null,
++    // Retain the high-water mark even when a suffix is rejected. Those writes
++    // still occupy the modulo ring until overwritten or the slot is reset.
++    highest: ?usize = null,
++    floor: usize = 0,
++};
++
++pub const Capture = struct {
++    gpa: std.mem.Allocator,
++    rows: []Row,
++    slots: []Slot,
++    n: usize = 0,
++    mode: enum { idle, prompt, round } = .idle,
++    ready: bool = false,
++    hidden_size: usize,
++    head_dim: usize,
++    window: usize,
++    extra: usize,
++    indices: u64 = 0, // [3, row_cap, 512] i64
++    hidden: u64 = 0, // [row_cap, hidden_size] bf16
++    kept_indices: u64 = 0, // [slots, 3, 512] i64
++    kept_hidden: u64 = 0, // [slots, hidden_size] bf16
++    prompt_seen: u8 = 0,
++
++    pub fn init(gpa: std.mem.Allocator, arena: anytype, streams: usize, row_cap: usize, hidden_size: usize, head_dim: usize, window: usize, extra: usize) !Capture {
++        if (streams == 0 or row_cap == 0 or hidden_size == 0 or head_dim == 0 or window == 0 or extra == 0) return error.BadDflyCaptureShape;
++        const rows = try gpa.alloc(Row, row_cap);
++        errdefer gpa.free(rows);
++        const slots = try gpa.alloc(Slot, streams);
++        errdefer gpa.free(slots);
++        @memset(rows, .{});
++        @memset(slots, .{});
++        return .{
++            .gpa = gpa,
++            .rows = rows,
++            .slots = slots,
++            .hidden_size = hidden_size,
++            .head_dim = head_dim,
++            .window = window,
++            .extra = extra,
++            .indices = try arena.take(layers.len * row_cap * top_k * 8),
++            .hidden = try arena.take(row_cap * hidden_size * 2),
++            .kept_indices = try arena.take(streams * layers.len * top_k * 8),
++            .kept_hidden = try arena.take(streams * hidden_size * 2),
++        };
++    }
++
++    /// Device allocations belong to the caller's arena.
++    pub fn deinit(c: *Capture) void {
++        c.gpa.free(c.rows);
++        c.gpa.free(c.slots);
++        c.* = undefined;
++    }
++
++    pub fn graphKey(c: *const Capture) u64 {
++        return c.indices;
++    }
++
++    /// This first integration supports replicated TP2 KV, not ownership-sharded
++    /// or four-rank layouts. Refuse different shapes before any target writes.
++    pub fn checkTarget(c: *const Capture, e: anytype) !void {
++        if (e.world != 2 or e.two != null or e.kv != null) return error.UnsupportedDflyKvLayout;
++        if (e.c.hidden != c.hidden_size or e.c.head_dim != c.head_dim or e.c.window != c.window or e.c.index_topk != top_k or e.w.layers.len != 40) return error.BadDflyCaptureShape;
++        var source: ?usize = null;
++        for (e.w.layers, 0..) |layer, i| {
++            if (layer.comp_wkv != null) source = i;
++            if (stageOf(i) != null and (source != source_layer or layer.ratio != 1 or layer.idx_wq_b == null)) return error.UnsupportedDflyKvLayout;
++        }
++    }
++
++    pub fn reset(c: *Capture, slot: usize) !void {
++        if (slot >= c.slots.len) return error.BadDflySlot;
++        c.slots[slot] = .{};
++        // Staged rows are a transaction, not independently reusable snapshots.
++        for (c.rows[0..c.n]) |row| if (row.slot == slot) {
++            c.ready = false;
++            break;
++        };
++    }
++
++    pub fn abort(c: *Capture) void {
++        c.ready = false;
++        c.mode = .idle;
++    }
++
++    /// Called once before a prompt chunk, including bounded replay. Its final
++    /// position is invariant when replayCut trims rows from the front. Only that
++    /// last row is retained, so chunk size does not affect snapshot allocation.
++    pub fn beginPrompt(c: *Capture, slot: usize, start: usize, n: usize, floor: usize) !void {
++        if (slot >= c.slots.len) return error.BadDflySlot;
++        // floor may lie inside or beyond an encoder chunk; replayCut either
++        // trims its front or returns before these anchor layers and the head.
++        if (n == 0 or start > std.math.maxInt(usize) - n) return error.BadDflyRows;
++        const pos = start + n - 1;
++        c.ready = false;
++        c.mode = .prompt;
++        c.n = 1;
++        c.prompt_seen = 0;
++        c.rows[0] = .{ .slot = slot, .pos = pos, .floor = floor };
++        var s = &c.slots[slot];
++        s.retained = null;
++        s.floor = floor;
++        s.highest = if (s.highest) |h| @max(h, pos) else pos;
++    }
++
++    /// A ring of window+extra rows still contains every possible accepted row's
++    /// window only when the stream's verify span is <=extra+1. Reject malformed
++    /// or wider windows BEFORE target writes. Native B6 needs only six rows.
++    pub fn beginRound(c: *Capture, input: anytype, borrowed: Borrowed) !void {
++        const n = input.pos.len;
++        if (n == 0 or n > c.rows.len or input.ids.len != n) return error.BadDflyRows;
++        if (input.slots) |v| if (v.len != n) return error.BadDflyRows;
++        if (input.bases) |v| if (v.len != n) return error.BadDflyRows;
++        if (input.ends) |v| if (v.len != n) return error.BadDflyRows;
++        if (borrowed.codes == 0 or borrowed.scales == 0) return error.NoDflyKv;
++        for (borrowed.rings) |p| if (p == 0) return error.NoDflyKv;
++        // Validate without changing an existing ready/retained transaction.
++        for (input.pos, 0..) |p, i| {
++            const slot_i = if (input.slots) |v| v[i] else 0;
++            const base_i = if (input.bases) |v| v[i] else input.base;
++            const end_i = if (input.ends) |v| v[i] else input.end;
++            if (p < 0 or slot_i < 0 or base_i < 0 or end_i < 0) return error.BadDflyRows;
++            const slot: usize = @intCast(slot_i);
++            const pos: usize = @intCast(p);
++            if (slot >= c.slots.len) return error.BadDflySlot;
++            if (end_i > 0 and (end_i <= base_i or p >= end_i - base_i)) return error.BadDflyRows;
++            if (pos == std.math.maxInt(usize) or pos < c.slots[slot].floor) return error.BadDflyRows;
++            var first = pos;
++            var prev: ?usize = null;
++            for (input.pos[0..i], 0..) |q, j| {
++                const other = if (input.slots) |v| v[j] else 0;
++                if (other != slot_i) continue;
++                const other_base = if (input.bases) |v| v[j] else input.base;
++                if (other_base != base_i) return error.BadDflyRows;
++                first = @min(first, @as(usize, @intCast(q)));
++                prev = @intCast(q);
++            }
++            if (prev) |q| if (pos != q + 1) return error.BadDflyRows;
++            if (pos - first > c.extra) return error.DflyWindowWouldOverwrite;
++            const newest = if (c.slots[slot].highest) |h| @max(h, pos) else pos;
++            try c.checkWindow(first, newest, c.slots[slot].floor);
++        }
++        c.ready = false;
++        c.mode = .round;
++        c.n = n;
++        for (input.pos, 0..) |p, i| {
++            const slot: usize = @intCast(if (input.slots) |v| v[i] else 0);
++            const base: usize = @intCast(if (input.bases) |v| v[i] else input.base);
++            const pos: usize = @intCast(p);
++            var s = &c.slots[slot];
++            c.rows[i] = .{ .slot = slot, .pos = pos, .base = base, .ring_base = slot * (c.window + c.extra), .floor = s.floor, .borrowed = borrowed };
++            s.retained = null;
++            s.highest = if (s.highest) |h| @max(h, pos) else pos;
++        }
++    }
++
++    fn checkWindow(c: *const Capture, anchor: usize, newest: usize, floor: usize) !void {
++        const first = @max(floor, anchor -| (c.window - 1));
++        if (newest < anchor or newest - first >= c.window + c.extra) return error.DflyWindowOverwritten;
++    }
++
++    /// Called by the target index-source layer after selection, before cidx is
++    /// reused. Only GPU work: this function may run during CUDA graph capture.
++    pub fn captureRound(c: *Capture, e: anytype, layer: usize, src: u64, k: usize, n: usize) !void {
++        const stage = stageOf(layer) orelse return;
++        if (c.mode != .round or c.n != n or k > top_k) return error.BadDflyCapture;
++        const dst = c.indices + stage * c.rows.len * top_k * 8;
++        try padAndCopy(e, dst, src, k, n);
++    }
++
++    pub fn capturePrompt(c: *Capture, e: anytype, layer: usize, start: usize, n: usize, src: u64, k: usize, codes: u64, scales: u64, ring: u64) !void {
++        const stage = stageOf(layer) orelse return;
++        if (c.mode != .prompt or c.n != 1 or n == 0 or start + n - 1 != c.rows[0].pos or c.rows[0].floor > c.rows[0].pos or k > top_k) return error.BadDflyCapture;
++        if (codes == 0 or scales == 0 or ring == 0) return error.NoDflyKv;
++        const dst = c.indices + stage * c.rows.len * top_k * 8;
++        try padAndCopy(e, dst, src + (n - 1) * k * 8, k, 1);
++        c.rows[0].borrowed.codes = codes;
++        c.rows[0].borrowed.scales = scales;
++        c.rows[0].borrowed.rings[stage] = ring;
++        c.prompt_seen |= @as(u8, 1) << @intCast(stage);
++    }
++
++    pub fn captureHidden(c: *Capture, e: anytype, src: u64, n: usize) !void {
++        if (c.n != n or c.mode == .idle) return error.BadDflyCapture;
++        const width = c.hidden_size * 2;
++        try e.ops.copyRows(e.s, src, width, c.hidden, width, width, n);
++    }
++
++    /// Host-side only: round.forward calls this AFTER successful graph replay;
++    /// prompt.head after capturing its last-row final normalized hidden state.
++    pub fn finish(c: *Capture) !void {
++        if (c.mode == .idle or c.n == 0) return error.BadDflyCapture;
++        if (c.mode == .prompt and c.prompt_seen != 0b111) return error.IncompleteDflyCapture;
++        c.ready = true;
++    }
++
++    const Choice = union(enum) { staged: usize, retained };
++
++    /// A host-only resume/restore check; unlike retain, this queues no GPU copy.
++    pub fn checkAnchor(c: *const Capture, slot: usize, q0: usize) !void {
++        _ = try c.choose(slot, q0);
++    }
++
++    fn choose(c: *const Capture, slot: usize, q0: usize) !Choice {
++        if (slot >= c.slots.len) return error.BadDflySlot;
++        if (q0 == 0) return error.NoDflyAnchor;
++        const pos = q0 - 1;
++        const s = c.slots[slot];
++        const newest = s.highest orelse return error.NoDflyAnchor;
++        if (pos > newest) return error.NoDflyAnchor;
++        try c.checkWindow(pos, newest, s.floor);
++        if (s.retained) |row| if (row.pos == pos) return .retained;
++        if (c.ready) for (c.rows[0..c.n], 0..) |row, i| {
++            if (row.slot == slot and row.pos == pos) return .{ .staged = i };
++        };
++        return error.NoDflyAnchor;
++    }
++
++    /// Keep exactly the accepted predecessor of the pending token. Persistent
++    /// indices/hidden survive other slots' rounds; borrowed KV is valid only until
++    /// the next write/reset/restore of this slot. Same-stream ordering suffices.
++    pub fn retain(c: *Capture, e: anytype, slot: usize, q0: usize) !View {
++        switch (try c.choose(slot, q0)) {
++            .retained => {},
++            .staged => |row| {
++                for (0..layers.len) |stage| {
++                    const src = c.indices + (stage * c.rows.len + row) * top_k * 8;
++                    const dst = c.kept_indices + (slot * layers.len + stage) * top_k * 8;
++                    try e.ops.copyRows(e.s, src, top_k * 8, dst, top_k * 8, top_k * 8, 1);
++                }
++                const width = c.hidden_size * 2;
++                try e.ops.copyRows(e.s, c.hidden + row * width, width, c.kept_hidden + slot * width, width, width, 1);
++                c.slots[slot].retained = c.rows[row];
++            },
++        }
++        return c.view(slot, q0);
++    }
++
++    pub fn view(c: *const Capture, slot: usize, q0: usize) !View {
++        if (slot >= c.slots.len) return error.BadDflySlot;
++        const s = c.slots[slot];
++        const row = s.retained orelse return error.NoDflyAnchor;
++        if (q0 == 0 or row.pos != q0 - 1) return error.NoDflyAnchor;
++        try c.checkWindow(row.pos, s.highest orelse return error.NoDflyAnchor, row.floor);
++        var out: View = .{ .hidden = c.kept_hidden + slot * c.hidden_size * 2, .position = row.pos, .stages = undefined };
++        for (0..layers.len) |stage| out.stages[stage] = .{
++            .codes = row.borrowed.codes,
++            .scales = row.borrowed.scales,
++            .indices = c.kept_indices + (slot * layers.len + stage) * top_k * 8,
++            .compressed_base = row.base,
++            .ring = row.borrowed.rings[stage],
++            .ring_rows = c.window + c.extra,
++            .ring_base = row.ring_base,
++            .anchor_position = row.pos,
++            .window_start = @max(row.floor, row.pos -| (c.window - 1)),
++        };
++        return out;
++    }
++};
++
++pub fn stageOf(layer: usize) ?usize {
++    for (layers, 0..) |l, i| if (l == layer) return i;
++    return null;
++}
++
++fn padAndCopy(e: anytype, dst: u64, src: u64, k: usize, n: usize) !void {
++    // Always use the fixed 512 stride, including contexts shorter than top-k.
++    if (k < top_k) try e.d.check(e.d.api.cuMemsetD8Async(dst, 0xff, n * top_k * 8, e.s.handle), "cuMemsetD8Async");
++    if (k > 0) try e.ops.copyRows(e.s, src, k * 8, dst, top_k * 8, k * 8, n);
++}
++
++// CPU-only lifecycle tests: fake arena addresses, no CUDA import or GPU needed.
++const TestArena = struct {
++    at: u64 = 256,
++    fn take(a: *TestArena, n: usize) !u64 {
++        const p = a.at;
++        a.at += std.mem.alignForward(usize, n, 256);
++        return p;
++    }
++};
++const TestRows = struct {
++    ids: []const i64,
++    pos: []const i64,
++    slots: ?[]const i64 = null,
++    bases: ?[]const i64 = null,
++    ends: ?[]const i64 = null,
++    base: i64 = 0,
++    end: i64 = 4096,
++};
++const test_borrowed: Borrowed = .{ .codes = 100, .scales = 200, .rings = .{ 300, 400, 500 } };
++
++test "accepted predecessor is selected instead of rejected verify tail" {
++    var a: TestArena = .{};
++    var c = try Capture.init(std.testing.allocator, &a, 2, 48, 5120, 512, 128, 16);
++    defer c.deinit();
++    try c.beginRound(TestRows{ .ids = &.{ 1, 2, 3, 4, 5, 6 }, .pos = &.{ 200, 201, 202, 203, 204, 205 } }, test_borrowed);
++    try std.testing.expectError(error.NoDflyAnchor, c.choose(0, 202));
++    try c.finish();
++    try std.testing.expectEqual(@as(usize, 1), (try c.choose(0, 202)).staged);
++    try std.testing.expectEqual(@as(usize, 0), (try c.choose(0, 201)).staged);
++    try std.testing.expectError(error.NoDflyAnchor, c.choose(0, 207));
++    c.slots[0].retained = c.rows[1]; // simulate successful queued retain copies
++    const v = try c.view(0, 202);
++    try std.testing.expectEqual(@as(usize, 201), v.position);
++    try std.testing.expectEqual(@as(usize, 74), v.stages[0].window_start);
++    try std.testing.expectEqual(test_borrowed.rings[2], v.stages[2].ring);
++    try std.testing.expect(v.stages[0].indices != v.stages[1].indices);
++    // Independent slot writes cannot invalidate the already retained slot.
++    try c.beginRound(TestRows{ .ids = &.{7}, .pos = &.{20}, .slots = &.{1}, .base = 1024, .end = 2048 }, test_borrowed);
++    try c.finish();
++    try std.testing.expectEqual(@as(usize, 201), (try c.view(0, 202)).position);
++    // Same slot writes invalidate old retained hidden/indices before target runs.
++    try c.beginRound(TestRows{ .ids = &.{8}, .pos = &.{202} }, test_borrowed);
++    try std.testing.expectError(error.NoDflyAnchor, c.view(0, 202));
++    c.abort();
++    try std.testing.expectError(error.NoDflyAnchor, c.choose(0, 203));
++}
++
++test "ring margin rejects overwritten anchors and excessive verify spans before writes" {
++    var a: TestArena = .{};
++    var c = try Capture.init(std.testing.allocator, &a, 1, 48, 5120, 512, 128, 16);
++    defer c.deinit();
++    var pos: [18]i64 = undefined;
++    for (&pos, 0..) |*p, i| p.* = @intCast(200 + i);
++    const ids: [18]i64 = @splat(1);
++    try c.beginRound(TestRows{ .ids = ids[0..17], .pos = pos[0..17] }, test_borrowed);
++    try c.finish();
++    try std.testing.expectEqual(@as(usize, 0), (try c.choose(0, 201)).staged);
++    try std.testing.expectError(error.DflyWindowWouldOverwrite, c.beginRound(TestRows{ .ids = &ids, .pos = &pos }, test_borrowed));
++    try std.testing.expect(c.ready); // rejected validation did not mutate state
++    // Rejected suffix still occupies ring: an older anchor is unavailable.
++    try std.testing.expectError(error.DflyWindowOverwritten, c.choose(0, 200));
++    try c.reset(0);
++    try std.testing.expectError(error.NoDflyAnchor, c.choose(0, 201));
++}
++
++test "prompt replay captures final row and honors floor and reset" {
++    var a: TestArena = .{};
++    var c = try Capture.init(std.testing.allocator, &a, 1, 48, 5120, 512, 128, 16);
++    defer c.deinit();
++    try c.beginPrompt(0, 1000, 2048, 1000);
++    try std.testing.expectEqual(@as(usize, 1), c.n);
++    try std.testing.expectEqual(@as(usize, 3047), c.rows[0].pos);
++    try std.testing.expectError(error.IncompleteDflyCapture, c.finish());
++    c.prompt_seen = 0b111;
++    try c.finish();
++    try std.testing.expectEqual(@as(usize, 0), (try c.choose(0, 3048)).staged);
++    try c.reset(0);
++    try c.beginPrompt(0, 499, 2, 500); // replayCut reduces this to a one-row tail
++    c.prompt_seen = 0b111;
++    try c.finish();
++    c.slots[0].retained = c.rows[0];
++    try std.testing.expectEqual(@as(usize, 500), (try c.view(0, 501)).stages[0].window_start);
++    try std.testing.expectError(error.NoDflyAnchor, c.choose(0, 0));
++}
++
++test "malformed slots positions and extents cannot reach target capture" {
++    var a: TestArena = .{};
++    var c = try Capture.init(std.testing.allocator, &a, 1, 48, 5120, 512, 128, 16);
++    defer c.deinit();
++    try std.testing.expectError(error.BadDflySlot, c.beginRound(TestRows{ .ids = &.{1}, .pos = &.{1}, .slots = &.{1} }, test_borrowed));
++    try std.testing.expectError(error.BadDflyRows, c.beginRound(TestRows{ .ids = &.{1}, .pos = &.{-1} }, test_borrowed));
++    try std.testing.expectError(error.BadDflyRows, c.beginRound(TestRows{ .ids = &.{ 1, 2 }, .pos = &.{ 2, 4 } }, test_borrowed));
++    try std.testing.expectError(error.BadDflyRows, c.beginRound(TestRows{ .ids = &.{1}, .pos = &.{10}, .base = 100, .end = 110 }, test_borrowed));
++    try std.testing.expectError(error.BadDflyRows, c.beginRound(TestRows{ .ids = &.{1}, .pos = &.{1}, .slots = &.{} }, test_borrowed));
++    try std.testing.expectEqual(@as(?usize, 0), stageOf(28));
++    try std.testing.expectEqual(@as(?usize, null), stageOf(37));
++}
++
++const CpuArena = struct {
++    bytes: []u8,
++    at: usize = 0,
++    fn take(a: *CpuArena, n: usize) !u64 {
++        const at = std.mem.alignForward(usize, a.at, 256);
++        if (at + n > a.bytes.len) return error.OutOfMemory;
++        a.at = at + n;
++        return @intFromPtr(a.bytes.ptr + at);
++    }
++};
++
++/// The exact same generic capture/retain methods run against byte-addressed CPU
++/// storage here, so tests exercise strides, -1 padding and retained-copy isolation.
++const CpuGpu = struct {
++    const Stream = struct { handle: usize = 0 };
++    const Driver = struct {
++        const Api = struct {
++            cuMemsetD8Async: *const fn (u64, u8, usize, usize) i32 = memset,
++            fn memset(dst: u64, value: u8, n: usize, _: usize) i32 {
++                const bytes: [*]u8 = @ptrFromInt(dst);
++                @memset(bytes[0..n], value);
++                return 0;
++            }
++        };
++        api: Api = .{},
++        fn check(_: *const Driver, status: i32, _: []const u8) !void {
++            if (status != 0) return error.CpuCopyFailed;
++        }
++    };
++    const Ops = struct {
++        fn copyRows(_: *const Ops, _: Stream, src: u64, ss: usize, dst: u64, ds: usize, width: usize, n: usize) !void {
++            const from: [*]const u8 = @ptrFromInt(src);
++            const to: [*]u8 = @ptrFromInt(dst);
++            for (0..n) |i| @memcpy(to[i * ds ..][0..width], from[i * ss ..][0..width]);
++        }
++    };
++    s: Stream = .{},
++    d: *const Driver,
++    ops: *const Ops,
++};
++
++test "GPU capture contract pads each row and keeps the accepted hidden and all three selections" {
++    const storage = try std.testing.allocator.alloc(u64, 8 * 1024);
++    defer std.testing.allocator.free(storage);
++    var a: CpuArena = .{ .bytes = std.mem.sliceAsBytes(storage) };
++    var c = try Capture.init(std.testing.allocator, &a, 1, 3, 2, 2, 128, 16);
++    defer c.deinit();
++    const driver: CpuGpu.Driver = .{};
++    const ops: CpuGpu.Ops = .{};
++    const e: CpuGpu = .{ .d = &driver, .ops = &ops };
++    try c.beginRound(TestRows{ .ids = &.{ 1, 2, 3 }, .pos = &.{ 10, 11, 12 }, .base = 256 }, test_borrowed);
++    var picks = [_]i64{ 0, 1, 2, 3, 4, 5 }; // [three rows, two picks]
++    const hidden = [_]u16{ 101, 102, 201, 202, 301, 302 };
++    for (layers, 0..) |layer, stage| {
++        for (&picks, 0..) |*p, i| p.* = @intCast(stage * 100 + i);
++        try c.captureRound(&e, layer, @intFromPtr(&picks), 2, 3);
++    }
++    try c.captureHidden(&e, @intFromPtr(&hidden), 3);
++    try c.finish();
++    const v = try c.retain(&e, 0, 12); // target row11, not rejected row12
++    try std.testing.expectEqual(@as(usize, 11), v.position);
++    const h: [*]const u16 = @ptrFromInt(v.hidden);
++    try std.testing.expectEqualSlices(u16, &.{ 201, 202 }, h[0..2]);
++    for (v.stages, 0..) |stage, j| {
++        const ids: [*]const i64 = @ptrFromInt(stage.indices);
++        try std.testing.expectEqual(@as(i64, @intCast(j * 100 + 2)), ids[0]);
++        try std.testing.expectEqual(@as(i64, @intCast(j * 100 + 3)), ids[1]);
++        for (ids[2..top_k]) |id| try std.testing.expectEqual(@as(i64, -1), id);
++        try std.testing.expectEqual(@as(usize, 256), stage.compressed_base);
++    }
++    // Mutating transient row storage must not alter the retained row's bytes.
++    try c.captureRound(&e, 28, @intFromPtr(&picks), 0, 3);
++    const kept: [*]const i64 = @ptrFromInt(v.stages[0].indices);
++    try std.testing.expectEqual(@as(i64, 2), kept[0]);
++}
++
++test "prompt copy uses only the post-replay final row and supports zero compressed entries" {
++    const storage = try std.testing.allocator.alloc(u64, 8 * 1024);
++    defer std.testing.allocator.free(storage);
++    var a: CpuArena = .{ .bytes = std.mem.sliceAsBytes(storage) };
++    var c = try Capture.init(std.testing.allocator, &a, 1, 3, 2, 2, 128, 16);
++    defer c.deinit();
++    const driver: CpuGpu.Driver = .{};
++    const ops: CpuGpu.Ops = .{};
++    const e: CpuGpu = .{ .d = &driver, .ops = &ops };
++    try c.beginPrompt(0, 0, 1001, 999);
++    const picks = [_]i64{ 42, 43, 44, 45 };
++    for (layers, 0..) |layer, i| try c.capturePrompt(&e, layer, 999, 2, @intFromPtr(&picks), 2, 600, 700, test_borrowed.rings[i]);
++    const hidden = [_]u16{ 501, 502 };
++    try c.captureHidden(&e, @intFromPtr(&hidden), 1);
++    try c.finish();
++    const v = try c.retain(&e, 0, 1001);
++    const ids: [*]const i64 = @ptrFromInt(v.stages[1].indices);
++    try std.testing.expectEqualSlices(i64, &.{ 44, 45, -1 }, ids[0..3]);
++    try std.testing.expectEqual(@as(usize, 999), v.stages[1].window_start);
++    try std.testing.expectEqual(@as(usize, 0), v.stages[1].compressed_base);
++    try std.testing.expectEqual(@as(u64, 600), v.stages[1].codes);
++    try c.reset(0);
++    try c.beginPrompt(0, 0, 1, 0);
++    for (layers, 0..) |layer, i| try c.capturePrompt(&e, layer, 0, 1, 0, 0, 600, 700, test_borrowed.rings[i]);
++    try c.captureHidden(&e, @intFromPtr(&hidden), 1);
++    try c.finish();
++    const empty = try c.retain(&e, 0, 1);
++    const empty_ids: [*]const i64 = @ptrFromInt(empty.stages[0].indices);
++    for (empty_ids[0..top_k]) |id| try std.testing.expectEqual(@as(i64, -1), id);
++}
++
++test "target layout guard accepts only the matched replicated TP2 anchor sources" {
++    var a: TestArena = .{};
++    var c = try Capture.init(std.testing.allocator, &a, 1, 48, 5120, 512, 128, 16);
++    defer c.deinit();
++    const Layer = struct { comp_wkv: ?u64 = null, ratio: usize = 1, idx_wq_b: ?u64 = null };
++    var target: [40]Layer = @splat(.{});
++    target[source_layer].comp_wkv = 1;
++    for (layers) |layer| target[layer].idx_wq_b = 1;
++    var cfg: struct { hidden: usize, head_dim: usize, window: usize, index_topk: usize } = .{ .hidden = 5120, .head_dim = 512, .window = 128, .index_topk = 512 };
++    const weight = .{ .layers = &target };
++    var e: struct { world: usize, two: ?u64, kv: ?u64, c: *@TypeOf(cfg), w: *const @TypeOf(weight) } = .{ .world = 2, .two = null, .kv = null, .c = &cfg, .w = &weight };
++    try c.checkTarget(&e);
++    e.kv = 1;
++    try std.testing.expectError(error.UnsupportedDflyKvLayout, c.checkTarget(&e));
++    e.kv = null;
++    target[24].comp_wkv = 1;
++    try std.testing.expectError(error.UnsupportedDflyKvLayout, c.checkTarget(&e));
++    target[24].comp_wkv = null;
++    target[32].idx_wq_b = null;
++    try std.testing.expectError(error.UnsupportedDflyKvLayout, c.checkTarget(&e));
++    target[32].idx_wq_b = 1;
++    cfg.index_topk = 256;
++    try std.testing.expectError(error.BadDflyCaptureShape, c.checkTarget(&e));
++}
+diff --git a/zig/src/families/dsv41/dfly_config.zig b/zig/src/families/dsv41/dfly_config.zig
+new file mode 100644
+index 000000000..34436e7ae
+--- /dev/null
++++ b/zig/src/families/dsv41/dfly_config.zig
+@@ -0,0 +1,154 @@
++//! Strict configuration for the released DeepSeek-V4.1 DFly2 B6 drafter.
++//! The exported text_config's 384/top6 belong to the target. The checkpoint's
++//! three layers have 128 routed experts and top3; never inherit those target fields.
++const std = @import("std");
++const Target = @import("config.zig").Config;
++
++pub const format = "tensorfold-dfly2-tp2-v1";
++pub const Config = struct {
++    hidden: usize = 5120,
++    vocab: usize = 129280,
++    layers: usize = 3,
++    heads: usize = 64,
++    head_dim: usize = 512,
++    rope_dim: usize = 64,
++    q_lora: usize = 1280,
++    o_lora: usize = 1024,
++    o_groups: usize = 8,
++    window: usize = 128,
++    index_topk: usize = 512,
++    experts: usize = 128,
++    top_k: usize = 3,
++    expert_width: usize = 2304,
++    hc: usize = 4,
++    hc_iters: usize = 20,
++    hc_eps: f32 = 1e-6,
++    eps: f32 = 1e-20,
++    routed_scaling: f32 = 1.5,
++    swiglu_limit: f32 = 10.0,
++    block: usize = 6,
++    mask_token: u32 = 128799,
++    anchors: [3]usize = .{ 28, 32, 36 },
++    correction_width: usize = 5120,
++    max_block_slots: usize = 16,
++    rope_theta: f64 = 160000,
++    original_seq_len: usize = 65536,
++    rope_factor: f64 = 16,
++    beta_fast: f64 = 32,
++    beta_slow: f64 = 1,
++
++    pub fn read(gpa: std.mem.Allocator, io: std.Io, dir: []const u8) !Config {
++        const path = try std.fs.path.join(gpa, &.{ dir, "config.json" });
++        defer gpa.free(path);
++        const bytes = try std.Io.Dir.cwd().readFileAlloc(io, path, gpa, .limited(1 << 20));
++        defer gpa.free(bytes);
++        return parse(gpa, bytes);
++    }
++
++    pub fn parse(gpa: std.mem.Allocator, bytes: []const u8) !Config {
++        const parsed = try std.json.parseFromSlice(std.json.Value, gpa, bytes, .{});
++        defer parsed.deinit();
++        const root = try object(parsed.value);
++        const arch = root.get("architectures") orelse return error.BadDFlyConfig;
++        if (arch != .array or arch.array.items.len != 1) return error.BadDFlyConfig;
++        try stringIs(arch.array.items[0], "DFlyDeepseekV41DraftModel");
++        const t = try object(root.get("text_config") orelse return error.BadDFlyConfig);
++        inline for (.{
++            .{ "hidden_size", 5120 },       .{ "vocab_size", 129280 },    .{ "num_hidden_layers", 40 },
++            .{ "num_attention_heads", 64 }, .{ "head_dim", 512 },         .{ "qk_rope_head_dim", 64 },
++            .{ "q_lora_rank", 1280 },       .{ "o_lora_rank", 1024 },     .{ "o_groups", 8 },
++            .{ "sliding_window", 128 },     .{ "index_topk", 512 },       .{ "moe_intermediate_size", 2304 },
++            .{ "hc_mult", 4 },              .{ "hc_sinkhorn_iters", 20 }, .{ "n_shared_experts", 1 },
++        }) |entry| try numberIs(t, entry[0], entry[1]);
++        try numberIs(t, "hc_eps", 1e-6);
++        try numberIs(t, "rms_norm_eps", 1e-20);
++        try numberIs(t, "routed_scaling_factor", 1.5);
++        try numberIs(t, "swiglu_limit", 10.0);
++        try stringIs(t.get("scoring_func") orelse return error.BadDFlyConfig, "sqrtsoftplus");
++        try boolIs(t, "norm_topk_prob", true);
++        const d = try object(root.get("dfly_config") orelse return error.BadDFlyConfig);
++        try numberIs(d, "block_size", 6);
++        try numberIs(d, "index_topk", 512);
++        try numberIs(d, "mask_token_id", 128799);
++        try boolIs(d, "causal_block", false);
++        try stringIs(d.get("mtp_fusion") orelse return error.BadDFlyConfig, "slot0");
++        try stringIs(d.get("dense_dtype") orelse return error.BadDFlyConfig, "bfloat16");
++        inline for (.{ "target_kv_layers", "target_index_layers" }) |key| {
++            const ids = d.get(key) orelse return error.BadDFlyConfig;
++            if (ids != .array or ids.array.items.len != 3) return error.BadDFlyConfig;
++            for (ids.array.items, [_]i64{ 28, 32, 36 }) |v, want| {
++                if (v != .integer or v.integer != want) return error.BadDFlyConfig;
++            }
++        }
++        const h = try object(d.get("hidden_correction") orelse return error.BadDFlyConfig);
++        try numberIs(h, "intermediate_size", 5120);
++        const a = try object(d.get("attentive_correction") orelse return error.BadDFlyConfig);
++        try numberIs(a, "source_layer", -1);
++        try numberIs(a, "max_block_slots", 16);
++        try boolIs(a, "block_keys", true);
++        try stringIs(a.get("block_mode") orelse return error.BadDFlyConfig, "gated");
++        try stringIs(a.get("block_kv_in") orelse return error.BadDFlyConfig, "hidden_embed");
++        const r = try object(d.get("rope") orelse return error.BadDFlyConfig);
++        try numberIs(r, "theta", 160000);
++        try numberIs(r, "original_seq_len", 65536);
++        try numberIs(r, "factor", 16);
++        try numberIs(r, "beta_fast", 32);
++        try numberIs(r, "beta_slow", 1);
++        return .{};
++    }
++
++    /// Geometry/layout agreement is necessary; it is not a claim that 1017's
++    /// target activations match the target used to train the released drafter.
++    pub fn checkTarget(c: Config, t: Target) !void {
++        if (t.layers != 40 or t.hidden != c.hidden or t.vocab != c.vocab or t.heads != c.heads or
++            t.head_dim != c.head_dim or t.rope_dim != c.rope_dim or t.q_lora != c.q_lora or
++            t.o_lora != c.o_lora or t.o_groups != c.o_groups or t.window != c.window or
++            t.index_topk != c.index_topk or t.hc != c.hc or t.candidate_source != 20 or
++            t.compress_rope_theta != c.rope_theta or t.rope_factor != c.rope_factor or
++            t.original_max_position != c.original_seq_len or t.beta_fast != c.beta_fast or
++            t.beta_slow != c.beta_slow) return error.DFlyTargetMismatch;
++        if (!t.kv_sources.has(20)) return error.DFlyTargetMismatch;
++        for (c.anchors) |layer| {
++            if (!t.index_sources.has(layer) or t.ratios[layer] != 1) return error.DFlyTargetMismatch;
++            var source: usize = 0;
++            for (t.kv_sources.slice()) |id| if (id <= layer) {
++                source = id;
++            };
++            if (source != 20) return error.DFlyTargetMismatch;
++        }
++    }
++};
++
++fn object(v: std.json.Value) !std.json.ObjectMap {
++    return if (v == .object) v.object else error.BadDFlyConfig;
++}
++
++fn stringIs(v: std.json.Value, want: []const u8) !void {
++    if (v != .string or !std.mem.eql(u8, v.string, want)) return error.BadDFlyConfig;
++}
++
++fn numberIs(o: std.json.ObjectMap, key: []const u8, want: f64) !void {
++    const v = o.get(key) orelse return error.BadDFlyConfig;
++    const value: f64 = switch (v) {
++        .integer => |x| @floatFromInt(x),
++        .float => |x| x,
++        else => return error.BadDFlyConfig,
++    };
++    if (value != want) return error.BadDFlyConfig;
++}
++
++fn boolIs(o: std.json.ObjectMap, key: []const u8, want: bool) !void {
++    const v = o.get(key) orelse return error.BadDFlyConfig;
++    if (v != .bool or v.bool != want) return error.BadDFlyConfig;
++}
++
++test "DFly2 never inherits target expert counts" {
++    const c: Config = .{};
++    try std.testing.expectEqual(@as(usize, 128), c.experts);
++    try std.testing.expectEqual(@as(usize, 3), c.top_k);
++    try std.testing.expectEqual(@as(usize, 6), c.block);
++}
++
++test "DFly2 rejects malformed architecture before reading target fields" {
++    try std.testing.expectError(error.BadDFlyConfig, Config.parse(std.testing.allocator, "{\"architectures\":[\"DSparkDraftModel\"]}"));
++}
+diff --git a/zig/src/families/dsv41/dfly_kernels.zig b/zig/src/families/dsv41/dfly_kernels.zig
+new file mode 100644
+index 000000000..f799dfd1f
+--- /dev/null
++++ b/zig/src/families/dsv41/dfly_kernels.zig
+@@ -0,0 +1,43 @@
++//! DFly2-only kernels. The target decoder and its existing DSpark kernels are untouched.
++const std = @import("std");
++const cuda = @import("cuda");
++
++pub const Kernels = struct {
++    module: cuda.Module,
++    norm_concat: cuda.Function,
++    init_block: cuda.Function,
++    add: cuda.Function,
++    silu: cuda.Function,
++    route: cuda.Function,
++    fp4: cuda.Function,
++    mix_experts: cuda.Function,
++    gather_context: cuda.Function,
++    attention: cuda.Function,
++    block_attention: cuda.Function,
++    best: cuda.Function,
++
++    pub fn load(d: *const cuda.Driver) !Kernels {
++        var m = try cuda.Module.load(d, cuda.kernels.dsv41_dfly2);
++        errdefer m.unload();
++        var out: Kernels = undefined;
++        out.module = m;
++        inline for (@typeInfo(Kernels).@"struct".field_names) |name| {
++            if (comptime !std.mem.eql(u8, name, "module"))
++                @field(out, name) = try m.function("tf_dfly_" ++ name);
++        }
++        return out;
++    }
++
++    pub fn deinit(k: *Kernels) void {
++        k.module.unload();
++    }
++
++    pub fn run(k: *const Kernels, s: cuda.Stream, comptime name: []const u8, grid: [3]usize, threads: u32, args: anytype) !void {
++        var a: cuda.Args = .{};
++        inline for (args) |arg| a.add(arg);
++        try cuda.launch.launch(@field(k, name), .{
++            .grid = .{ .x = @intCast(grid[0]), .y = @intCast(grid[1]), .z = @intCast(grid[2]) },
++            .block = .{ .x = threads },
++        }, s, &a);
++    }
++};
+diff --git a/zig/src/families/dsv41/dfly_weights.zig b/zig/src/families/dsv41/dfly_weights.zig
+new file mode 100644
+index 000000000..80083d696
+--- /dev/null
++++ b/zig/src/families/dsv41/dfly_weights.zig
+@@ -0,0 +1,269 @@
++//! DFly2's independent MXFP4/BF16 checkpoint, byte-preserving TP2 partition.
++//! tools/dfly2/pack_weights.py checks the released schema and produces rankN.
++//! This loader refuses the DSpark layout; target embedding/head remain borrowed.
++const std = @import("std");
++const cuda = @import("cuda");
++const st = @import("core").safetensors;
++const weights = @import("weights.zig");
++const cfg = @import("dfly_config.zig");
++pub const Linear = weights.Linear;
++
++pub const Mxfp4Experts = struct {
++    codes: u64, // [count,n,k/2] bytes, two E2M1 nibbles, low nibble first
++    scales: u64, // [count,n,k/32] raw E8M0 exponents, 127 means one
++    count: u32,
++    n: u32,
++    k: u32,
++};
++
++pub const Layer = struct {
++    // gate_w is BF16 here, unlike the EXL3 target loader's FP16 router.
++    // experts in this struct is deliberately unused: use w1/w2/w3 below.
++    attn: weights.Layer,
++    w1: Mxfp4Experts,
++    w2: Mxfp4Experts,
++    w3: Mxfp4Experts,
++    shared_w1: Linear,
++    shared_w2: Linear,
++    shared_w3: Linear,
++};
++
++pub const Fusion = struct { eh_proj: Linear, enorm: u64, hnorm: u64, gate: u64 };
++pub const CorrectionAttention = struct {
++    q_in: Linear,
++    q_norm: u64,
++    wq_b: Linear,
++    sink: u64,
++    wo_a: [4]Linear,
++    wo_b: Linear,
++    kv_in: Linear,
++    kv_norm: u64,
++    block_gate: Linear,
++    block_gate_bias: u64, // F32 [32,16]
++    block_rel_bias: u64, // F32 [32,16]
++    block_sink: u64, // F32 [32]
++};
++pub const Correction = struct {
++    gate_proj: Linear, // [2560,10240], rank's intermediate half
++    up_proj: Linear,
++    down_proj: Linear, // [5120,2560], TP sum after applying this projection
++    hidden_norm: u64,
++    embed_norm: u64,
++    attention: CorrectionAttention,
++};
++
++pub const Weights = struct {
++    gpa: std.mem.Allocator,
++    config: cfg.Config,
++    identity: [32]u8, // same manifest digest on both ranks
++    rank: u32,
++    layers: [3]Layer = undefined,
++    final_norm: u64 = 0,
++    mtp: Fusion = undefined,
++    correction: Correction = undefined,
++    buffers: std.ArrayList(cuda.DeviceBuffer) = .empty,
++    named: std.ArrayList(weights.Named) = .empty,
++    bytes: u64 = 0,
++
++    pub fn deinit(w: *Weights) void {
++        for (w.buffers.items) |*buffer| buffer.free();
++        for (w.named.items) |entry| w.gpa.free(entry.name);
++        w.buffers.deinit(w.gpa);
++        w.named.deinit(w.gpa);
++        w.* = undefined;
++    }
++
++    /// An explicit installation check, not serving overhead: compare every
++    /// uploaded byte with the packed checkpoint in bounded 4 MiB pieces.
++    pub fn verifyUploads(w: *const Weights, io: std.Io, driver: *const cuda.Driver, dir: []const u8) !void {
++        const path = try std.fmt.allocPrint(w.gpa, "{s}/rank{d}.safetensors", .{ dir, w.rank });
++        defer w.gpa.free(path);
++        var file = try st.File.open(w.gpa, io, path);
++        defer file.close(io);
++        const host = try w.gpa.alloc(u8, 4 << 20);
++        defer w.gpa.free(host);
++        for (w.named.items) |entry| {
++            const t = file.get(entry.name) orelse return error.MissingDFlyTensor;
++            if (t.bytes.len != entry.len) return error.BadDFlyTensor;
++            var at: usize = 0;
++            while (at < entry.len) {
++                const n = @min(host.len, entry.len - at);
++                try driver.check(driver.api.cuMemcpyDtoH_v2(host.ptr, entry.ptr + at, n), "DFly2 upload verification");
++                if (!std.mem.eql(u8, host[0..n], t.bytes[at..][0..n])) {
++                    std.log.err("DFly2 upload bytes differ: {s} at offset {d}", .{ entry.name, at });
++                    return error.DFlyUploadMismatch;
++                }
++                at += n;
++            }
++        }
++    }
++
++    pub fn load(gpa: std.mem.Allocator, io: std.Io, driver: *const cuda.Driver, dir: []const u8, rank: u32) !Weights {
++        if (rank > 1) return error.DFlyNeedsTP2;
++        const config = try cfg.Config.read(gpa, io, dir);
++        const path = try std.fmt.allocPrint(gpa, "{s}/rank{d}.safetensors", .{ dir, rank });
++        defer gpa.free(path);
++        var file = try st.File.open(gpa, io, path);
++        defer file.close(io);
++        const identity = try manifestIdentity(gpa, io, dir, rank, &file);
++        // 88 ordinary tensors and 18 expert stacks, including all correction tensors.
++        if (file.names.count() != 106) return error.DFlyTensorCount;
++        var w: Weights = .{ .gpa = gpa, .config = config, .identity = identity, .rank = rank };
++        errdefer w.deinit();
++        var loader: Loader = .{ .w = &w, .d = driver, .file = &file };
++        w.final_norm = try loader.tensor("model.final_norm.weight", .bf16, &.{5120});
++        w.mtp = .{
++            .eh_proj = try loader.linear("model.mtp_fusion.eh_proj.weight", 5120, 10240),
++            .enorm = try loader.tensor("model.mtp_fusion.enorm.weight", .bf16, &.{5120}),
++            .hnorm = try loader.tensor("model.mtp_fusion.hnorm.weight", .bf16, &.{5120}),
++            .gate = try loader.tensor("model.mtp_fusion.gate", .bf16, &.{5120}),
++        };
++        w.correction = .{
++            .gate_proj = try loader.linear("model.hidden_correction.gate_proj.weight", 2560, 10240),
++            .up_proj = try loader.linear("model.hidden_correction.up_proj.weight", 2560, 10240),
++            .down_proj = try loader.linear("model.hidden_correction.down_proj.weight", 5120, 2560),
++            .hidden_norm = try loader.tensor("model.hidden_correction.hidden_norm.weight", .bf16, &.{5120}),
++            .embed_norm = try loader.tensor("model.hidden_correction.embed_norm.weight", .bf16, &.{5120}),
++            .attention = undefined,
++        };
++        const p = "model.hidden_correction.attention";
++        var ca: CorrectionAttention = .{
++            .q_in = try loader.linear(p ++ ".q_in.weight", 1280, 10240),
++            .q_norm = try loader.tensor(p ++ ".q_norm.weight", .bf16, &.{1280}),
++            .wq_b = try loader.linear(p ++ ".wq_b.weight", 16384, 1280),
++            .sink = try loader.tensor(p ++ ".attn_sink", .f32, &.{32}),
++            .wo_a = undefined,
++            .wo_b = try loader.linear(p ++ ".wo_b.weight", 5120, 4096),
++            .kv_in = try loader.linear(p ++ ".kv_in.weight", 512, 10240),
++            .kv_norm = try loader.tensor(p ++ ".kv_norm.weight", .bf16, &.{512}),
++            .block_gate = try loader.linear(p ++ ".block_gate.weight", 32, 10240),
++            .block_gate_bias = try loader.tensor(p ++ ".block_gate_bias", .f32, &.{ 32, 16 }),
++            .block_rel_bias = try loader.tensor(p ++ ".block_rel_bias", .f32, &.{ 32, 16 }),
++            .block_sink = try loader.tensor(p ++ ".block_sink", .f32, &.{32}),
++        };
++        ca.wo_a = try loader.grouped(p ++ ".wo_a.weight");
++        w.correction.attention = ca;
++        for (&w.layers, 0..) |*layer, i| layer.* = try loader.layer(i);
++        return w;
++    }
++};
++
++fn manifestIdentity(gpa: std.mem.Allocator, io: std.Io, dir: []const u8, rank: u32, file: *const st.File) ![32]u8 {
++    const path = try std.fs.path.join(gpa, &.{ dir, "dfly2-pack.json" });
++    defer gpa.free(path);
++    const bytes = try std.Io.Dir.cwd().readFileAlloc(io, path, gpa, .limited(1 << 20));
++    defer gpa.free(bytes);
++    const parsed = try std.json.parseFromSlice(std.json.Value, gpa, bytes, .{});
++    defer parsed.deinit();
++    if (parsed.value != .object) return error.BadDFlyPack;
++    const o = parsed.value.object;
++    const format = o.get("format") orelse return error.BadDFlyPack;
++    const world = o.get("world_size") orelse return error.BadDFlyPack;
++    const ranks = o.get("ranks") orelse return error.BadDFlyPack;
++    if (format != .string or !std.mem.eql(u8, format.string, cfg.format) or
++        world != .integer or world.integer != 2 or ranks != .array or ranks.array.items.len != 2) return error.BadDFlyPack;
++    // The manifest's common hash alone cannot detect rank-file swaps/corruption.
++    const record = ranks.array.items[rank];
++    if (record != .object) return error.BadDFlyPack;
++    const name = record.object.get("file") orelse return error.BadDFlyPack;
++    const size = record.object.get("bytes") orelse return error.BadDFlyPack;
++    const digest = record.object.get("sha256") orelse return error.BadDFlyPack;
++    var wanted_name: [32]u8 = undefined;
++    const expected_name = try std.fmt.bufPrint(&wanted_name, "rank{d}.safetensors", .{rank});
++    if (name != .string or !std.mem.eql(u8, name.string, expected_name) or
++        size != .integer or size.integer < 0 or @as(u64, @intCast(size.integer)) != file.map.memory.len or
++        digest != .string or digest.string.len != 64) return error.BadDFlyPack;
++    var wanted_digest: [32]u8 = undefined;
++    _ = std.fmt.hexToBytes(&wanted_digest, digest.string) catch return error.BadDFlyPack;
++    var actual_digest: [32]u8 = undefined;
++    std.crypto.hash.sha2.Sha256.hash(file.map.memory, &actual_digest, .{});
++    if (!std.mem.eql(u8, &wanted_digest, &actual_digest)) return error.DFlyPackChecksumMismatch;
++    var out: [32]u8 = undefined;
++    std.crypto.hash.sha2.Sha256.hash(bytes, &out, .{});
++    return out;
++}
++
++const Loader = struct {
++    w: *Weights,
++    d: *const cuda.Driver,
++    file: *const st.File,
++
++    fn tensor(l: *Loader, name: []const u8, dtype: st.DType, shape: []const usize) !u64 {
++        const t = l.file.get(name) orelse {
++            std.log.err("DFly2 missing tensor {s}", .{name});
++            return error.MissingDFlyTensor;
++        };
++        if (!t.is(dtype, shape)) {
++            std.log.err("DFly2 tensor has wrong dtype or shape: {s}", .{name});
++            return error.BadDFlyTensor;
++        }
++        try l.w.buffers.ensureUnusedCapacity(l.w.gpa, 1);
++        try l.w.named.ensureUnusedCapacity(l.w.gpa, 1);
++        const own_name = try l.w.gpa.dupe(u8, name);
++        errdefer l.w.gpa.free(own_name);
++        var buffer = try cuda.DeviceBuffer.alloc(l.d, t.bytes.len);
++        errdefer buffer.free();
++        try buffer.upload(0, t.bytes);
++        l.w.buffers.appendAssumeCapacity(buffer);
++        l.w.named.appendAssumeCapacity(.{ .name = own_name, .ptr = buffer.ptr, .len = buffer.len });
++        l.w.bytes += t.bytes.len;
++        return buffer.ptr;
++    }
++
++    fn linear(l: *Loader, name: []const u8, n: usize, k: usize) !Linear {
++        return plain(try l.tensor(name, .bf16, &.{ n, k }), n, k);
++    }
++
++    fn grouped(l: *Loader, name: []const u8) ![4]Linear {
++        const base = try l.tensor(name, .bf16, &.{ 4096, 4096 });
++        var out: [4]Linear = undefined;
++        for (&out, 0..) |*p, i| p.* = plain(base + i * 1024 * 4096 * 2, 1024, 4096);
++        return out;
++    }
++
++    fn fp4(l: *Loader, prefix: []const u8, n: usize, k: usize) !Mxfp4Experts {
++        var name: [192]u8 = undefined;
++        const codes = try l.tensor(try std.fmt.bufPrint(&name, "{s}.weight", .{prefix}), .u8, &.{ 128, n, k / 2 });
++        const scales = try l.tensor(try std.fmt.bufPrint(&name, "{s}.scale", .{prefix}), .u8, &.{ 128, n, k / 32 });
++        return .{ .codes = codes, .scales = scales, .count = 128, .n = @intCast(n), .k = @intCast(k) };
++    }
++
++    fn layer(l: *Loader, i: usize) !Layer {
++        var prefix: [64]u8 = undefined;
++        const p = try std.fmt.bufPrint(&prefix, "model.layers.{d}", .{i});
++        var name: [192]u8 = undefined;
++        var a: weights.Layer = .{ .idx = @intCast(40 + i), .ratio = 0 };
++        a.attn_norm = try l.tensor(try std.fmt.bufPrint(&name, "{s}.attn_norm.weight", .{p}), .bf16, &.{5120});
++        a.ffn_norm = try l.tensor(try std.fmt.bufPrint(&name, "{s}.ffn_norm.weight", .{p}), .bf16, &.{5120});
++        inline for (.{ .{ "attn", "hc_attn" }, .{ "ffn", "hc_ffn" } }) |kind| {
++            const dest = &@field(a, kind[1]);
++            dest[0] = try l.tensor(try std.fmt.bufPrint(&name, "{s}.hc_{s}_fn", .{ p, kind[0] }), .f32, &.{ 24, 20480 });
++            dest[1] = try l.tensor(try std.fmt.bufPrint(&name, "{s}.hc_{s}_scale", .{ p, kind[0] }), .f32, &.{3});
++            dest[2] = try l.tensor(try std.fmt.bufPrint(&name, "{s}.hc_{s}_base", .{ p, kind[0] }), .f32, &.{24});
++        }
++        a.wq_a = try l.linear(try std.fmt.bufPrint(&name, "{s}.attn.wq_a.weight", .{p}), 1280, 5120);
++        a.q_norm = try l.tensor(try std.fmt.bufPrint(&name, "{s}.attn.q_norm.weight", .{p}), .bf16, &.{1280});
++        a.wq_b = try l.linear(try std.fmt.bufPrint(&name, "{s}.attn.wq_b.weight", .{p}), 16384, 1280);
++        a.wkv = try l.linear(try std.fmt.bufPrint(&name, "{s}.attn.wkv.weight", .{p}), 512, 5120);
++        a.kv_norm = try l.tensor(try std.fmt.bufPrint(&name, "{s}.attn.kv_norm.weight", .{p}), .bf16, &.{512});
++        a.sink = try l.tensor(try std.fmt.bufPrint(&name, "{s}.attn.attn_sink", .{p}), .f32, &.{32});
++        a.wo_a = try l.grouped(try std.fmt.bufPrint(&name, "{s}.attn.wo_a.weight", .{p}));
++        a.wo_b = try l.linear(try std.fmt.bufPrint(&name, "{s}.attn.wo_b.weight", .{p}), 5120, 4096);
++        a.gate_w = try l.tensor(try std.fmt.bufPrint(&name, "{s}.ffn.gate.weight", .{p}), .bf16, &.{ 128, 5120 });
++        a.gate_b = try l.tensor(try std.fmt.bufPrint(&name, "{s}.ffn.gate.bias", .{p}), .f32, &.{128});
++        a.gate_b_vl = try l.tensor(try std.fmt.bufPrint(&name, "{s}.ffn.gate.bias_vl", .{p}), .f32, &.{128});
++        return .{
++            .attn = a,
++            .w1 = try l.fp4(try std.fmt.bufPrint(&name, "{s}.ffn.experts.w1", .{p}), 1152, 5120),
++            .w2 = try l.fp4(try std.fmt.bufPrint(&name, "{s}.ffn.experts.w2", .{p}), 5120, 1152),
++            .w3 = try l.fp4(try std.fmt.bufPrint(&name, "{s}.ffn.experts.w3", .{p}), 1152, 5120),
++            .shared_w1 = try l.linear(try std.fmt.bufPrint(&name, "{s}.ffn.shared_experts.w1.weight", .{p}), 1152, 5120),
++            .shared_w2 = try l.linear(try std.fmt.bufPrint(&name, "{s}.ffn.shared_experts.w2.weight", .{p}), 5120, 1152),
++            .shared_w3 = try l.linear(try std.fmt.bufPrint(&name, "{s}.ffn.shared_experts.w3.weight", .{p}), 1152, 5120),
++        };
++    }
++};
++
++fn plain(ptr: u64, n: usize, k: usize) Linear {
++    return .{ .words = 0, .suh = 0, .svh = 0, .k = @intCast(k), .n = @intCast(n), .k2 = 0, .plain = ptr };
++}
+diff --git a/zig/src/families/dsv41/dfly_weights_main.zig b/zig/src/families/dsv41/dfly_weights_main.zig
+new file mode 100644
+index 000000000..336dcb5e4
+--- /dev/null
++++ b/zig/src/families/dsv41/dfly_weights_main.zig
+@@ -0,0 +1,37 @@
++//! Standalone DFly2 pack/hash/shape/upload check, without loading the target.
++//! tf-dsv41-dfly-weights PACKED_DIR RANK [TARGET_MODEL_DIR]
++const std = @import("std");
++const cuda = @import("cuda");
++const dsv41 = @import("dsv41");
++
++pub fn main(init: std.process.Init) !u8 {
++    const args = try init.minimal.args.toSlice(init.arena.allocator());
++    if (args.len < 3 or args.len > 4) {
++        std.debug.print("usage: tf-dsv41-dfly-weights PACKED_DIR RANK [TARGET_MODEL_DIR]\n", .{});
++        return 2;
++    }
++    const rank = try std.fmt.parseInt(u32, args[2], 10);
++    if (rank > 1) return error.DFlyNeedsTP2;
++    var driver = try cuda.Driver.open();
++    defer driver.close();
++    var context = try cuda.Context.init(&driver, 0);
++    defer context.deinit();
++    const before = cuda.usage(false).device;
++    var w = try dsv41.dfly_weights.Weights.load(init.gpa, init.io, &driver, args[1], rank);
++    var alive = true;
++    defer if (alive) w.deinit();
++    if (args.len == 4) {
++        const target = try dsv41.Config.read(init.gpa, init.io, args[3]);
++        try w.config.checkTarget(target);
++    }
++    try w.verifyUploads(init.io, &driver, args[1]);
++    try context.synchronize();
++    const count = w.named.items.len;
++    const bytes = w.bytes;
++    const identity = w.identity;
++    w.deinit();
++    alive = false;
++    if (cuda.usage(false).device != before) return error.DFlyAllocationLeak;
++    std.debug.print("{{\"ok\":true,\"rank\":{d},\"sm\":{d},\"tensors\":{d},\"device_bytes\":{d},\"identity\":\"{x}\",\"all_uploaded_bytes_equal\":true,\"allocation_released\":true}}\n", .{ rank, try context.capability(), count, bytes, &identity });
++    return 0;
++}
+diff --git a/zig/src/families/dsv41/dsv41.zig b/zig/src/families/dsv41/dsv41.zig
+index 27c9fb291..e5e75462b 100644
+--- a/zig/src/families/dsv41/dsv41.zig
++++ b/zig/src/families/dsv41/dsv41.zig
+@@ -13,6 +13,8 @@ pub const vision = @import("vision.zig");
+ pub const pil = @import("pil.zig");
+ pub const checkpoint = @import("checkpoint.zig");
+ pub const weights = @import("weights.zig");
++pub const dfly_weights = @import("dfly_weights.zig");
++pub const dfly_config = @import("dfly_config.zig");
+ pub const engram_io = @import("engram_io.zig");
+ pub const engram_aio = @import("engram_aio.zig");
+ pub const engram_lead = @import("engram_lead.zig");
+diff --git a/zig/src/families/dsv41/lanes.zig b/zig/src/families/dsv41/lanes.zig
+index 40006aaec..82b2f8dbd 100644
+--- a/zig/src/families/dsv41/lanes.zig
++++ b/zig/src/families/dsv41/lanes.zig
+@@ -527,13 +527,13 @@ pub const Lanes = struct {
+             .mtp = drafting,
+             .speculate = drafting,
+             .speculate_early = false,
+-            .drafts = if (self.m.dr) |dr| @intCast(dr.n) else 1,
++            .drafts = @intCast(self.m.draftCount()),
+             .window_costs = self.wc[0..],
+             .mtp_step_ms = draft.draft_ms,
+             .solo_head_overhead_ms = if (drafting and self.solo_overhead) draft.draft_ms else null, // opt-in: the Python engine's fixed draft allowance
+-            .draft_cal = self.draft_cal,
++            .draft_cal = if (self.m.dfly != null) 0 else self.draft_cal,
+             .cal_log = self.cal_log,
+-            .copy_proposals = !(drafting and self.no_copies), // opt-in: the draft head proposes; the Python engine makes no copies either
++            .copy_proposals = self.m.dfly == null and !(drafting and self.no_copies), // the DFly2 validation lane uses its draft head alone
+             .streams_exact = true,
+             .hidden_rows = true,
+             .batch_rows = @intCast(self.m.eng.round_rows),
+@@ -1149,8 +1149,8 @@ pub const Lanes = struct {
+         const self = of(ptr);
+         const m = self.m;
+         const gpa = self.gpa;
+-        if (m.dr == null) return error.NoDraftHead;
+-        const block = m.dr.?.n;
++        if (!m.drafting()) return error.NoDraftHead;
++        const block = m.draftCount();
+         var tokens: [max_streams]i64 = undefined;
+         var q0: [max_streams]i64 = undefined;
+         var slots: [max_streams]i64 = undefined;
+@@ -1192,11 +1192,10 @@ pub const Lanes = struct {
+             p.passes += 1;
+             p.pass_streams += n;
+         }
+-        const d = &m.dr.?;
+         for (asked[0..n], depths[0..n], 0..) |l, k, i| {
+             for (0..k) |j| {
+-                l.held[j] = @intCast(d.drafts[i][j]);
+-                l.confs[j] = d.confs[i][j];
++                l.held[j] = @intCast(m.draftToken(i, j));
++                l.confs[j] = m.draftConfidence(i, j);
+             }
+             l.nheld = k;
+         }
+@@ -1209,6 +1208,12 @@ pub const Lanes = struct {
+         const self = of(ptr);
+         const l = self.streams.getPtr(s) orelse return false;
+         if (out.len > l.nheld) return false;
++        if (self.m.dfly != null) {
++            // A fixed proposal-depth policy, not estimated DFly2 acceptance probabilities. Every proposed token
++            // still passes the unchanged target sampler and exact accepted-prefix comparison.
++            for (out) |*o| o.* = 1.0;
++            return true;
++        }
+         if (self.fix_k) |k| {
+             for (out, 0..) |*o, j| o.* = if (j < k) 1.0 else 0.0;
+             return true;
+@@ -2391,6 +2396,7 @@ test "TF_DS_KV_SHARD lanes: a round's windows reach the follower with part and g
+     const gpa = std.testing.allocator;
+     var m: Model = undefined;
+     m.dr = null;
++    m.dfly = null;
+     var ln = testLanes(&m);
+     defer ln.snaps.deinit(gpa);
+     defer ln.streams.deinit(gpa);
+diff --git a/zig/src/families/dsv41/lanes_main.zig b/zig/src/families/dsv41/lanes_main.zig
+index a6ec0aefa..00e73c48a 100644
+--- a/zig/src/families/dsv41/lanes_main.zig
++++ b/zig/src/families/dsv41/lanes_main.zig
+@@ -145,6 +145,8 @@ pub fn main(init: std.process.Init) !u8 {
+             o.pool = try std.fmt.parseInt(usize, val, 10);
+         } else if (std.mem.eql(u8, key, "--drafts")) {
+             o.drafts = !std.mem.eql(u8, val, "0");
++        } else if (std.mem.eql(u8, key, "--dfly2-dir")) {
++            o.dfly2_dir = val;
+         } else if (std.mem.eql(u8, key, "--arena-gib")) {
+             arena_gib = try std.fmt.parseInt(usize, val, 10);
+         } else if (std.mem.eql(u8, key, "--aio")) {
+diff --git a/zig/src/families/dsv41/model.zig b/zig/src/families/dsv41/model.zig
+index aa68d3d9b..2d328f24f 100644
+--- a/zig/src/families/dsv41/model.zig
++++ b/zig/src/families/dsv41/model.zig
+@@ -15,6 +15,9 @@ const engram_lead = @import("engram_lead.zig");
+ const prompt2d = @import("prompt2d.zig");
+ const round = @import("round.zig");
+ const draft = @import("draft.zig");
++const dfly = @import("dfly.zig");
++const dfly_weights = @import("dfly_weights.zig");
++const dfly_cache = @import("dfly_cache.zig");
+ const engram = @import("engram.zig");
+ const engram_io = @import("engram_io.zig");
+ const engram_aio = @import("engram_aio.zig");
+@@ -62,6 +65,7 @@ pub const Options = struct {
+     // every rank alike (TF_DS_KV_SHARD, TF_DS_KV_SHARD_DECODE), as TF_DS_IDX_SPLIT is
+     kv_shard: ?shard.Mode = null,
+     drafts: bool = true, // load the DSpark drafter
++    dfly2_dir: ?[]const u8 = null, // experimental TP2 pack; otherwise TF_DS_DFLY2_DIR, unset preserves DSpark
+     rdma_devices: ?[]const u8 = null, // the decode gathers over RDMA on these devices (comma separated), else NCCL: TP2's
+     // ring (rdma.zig), or at world 4 the 2D split's decode-size exchanges over its rings (ring2d.zig)
+     rdma_kernels: ?[]const u8 = null, // world 4: the rings' kernels' image (rdma_gather.cu's fatbin; null: the embedded one)
+@@ -121,6 +125,9 @@ pub const Model = struct {
+     pgraphs: ?draft.PassGraphs = null, // the drafter pass as CUDA graphs (with graphs)
+     dpool: ?draft.Pool = null,
+     dr: ?draft.Drafter = null,
++    dfly: ?dfly.Drafter = null,
++    dfly_w: ?dfly_weights.Weights = null,
++    dfly_capture: ?dfly_cache.Capture = null,
+     tables: ?engram_io.Tables = null,
+     epool: ?*engram_io.Pool = null,
+     aio: ?*engram_aio.Aio = null,
+@@ -205,6 +212,9 @@ pub const Model = struct {
+         m.t_absorb = 0;
+         m.dpool = null;
+         m.dr = null;
++        m.dfly = null;
++        m.dfly_w = null;
++        m.dfly_capture = null;
+         m.tables = null;
+         m.epool = null;
+         m.aio = null;
+@@ -242,9 +252,14 @@ pub const Model = struct {
+         m.cache_file = try m.cache_dir.openFile(io, cache_name, .{});
+         errdefer m.cache_file.close(io);
+         const sp = try prompt2d.split(o.rank, o.world);
+-        m.w = try weights.load(gpa, d, .{ .cache = .{ .file = m.cache_file, .index = &m.ix, .io = io } }, c.*, sp, o.drafts);
++        const dfly_dir = if (o.drafts) o.dfly2_dir orelse envOf("TF_DS_DFLY2_DIR") else null;
++        // The first port supports one stream and the replicated target cache only. Refuse unsupported modes
++        // explicitly; silently using DSpark or another cache layout would make validation meaningless.
++        if (dfly_dir != null and (o.world != 2 or o.streams != 1)) return error.DFly2NeedsTP2SingleStream;
++        if (dfly_dir != null and o.graphs) return error.DFly2GraphsNotValidated;
++        m.w = try weights.load(gpa, d, .{ .cache = .{ .file = m.cache_file, .index = &m.ix, .io = io } }, c.*, sp, o.drafts and dfly_dir == null);
+         errdefer m.w.deinit();
+-        if (o.drafts and m.w.dspark == null) return error.NoDrafter;
++        if (o.drafts and dfly_dir == null and m.w.dspark == null) return error.NoDrafter;
+ 
+         // the ranks' link and NCCL (rank 0 takes the connections its ports have waiting; rank 1 connects)
+         m.fan = try prompt2d.Fan.openBound(io, &ports, o.master, o.port, o.rank, o.world);
+@@ -263,6 +278,7 @@ pub const Model = struct {
+         const want_window: anyerror!?usize = windowOf(o);
+         const ag = try agree(m, o, want_mode, want_pool, want_window);
+         const mode = ag.mode;
++        if (dfly_dir != null and mode != .off) return error.DFly2ShardedCacheNotValidated;
+         const pool = ag.pool;
+         const window = ag.window;
+         m.pool_cap = pool;
+@@ -371,7 +387,19 @@ pub const Model = struct {
+         if (o.graphs) m.graphs = round.Graphs.init(gpa, o.graph_cap);
+         if (o.side) try m.rd.useSide(&m.eng);
+         if (o.prefetch) try m.rd.usePrefetch(&m.eng);
+-        if (o.drafts) {
++        errdefer if (m.dfly) |*x| x.deinit();
++        errdefer if (m.dfly_capture) |*x| x.deinit();
++        errdefer if (m.dfly_w) |*x| x.deinit();
++        if (dfly_dir) |dir| {
++            m.dfly_w = try dfly_weights.Weights.load(gpa, io, d, dir, o.rank);
++            try m.dfly_w.?.config.checkTarget(c.*);
++            try m.agreeDrafter(m.dfly_w.?.identity);
++            m.dfly_capture = try dfly_cache.Capture.init(gpa, &m.arena, m.streams, round.max_rows, c.hidden, c.head_dim, c.window, draft.ring_extra);
++            m.eng.dfly = &m.dfly_capture.?;
++            try m.dfly_capture.?.checkTarget(&m.eng);
++            m.dfly = try dfly.Drafter.init(&m.eng, &m.arena, &m.dfly_w.?);
++            std.log.info("dsv41: experimental DFly2, TP2, five proposals, target verification unchanged", .{});
++        } else if (o.drafts) {
+             m.dpool = try draft.Pool.init(&m.eng, &m.arena, m.streams);
+             m.dr = try draft.Drafter.init(&m.eng, &m.arena, sp);
+             if (o.graphs) {
+@@ -467,7 +495,7 @@ pub const Model = struct {
+     /// (the follower lane has no --context). Ranks on different prompt rows refuse too (PromptRowsMismatch): they would
+     /// launch different kernels for one chunk and sum wrong partials.
+     fn agree(m: *Model, o: Options, want_mode: anyerror!shard.Mode, want_pool: anyerror!usize, want_window: anyerror!?usize) !Agreed {
+-        const n: usize = 6;
++        const n: usize = 7;
+         const bad_setting: u64 = 0xff;
+         const mine = [n]u64{
+             if (want_mode) |x| @backingInt(x) else |_| bad_setting,
+@@ -476,6 +504,7 @@ pub const Model = struct {
+             o.round_rows,
+             o.window_rows,
+             o.gemm_rows,
++            if (!o.drafts) 0 else if ((o.dfly2_dir orelse envOf("TF_DS_DFLY2_DIR")) != null) 2 else 1,
+         };
+         var dev = try cuda.DeviceBuffer.alloc(m.ctx.d, (1 + o.world) * n * 8);
+         defer dev.free();
+@@ -493,12 +522,25 @@ pub const Model = struct {
+             if (r[0] == bad_setting or r[1] == 0 or r[2] == bad_setting) return error.KvShardMismatch;
+             if (r[0] != all[0][0] or r[1] != all[0][1] or r[3] != all[0][3]) return error.KvShardMismatch;
+             if (r[4] != all[0][4] or r[5] != all[0][5]) return error.PromptRowsMismatch;
++            if (r[6] != all[0][6]) return error.DrafterMismatch;
+             if (r[2] != 0 and all[0][2] != 0 and r[2] != all[0][2]) return error.KvShardMismatch;
+         }
+         const window = if (own_window) |w| w else if (all[0][2] != 0) all[0][2] else pool;
+         return .{ .mode = mode, .pool = pool, .window = window };
+     }
+ 
++    /// Both ranks must load the same converter manifest, including source revision, layout and rank checksums.
++    fn agreeDrafter(m: *Model, identity: [32]u8) !void {
++        var dev = try cuda.DeviceBuffer.alloc(m.ctx.d, 96);
++        defer dev.free();
++        try dev.upload(0, &identity);
++        try m.comm.allGather(dev.ptr, dev.ptr + 32, 32, .u8, m.stream);
++        try m.stream.synchronize();
++        var all: [2][32]u8 = undefined;
++        try dev.download(32, std.mem.asBytes(&all));
++        if (!std.mem.eql(u8, &all[0], &all[1])) return error.DFly2CheckpointMismatch;
++    }
++
+     /// The start-up's note of what it serves when the pool is not the window or the shard is on: the pool, its parts,
+     /// the single-conversation limit (below the window asked: said so, with the numbers), the compressed planes'
+     /// bytes a rank (calculated: rows by the formula; the arena's figure is the measured one).
+@@ -534,6 +576,9 @@ pub const Model = struct {
+         m.spans.deinit(m.gpa);
+         if (m.graphs) |*g| g.deinit();
+         if (m.pgraphs) |*g| g.deinit();
++        if (m.dfly) |*x| x.deinit();
++        if (m.dfly_capture) |*x| x.deinit();
++        if (m.dfly_w) |*x| x.deinit();
+         if (m.timer) |t| {
+             t.deinit();
+             m.gpa.destroy(t);
+@@ -615,7 +660,20 @@ pub const Model = struct {
+     }
+ 
+     pub fn drafting(m: *const Model) bool {
+-        return m.dr != null;
++        return m.dr != null or m.dfly != null;
++    }
++
++    pub fn draftCount(m: *const Model) usize {
++        return if (m.dfly != null) 5 else if (m.dr) |dr| dr.n else 1;
++    }
++
++    pub fn draftToken(m: *const Model, stream: usize, step: usize) i64 {
++        return if (m.dfly) |*dr| dr.drafts[stream][step] else m.dr.?.drafts[stream][step];
++    }
++
++    pub fn draftConfidence(m: *const Model, stream: usize, step: usize) f32 {
++        // DFly2 has no DSpark confidence head. Its scheduler uses an explicit fixed-depth policy.
++        return if (m.dfly != null) 0 else m.dr.?.confs[stream][step];
+     }
+ 
+     // -- the primitives (both ranks, in the same order) ----------------------------------------------------------
+@@ -643,6 +701,7 @@ pub const Model = struct {
+     /// Slot `slot`'s own state into `buf` (save: true) or back from it, in the stream's order (no wait): with the
+     /// extent's compressed rows, the state a prompt pass stands in at a chunk end.
+     pub fn snapCopy(m: *Model, slot: usize, buf: u64, save: bool) !void {
++        if (!save) if (m.dfly_capture) |*capture| try capture.reset(slot);
+         const rb = m.eng.ringBytes();
+         const pb = prompt.raw_rows * m.eng.c.head_dim * 4;
+         var at = buf;
+@@ -703,6 +762,9 @@ pub const Model = struct {
+     /// error.StaleExtent before anything is enqueued, so a late copy never attaches old bytes to a reused extent.
+     pub fn copyExtentPinned(m: *Model, from: usize, to: usize, at: usize, pin: ?ExtentPin) !void {
+         const mv = try m.checkExtentPinned(from, to, at, pin);
++        // The experimental lane has one stream. A relocation invalidates its borrowed cache view;
++        // prompt replay or a fresh full target verify must reconstruct the accepted predecessor.
++        if (from != to and at != 0) if (m.dfly_capture) |*capture| try capture.reset(0);
+         const c = m.eng.c;
+         const cs = &m.caches;
+         var spans: [2 * max_extent_sources]comm_mod.Span = undefined;
+@@ -954,6 +1016,7 @@ pub const Model = struct {
+     /// After a restored prompt's fill: the drafter's rings were rebuilt by its replay through the prompt's end
+     /// (spill.checkReplayRebuilds' rule, here as the pool records it), so the first draft reads no unwritten row.
+     pub fn spillCheckResumed(m: *const Model, slot: usize, len: usize) !void {
++        if (m.dfly_capture) |*capture| try capture.checkAnchor(slot, len);
+         if (slot >= m.streams) return error.BadSlot;
+         if (m.dpool) |*p| if (p.absorbed[slot] != len) return error.DraftNotRebuilt;
+     }
+@@ -1126,6 +1189,7 @@ pub const Model = struct {
+         m.view = try m.caches.view(&m.eng, slot, base);
+         for (m.rings, m.ring_view) |r, *v| v.* = r + slot * m.eng.ringBytes();
+         m.fill_slot = slot;
++        if (m.dfly_capture) |*capture| try capture.reset(slot);
+     }
+ 
+     /// TF_DS_KV_SHARD: the filling prompt's view (fillBegin's, at `base`) with its borrowed twins (`on`; `local`: this
+@@ -1145,6 +1209,8 @@ pub const Model = struct {
+         const e = &m.eng;
+         const c = e.c;
+         const ch = &m.ch;
++        if (m.dfly_capture) |*capture| try capture.beginPrompt(m.fill_slot, start, n, replay);
++        errdefer if (m.dfly_capture) |*capture| capture.abort();
+         // an image position's id is negative in the sequence (its n-grams dead for Engram): its embedding's id is the
+         // image token's, which its span row then replaces
+         const image_id: i64 = if (c.image_token) |t| t else 0;
+@@ -1272,6 +1338,7 @@ pub const Model = struct {
+     /// eager absorb: rows past the ones the round keeps sit where the drafter never reads, and the next window
+     /// overwrites them). absorb[i]: window i's stream drafts.
+     pub fn verify(m: *Model, rows: round.Rows, absorb: []const bool) !void {
++        errdefer if (m.dfly_capture) |*capture| capture.abort();
+         m.joinAhead(); // a prompt chunk's Engram read-ahead shares the host buffers a round's Engram reads use
+         const e = &m.eng;
+         if (m.prof) try m.stream.synchronize(); // (the GPU idle, so the issue time shows whether the host keeps it fed)
+@@ -1367,6 +1434,11 @@ pub const Model = struct {
+     /// The drafter's batched pass for N streams: each one's pending token at position q0 in its slot (its rings hold
+     /// its positions below q0), `steps` drafts each (the drafter's drafts and confidences on the host).
+     pub fn pass(m: *Model, tokens: []const i64, q0: []const i64, slots: []const i64, steps: usize) !void {
++        if (m.dfly) |*dr| {
++            if (tokens.len != 1 or q0.len != 1 or slots.len != 1 or slots[0] < 0 or q0[0] <= 0) return error.DFly2NeedsSingleStream;
++            const view = try m.dfly_capture.?.retain(&m.eng, @intCast(slots[0]), @intCast(q0[0]));
++            return dr.pass(&m.eng, &m.ch, view, tokens[0], q0[0], steps);
++        }
+         if (m.dr == null) return error.NoDrafter;
+         const dr = &m.dr.?;
+         const pool = &m.dpool.?;
+diff --git a/zig/src/families/dsv41/prompt.zig b/zig/src/families/dsv41/prompt.zig
+index d77e94b1a..4819062ff 100644
+--- a/zig/src/families/dsv41/prompt.zig
++++ b/zig/src/families/dsv41/prompt.zig
+@@ -37,6 +37,7 @@ const rdma = @import("rdma.zig");
+ const shard = @import("shard.zig");
+ const shard_ops = @import("shard_ops.zig");
+ const prompt_rows = @import("prompt_rows.zig");
++const dfly_cache = @import("dfly_cache.zig");
+ 
+ comptime {
+     std.debug.assert(prompt_rows.default_window == exl3_experts.exact_rows and prompt_rows.max_window == exl3_experts.max_window_rows);
+@@ -136,6 +137,7 @@ pub const Engine = struct {
+     two: ?*const prompt2d.Two = null, // a node of the four-node 2D split (prompt2d.zig); `world` stays TP2's
+     ring: ?*rdma.Ring = null, // TP2: the decode-size all-gathers over the RDMA ring (the served lane's), else NCCL
+     kv: ?*shard_ops.KvShard = null, // TF_DS_KV_SHARD: the parts, the decode mode, the fetch kernels (null: replicated)
++    dfly: ?*dfly_cache.Capture = null, // opt-in DFly2 target snapshots; fixed addresses for captured rounds
+ 
+     /// A decode-size all-gather of `count` fp32 a rank into `dst`, rank after rank: the RDMA ring when the engine has
+     /// one and the slice fits a slot (whole float4s), else NCCL. The same bytes either way.
+@@ -984,6 +986,10 @@ pub fn attention(e: *const Engine, ch: *Chunk, cs: *const Caches, sh: *Shared, l
+         try upload(e, ch.vis, &vis_host, n * 8);
+         if (lay.idx_wq_b) |wqb| try indexer(e, ch, cs, sh, li, wqb, src, n_comp_end, rope);
+         const kk = sh.kk orelse return error.NoIndexerSelection;
++        if (e.dfly) |capture| if (dfly_cache.stageOf(li) != null) {
++            if (src != dfly_cache.source_layer or cs.shard != null or cs.own != null) return error.UnsupportedDflyKvLayout;
++            try capture.capturePrompt(e, li, start, n, ch.cidx, kk, cs.comp_codes[src], cs.comp_scales[src], ring);
++        };
+         comp = .{ .fp4 = .{ .codes = cs.comp_codes[src], .scales = cs.comp_scales[src] } };
+         n_idx = kk;
+         if (kk % 16 != 0 and (n > tri.decode_rows or one_split)) {
+@@ -1744,10 +1750,12 @@ pub fn head(e: *const Engine, ch: *Chunk) !void {
+     const last_h = ch.h + (n - 1) * c.hc * c.hidden * 2;
+     const last_pre = ch.pre + (n - 1) * c.hc * 4;
+     try tri_basic.collapseNorm(e.t, last_h, last_pre, e.w.norm, ch.head_x, c.eps, 1, c.hidden);
++    if (e.dfly) |capture| try capture.captureHidden(e, ch.head_x, 1);
+     const hl = e.w.head;
+     try mmRows(e, ch, 1, hl, ch.head_x, c.hidden, ch.head_l, .fp32, hl.n);
+     if (e.two) |t| return t.quarters(e, ch.head_l, ch.head_g, 1, t.hw, 4); // 2D: the vocabulary quarters, TP2's layout
+     try e.comm.allGather(ch.head_l, ch.head_g, hl.n, .f32, e.s);
++    if (e.dfly) |capture| try capture.finish();
+ }
+ 
+ /// A layer's end: the MoE's gather is pending (the next layer's attention mixes post it) and the FFN's pre_out is the
+diff --git a/zig/src/families/dsv41/round.zig b/zig/src/families/dsv41/round.zig
+index 95c72d170..43a391740 100644
+--- a/zig/src/families/dsv41/round.zig
++++ b/zig/src/families/dsv41/round.zig
+@@ -31,6 +31,7 @@ const shard = @import("shard.zig");
+ const shard_ops = @import("shard_ops.zig");
+ const shard_ring = @import("shard_ring.zig");
+ const graph_cache = @import("graph_cache.zig");
++const dfly_cache = @import("dfly_cache.zig");
+ 
+ const Engine = prompt.Engine;
+ const Chunk = prompt.Chunk;
+@@ -1005,6 +1006,10 @@ fn attention(e: *const Engine, rd: *Round, ch: *const Chunk, cs: *const Caches,
+             } else return notPorted(@src()); // the scores' topk_indices path (a top-k of no power of two)
+             rd.kk = kk;
+         }
++        if (e.dfly) |capture| if (dfly_cache.stageOf(li) != null) {
++            if (src != dfly_cache.source_layer) return error.UnsupportedDflyKvLayout;
++            try capture.captureRound(e, li, rd.cidx, rd.kk, R);
++        };
+         comp = .{ .fp4 = .{ .codes = cs.comp_codes[src], .scales = cs.comp_scales[src] } };
+     }
+     try rd.mark(e, .a_idx);
+@@ -1406,7 +1411,7 @@ pub const Graphs = struct {
+     gpa: std.mem.Allocator,
+     lru: graph_cache.Lru(Key, Entry),
+ 
+-    pub const Key = struct { rows: u32, bucket: u64, stretch: u32, mode: u8 = 0 }; // mode: the round's shard.Mode (auto's choice)
++    pub const Key = struct { rows: u32, bucket: u64, stretch: u32, mode: u8 = 0, dfly: u64 = 0 }; // mode: shard.Mode; dfly: fixed snapshot allocation, 0 disabled
+     const Entry = struct { exec: cuda.graph.Exec, start: Carry, end: Carry };
+ 
+     pub fn init(gpa: std.mem.Allocator, cap: usize) Graphs {
+@@ -1480,6 +1485,16 @@ pub fn forward(e: *const Engine, rd: *Round, ch: *const Chunk, cs: *const Caches
+     const w = e.w;
+     const R = rows.ids.len;
+     if (R == 0 or R > e.round_rows or rows.pos.len != R) return error.BadRound;
++    if (e.dfly) |capture| {
++        try capture.checkTarget(e);
++        if (cs.shard != null or cs.own != null) return error.UnsupportedDflyKvLayout;
++        try capture.beginRound(rows, .{
++            .codes = cs.comp_codes[dfly_cache.source_layer],
++            .scales = cs.comp_scales[dfly_cache.source_layer],
++            .rings = .{ rings[28], rings[32], rings[36] },
++        });
++    }
++    errdefer if (e.dfly) |capture| capture.abort();
+     rd.r = R;
+     // kernels.round_rows(): up to the round's bound its rows take the row-invariant decode kernels
+     const bound = tri.decode_rows;
+@@ -1522,7 +1537,7 @@ pub fn forward(e: *const Engine, rd: *Round, ch: *const Chunk, cs: *const Caches
+         }
+         try rd.clock(e, Round.clock_wait);
+         if (graphs) |g| {
+-            try g.run(.{ .rows = @intCast(R), .bucket = rd.bucket, .stretch = sn, .mode = @intFromEnum(rd.smode) }, e, rd, ch, cs, rings, &cy, li, end);
++            try g.run(.{ .rows = @intCast(R), .bucket = rd.bucket, .stretch = sn, .mode = @intFromEnum(rd.smode), .dfly = if (e.dfly) |capture| capture.graphKey() else 0 }, e, rd, ch, cs, rings, &cy, li, end);
+         } else try stretch(e, rd, ch, cs, rings, &cy, li, end, probe);
+         try rd.clock(e, Round.clock_tail);
+         if (!ahead) try engramAhead(e, eh orelse return error.NoEngramTables, seq, rows, &ah);
+@@ -1533,6 +1548,7 @@ pub fn forward(e: *const Engine, rd: *Round, ch: *const Chunk, cs: *const Caches
+         try Probe.check(probe, .logits, w.layers.len, rd.logits);
+         if (cy.ntap > 0) try Probe.check(probe, .taps, w.layers.len, rd.taps);
+     }
++    if (e.dfly) |capture| try capture.finish();
+ }
+ 
+ /// Layers li .. end of a round (the first stretch starts with the rows' streams, the last ends with the head), from
+@@ -1611,6 +1627,7 @@ fn stretch(e: *const Engine, rd: *Round, ch: *const Chunk, cs: *const Caches, ri
+     if (end < w.layers.len) return;
+     // the head on every row: the logits, the ranks' columns in rank order (g.permute(1, 0, 2))
+     try tri_basic.collapseNorm(t, h, pre, w.norm, rd.xc, c.eps, R, d);
++    if (e.dfly) |capture| try capture.captureHidden(e, rd.xc, R);
+     const hn: usize = w.head.n;
+     try prompt.grouped(e, ch, R, &.{w.head}, &.{rd.xc}, &.{d}, &.{rd.hl}, &.{hn}, &.{.f32});
+     try Probe.check(probe, .head_cols, w.layers.len, rd.hl);

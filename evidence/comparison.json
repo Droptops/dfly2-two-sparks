@@ -1,0 +1,81 @@
+{
+  "schema": "dfly2-public-comparison-v1",
+  "request_count": 6,
+  "requests_sha256": "5243088b517b75309cb57a5d72a379a468339ed2aad98b2e58b533f0b6cd6f23",
+  "all_token_arrays_and_finish_reasons_equal": true,
+  "output_tokens_per_run": 959,
+  "prompt_token_range": [
+    82,
+    142
+  ],
+  "runs": [
+    {
+      "mode": "serial",
+      "binary_sha256": "428eb71fae441468687eed210c5dbcbdedf853a12fe391b25e94f5ceddef23c1",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 953,
+      "drafted": 0,
+      "accepted": 0,
+      "total_seconds_including_prefill": 27.21,
+      "summed_reported_prefill_seconds": 2.43,
+      "estimated_decode_seconds": 24.78,
+      "estimated_decode_tokens_per_second": 38.46,
+      "receipt": "chat-serial.json"
+    },
+    {
+      "mode": "dspark",
+      "binary_sha256": "017d2972dfe6130a78defb8fc8a3f54d76ae699d9ffa26fea062307a43c2f940",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 268,
+      "drafted": 918,
+      "accepted": 690,
+      "total_seconds_including_prefill": 15.28,
+      "summed_reported_prefill_seconds": 2.41,
+      "estimated_decode_seconds": 12.87,
+      "estimated_decode_tokens_per_second": 74.05,
+      "receipt": "chat-dspark.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "017d2972dfe6130a78defb8fc8a3f54d76ae699d9ffa26fea062307a43c2f940",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 271,
+      "drafted": 1351,
+      "accepted": 685,
+      "total_seconds_including_prefill": 23.73,
+      "summed_reported_prefill_seconds": 2.94,
+      "estimated_decode_seconds": 20.79,
+      "estimated_decode_tokens_per_second": 45.84,
+      "receipt": "chat-dfly2.json"
+    }
+  ],
+  "dspark_initial_run": {
+    "mode": "dspark",
+    "binary_sha256": "428eb71fae441468687eed210c5dbcbdedf853a12fe391b25e94f5ceddef23c1",
+    "exact_reference_tokens_and_finish_reasons": true,
+    "output_tokens": 959,
+    "decode_tokens": 953,
+    "rounds": 268,
+    "drafted": 919,
+    "accepted": 690,
+    "total_seconds_including_prefill": 15.46,
+    "summed_reported_prefill_seconds": 2.44,
+    "estimated_decode_seconds": 13.02,
+    "estimated_decode_tokens_per_second": 73.2
+  },
+  "draft_weights_bytes_per_rank": 4529862920,
+  "draft_pack_manifest_sha256": "cdb1a38bb46af18fee74357562f4b855f67f5d70897f1ef9dd8976dbaf269ac4",
+  "recorded_primitive_checks_passed": 11,
+  "recorded_fp4_kernel_speedup_range": [
+    1.7228988400913139,
+    1.798432312496123
+  ],
+  "timing_method": "953 post-first-token outputs divided by (native total seconds minus six recorded prefill times); native times rounded to 0.01 seconds",
+  "scope": "Recorded one-stream eager runs, profiling enabled, short prompts. Output equivalence is not a quality evaluation; kernel speedup is not model speedup."
+}

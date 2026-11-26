@@ -1,0 +1,43 @@
+{
+  "format": "tensorfold-dfly2-tp2-v1",
+  "world_size": 2,
+  "source_model": "AngelSlim/DS-V4.1-Flash-DFly2-B6",
+  "source_config_sha256": "0d53324203ab18c69927da96aa27566195602b9ab0aac4867b2819d6a46a051e",
+  "source_files": [
+    {
+      "file": "model-00001-of-00004.safetensors",
+      "bytes": 2735851872,
+      "sha256": "3a8d253390daebb7f4279ad4edd0eb0a89561cf0bae610931fbc4c47a497345a"
+    },
+    {
+      "file": "model-00002-of-00004.safetensors",
+      "bytes": 2735851872,
+      "sha256": "95da61fce834e4f2d1f3cc5a80656bd91ce624164cbc7f8d16726cab3e9f8701"
+    },
+    {
+      "file": "model-00003-of-00004.safetensors",
+      "bytes": 2735851872,
+      "sha256": "a2a1480dedc6bbcc9f8f54c928ca6ae11eaf27a979b8de90beb8bdb8bd540e2e"
+    },
+    {
+      "file": "model-00004-of-00004.safetensors",
+      "bytes": 639969728,
+      "sha256": "0e42e694d739a7a4c07eb6c93be86a55b180f077273f11b129206d126a489a1d"
+    }
+  ],
+  "ranks": [
+    {
+      "file": "rank0.safetensors",
+      "bytes": 4529874624,
+      "tensor_bytes": 4529862920,
+      "sha256": "2df7e3c988e3cd8cb6979d015b68e2ad9ff1f150aa64c9cebfbb13799f2050b9"
+    },
+    {
+      "file": "rank1.safetensors",
+      "bytes": 4529874624,
+      "tensor_bytes": 4529862920,
+      "sha256": "58f43ebc86113f212d3891a2925d7e05d71065bcc186d71f13f11aea0775c97c"
+    }
+  ],
+  "conversion": "byte-preserving slices; no requantization"
+}
