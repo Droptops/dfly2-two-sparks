@@ -58,9 +58,23 @@ def execution_settings(mode):
     """
     if mode not in MODES:
         raise Refusal("Unknown validation mode")
-    return {"world_size": 2, "streams": 1, "parallel": 1, "pool_tokens": POOL,
+    settings = {"world_size": 2, "streams": 1, "parallel": 1, "pool_tokens": POOL,
             "cuda_graphs": False, "profiling": True, "drafting": mode != "serial",
             "fixed_draft_depth": FIXED_DEPTH.get(mode)}
+    if "experimental" in CLUSTER:
+        exp = CLUSTER["experimental"]
+        if mode == "dfly2" and exp.get("copies") is True:
+            raise Refusal("DFly2 does not support suffix-copy proposals")
+        if mode == "dfly2" and "dfly_depth" in exp:
+            settings["fixed_draft_depth"] = exp["dfly_depth"]
+        # Record effective controls, without leaking the private capture path.
+        settings["experimental"] = {
+            key: exp[key] if mode == "dfly2" else False
+            for key in ("device_feedback", "rdma_best", "detailed_profile", "adaptive", "reference_norms")}
+        settings["experimental"]["copies"] = exp.get("copies", mode != "dfly2") if mode != "serial" else False
+        if "capture" in exp and mode == "dfly2":
+            settings["experimental"]["capture"] = {"enabled": True, "limit": exp["capture"]["limit"], "every": exp["capture"]["every"]}
+    return settings
 
 
 def container_name(job):
@@ -281,6 +295,13 @@ def node_preflight(config, *, allow_id=None):
     pack_sha = None
     if config["mode"] == "dfly2":
         pack_sha = check_pack(config["pack"], rank)
+        if rank == 0 and "capture" in CLUSTER.get("experimental", {}):
+            capture = Path(CLUSTER["experimental"]["capture"]["directory"])
+            if capture.is_symlink():
+                raise Refusal("Capture directory cannot be a symlink")
+            capture = contained(capture, EXPERIMENT, file=False)
+            if any(capture.iterdir()) or not os.access(capture, os.W_OK):
+                raise Refusal("Capture requires a new empty writable directory")
     image = CLUSTER["image"]
     image_id, image_content_sha256 = check_image(config["mode"])
     return {"host": expected["hostname"], "rank": rank, "mem_available_bytes": available,
@@ -308,6 +329,20 @@ def create_argv(config, preflight, cidfile):
     # DFly2 and break the DSpark baseline. Reviewed base images have no such ENV.
     if mode == "dfly2":
         env["TF_DS_DFLY2_DIR"] = config["pack"]
+        if "experimental" in CLUSTER:
+            exp = CLUSTER["experimental"]
+            for name, key in (("TF_DFLY_DEVICE_FEEDBACK", "device_feedback"),
+                              ("TF_DFLY_RDMA_BEST", "rdma_best"),
+                              ("TF_DFLY_PROFILE", "detailed_profile"),
+                              ("TF_DFLY_REFERENCE_NORMS", "reference_norms")):
+                env[name] = str(int(exp[key]))
+            if "capture" in exp and rank == 0:
+                cap = exp["capture"]
+                env.update({"TF_DFLY_CAPTURE_DIR": cap["directory"],
+                            "TF_DFLY_CAPTURE_LIMIT": str(cap["limit"]),
+                            "TF_DFLY_CAPTURE_EVERY": str(cap["every"]),
+                            "TF_DFLY_CAPTURE_BINARY_SHA256": preflight["binary_sha256"],
+                            "TF_DFLY_CAPTURE_REQUESTS_SHA256": preflight["requests_sha256"]})
     # No inherited NCCL log path or managed service label.
     env.pop("NCCL_DEBUG_FILE", None)
     args = ["docker", "create", "--cidfile", str(cidfile), "--name", container_name(config),
@@ -315,6 +350,9 @@ def create_argv(config, preflight, cidfile):
             "--label", f"{RANK_LABEL}={rank}", "--network=host", "--ipc=host", "--gpus", "all",
             "--ulimit", "memlock=-1", "--device", "/dev/infiniband", "--cap-add", "IPC_LOCK",
             "--stop-timeout", "15", "--mount", f"type=bind,src={ROOT},dst={ROOT},readonly"]
+    if mode == "dfly2" and rank == 0 and "capture" in CLUSTER.get("experimental", {}):
+        destination = CLUSTER["experimental"]["capture"]["directory"]
+        args.extend(["--mount", f"type=bind,src={destination},dst={destination}"])
     for key, value in sorted(env.items()):
         args.extend(["-e", f"{key}={value}"])
     if config.get("kind") == "weights":
@@ -333,6 +371,11 @@ def create_argv(config, preflight, cidfile):
                  "--drafts", str(int(settings["drafting"])), "--serial", str(int(not settings["drafting"]))])
     if settings["fixed_draft_depth"] is not None:
         args.extend(["--fix-k", str(settings["fixed_draft_depth"])])
+    exp = CLUSTER.get("experimental", {})
+    if "copies" in exp:
+        args.extend(["--copies", str(int(exp["copies"]))])
+    if mode == "dfly2" and exp.get("adaptive"):
+        args.extend(["--dfly-adaptive", "1"])
     return args
 
 

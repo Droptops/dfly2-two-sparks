@@ -1,0 +1,130 @@
+{
+  "schema": "dfly2-lab-matrix-public-v1",
+  "purpose": "benchmark",
+  "repeats": 3,
+  "complete": true,
+  "variants": [
+    {
+      "name": "serial",
+      "mode": "serial",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": false,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": false,
+          "rdma_best": false,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "candidate",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": true,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "dspark",
+      "mode": "dspark",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": false,
+          "rdma_best": false,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": true
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "order": 1,
+      "variant": "serial",
+      "repeat": 1,
+      "file": "run-001-serial-r1.json"
+    },
+    {
+      "order": 2,
+      "variant": "candidate",
+      "repeat": 1,
+      "file": "run-002-candidate-r1.json"
+    },
+    {
+      "order": 3,
+      "variant": "dspark",
+      "repeat": 1,
+      "file": "run-003-dspark-r1.json"
+    },
+    {
+      "order": 4,
+      "variant": "candidate",
+      "repeat": 2,
+      "file": "run-004-candidate-r2.json"
+    },
+    {
+      "order": 5,
+      "variant": "dspark",
+      "repeat": 2,
+      "file": "run-005-dspark-r2.json"
+    },
+    {
+      "order": 6,
+      "variant": "serial",
+      "repeat": 2,
+      "file": "run-006-serial-r2.json"
+    },
+    {
+      "order": 7,
+      "variant": "dspark",
+      "repeat": 3,
+      "file": "run-007-dspark-r3.json"
+    },
+    {
+      "order": 8,
+      "variant": "serial",
+      "repeat": 3,
+      "file": "run-008-serial-r3.json"
+    },
+    {
+      "order": 9,
+      "variant": "candidate",
+      "repeat": 3,
+      "file": "run-009-candidate-r3.json"
+    }
+  ]
+}

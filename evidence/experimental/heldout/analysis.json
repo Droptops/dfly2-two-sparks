@@ -1,0 +1,3177 @@
+{
+  "schema": "dfly2-lab-analysis-v1",
+  "purpose": "benchmark",
+  "complete": true,
+  "benchmark_eligible": true,
+  "attempted_runs": 9,
+  "successful_runs": 9,
+  "requests_sha256": "58c5d2c0bf4cce0d00db45a80783d48f48a94b9068e6da9091e1ea9e55856910",
+  "all_successful_token_arrays_and_finish_reasons_equal": true,
+  "failure_retained": false,
+  "measurement_scope": "One-stream eager, 8192-token pool. Exact target outputs do not establish Tencent drafter parity.",
+  "variants": [
+    {
+      "variant": "serial",
+      "mode": "serial",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": false,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": false,
+          "rdma_best": false,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      },
+      "runs": 3,
+      "estimated_decode_tokens_per_second": {
+        "median": 38.02,
+        "min": 38.01,
+        "max": 38.1
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 30.33,
+        "min": 30.31,
+        "max": 30.39
+      },
+      "estimated_decode_seconds": {
+        "median": 37.8,
+        "min": 37.72,
+        "max": 37.81
+      },
+      "total_seconds_including_prefill": {
+        "median": 47.78,
+        "min": 47.68,
+        "max": 47.8
+      },
+      "tokens_per_round": {
+        "median": 1.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "draft_pass_ms": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "draft_ms_per_round": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "estimated_decode_tokens_per_second": {
+            "median": 37.68,
+            "min": 37.5,
+            "max": 37.77
+          },
+          "estimated_decode_seconds": {
+            "median": 4.14,
+            "min": 4.13,
+            "max": 4.16
+          },
+          "prefill_seconds": {
+            "median": 0.49,
+            "min": 0.48,
+            "max": 0.51
+          },
+          "total_seconds": {
+            "median": 4.64,
+            "min": 4.62,
+            "max": 4.65
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 33.84,
+            "min": 33.76,
+            "max": 33.98
+          }
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.33,
+            "min": 37.84,
+            "max": 38.58
+          },
+          "estimated_decode_seconds": {
+            "median": 4.67,
+            "min": 4.64,
+            "max": 4.73
+          },
+          "prefill_seconds": {
+            "median": 0.32,
+            "min": 0.32,
+            "max": 0.33
+          },
+          "total_seconds": {
+            "median": 4.99,
+            "min": 4.96,
+            "max": 5.06
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 36.07,
+            "min": 35.57,
+            "max": 36.29
+          }
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "estimated_decode_tokens_per_second": {
+            "median": 37.75,
+            "min": 37.58,
+            "max": 37.84
+          },
+          "estimated_decode_seconds": {
+            "median": 4.45,
+            "min": 4.44,
+            "max": 4.47
+          },
+          "prefill_seconds": {
+            "median": 1.66,
+            "min": 1.65,
+            "max": 1.68
+          },
+          "total_seconds": {
+            "median": 6.12,
+            "min": 6.1,
+            "max": 6.13
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 27.61,
+            "min": 27.57,
+            "max": 27.7
+          }
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.78,
+            "min": 38.48,
+            "max": 38.87
+          },
+          "estimated_decode_seconds": {
+            "median": 3.92,
+            "min": 3.91,
+            "max": 3.95
+          },
+          "prefill_seconds": {
+            "median": 0.43,
+            "min": 0.42,
+            "max": 0.44
+          },
+          "total_seconds": {
+            "median": 4.36,
+            "min": 4.34,
+            "max": 4.37
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 35.09,
+            "min": 35.01,
+            "max": 35.25
+          }
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "estimated_decode_tokens_per_second": {
+            "median": 37.66,
+            "min": 37.66,
+            "max": 38.16
+          },
+          "estimated_decode_seconds": {
+            "median": 0.77,
+            "min": 0.76,
+            "max": 0.77
+          },
+          "prefill_seconds": {
+            "median": 0.38,
+            "min": 0.37,
+            "max": 0.39
+          },
+          "total_seconds": {
+            "median": 1.14,
+            "min": 1.14,
+            "max": 1.16
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 26.32,
+            "min": 25.86,
+            "max": 26.32
+          }
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "estimated_decode_tokens_per_second": {
+            "median": 37.7,
+            "min": 37.1,
+            "max": 37.86
+          },
+          "estimated_decode_seconds": {
+            "median": 2.44,
+            "min": 2.43,
+            "max": 2.48
+          },
+          "prefill_seconds": {
+            "median": 1.95,
+            "min": 1.92,
+            "max": 1.97
+          },
+          "total_seconds": {
+            "median": 4.38,
+            "min": 4.36,
+            "max": 4.45
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 21.23,
+            "min": 20.9,
+            "max": 21.33
+          }
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.41,
+            "min": 38.22,
+            "max": 38.5
+          },
+          "estimated_decode_seconds": {
+            "median": 4.14,
+            "min": 4.13,
+            "max": 4.16
+          },
+          "prefill_seconds": {
+            "median": 0.33,
+            "min": 0.33,
+            "max": 0.33
+          },
+          "total_seconds": {
+            "median": 4.47,
+            "min": 4.46,
+            "max": 4.49
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 35.79,
+            "min": 35.63,
+            "max": 35.87
+          }
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.14,
+            "min": 38.01,
+            "max": 38.28
+          },
+          "estimated_decode_seconds": {
+            "median": 2.91,
+            "min": 2.9,
+            "max": 2.92
+          },
+          "prefill_seconds": {
+            "median": 0.33,
+            "min": 0.33,
+            "max": 0.34
+          },
+          "total_seconds": {
+            "median": 3.24,
+            "min": 3.24,
+            "max": 3.25
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 34.57,
+            "min": 34.46,
+            "max": 34.57
+          }
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "estimated_decode_tokens_per_second": {
+            "median": 37.78,
+            "min": 37.57,
+            "max": 37.89
+          },
+          "estimated_decode_seconds": {
+            "median": 3.52,
+            "min": 3.51,
+            "max": 3.54
+          },
+          "prefill_seconds": {
+            "median": 1.94,
+            "min": 1.94,
+            "max": 2.01
+          },
+          "total_seconds": {
+            "median": 5.48,
+            "min": 5.45,
+            "max": 5.53
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 24.45,
+            "min": 24.23,
+            "max": 24.59
+          }
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.3,
+            "min": 38.21,
+            "max": 38.4
+          },
+          "estimated_decode_seconds": {
+            "median": 3.89,
+            "min": 3.88,
+            "max": 3.9
+          },
+          "prefill_seconds": {
+            "median": 0.31,
+            "min": 0.31,
+            "max": 0.31
+          },
+          "total_seconds": {
+            "median": 4.2,
+            "min": 4.19,
+            "max": 4.21
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 35.71,
+            "min": 35.63,
+            "max": 35.8
+          }
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.12,
+            "min": 38.12,
+            "max": 38.12
+          },
+          "estimated_decode_seconds": {
+            "median": 1.6,
+            "min": 1.6,
+            "max": 1.6
+          },
+          "prefill_seconds": {
+            "median": 0.41,
+            "min": 0.41,
+            "max": 0.42
+          },
+          "total_seconds": {
+            "median": 2.01,
+            "min": 2.01,
+            "max": 2.02
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 30.85,
+            "min": 30.69,
+            "max": 30.85
+          }
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.1,
+            "min": 35.29,
+            "max": 38.1
+          },
+          "estimated_decode_seconds": {
+            "median": 1.26,
+            "min": 1.26,
+            "max": 1.36
+          },
+          "prefill_seconds": {
+            "median": 1.38,
+            "min": 1.35,
+            "max": 1.44
+          },
+          "total_seconds": {
+            "median": 2.64,
+            "min": 2.61,
+            "max": 2.8
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 18.56,
+            "min": 17.5,
+            "max": 18.77
+          }
+        }
+      ]
+    },
+    {
+      "variant": "candidate",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": true,
+          "reference_norms": false,
+          "copies": false
+        }
+      },
+      "runs": 3,
+      "estimated_decode_tokens_per_second": {
+        "median": 47.32,
+        "min": 44.59,
+        "max": 47.68
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 36.02,
+        "min": 33.94,
+        "max": 36.07
+      },
+      "estimated_decode_seconds": {
+        "median": 30.37,
+        "min": 30.14,
+        "max": 32.23
+      },
+      "total_seconds_including_prefill": {
+        "median": 40.23,
+        "min": 40.17,
+        "max": 42.69
+      },
+      "tokens_per_round": {
+        "median": 2.47,
+        "min": 2.46,
+        "max": 2.56
+      },
+      "draft_pass_ms": {
+        "median": 20.05,
+        "min": 19.51,
+        "max": 22.46
+      },
+      "draft_ms_per_round": {
+        "median": 14.28,
+        "min": 13.96,
+        "max": 16.17
+      },
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "estimated_decode_tokens_per_second": {
+            "median": 36.03,
+            "min": 27.91,
+            "max": 36.79
+          },
+          "estimated_decode_seconds": {
+            "median": 4.33,
+            "min": 4.24,
+            "max": 5.59
+          },
+          "prefill_seconds": {
+            "median": 0.55,
+            "min": 0.52,
+            "max": 0.78
+          },
+          "total_seconds": {
+            "median": 4.88,
+            "min": 4.76,
+            "max": 6.37
+          },
+          "tokens_per_round": {
+            "median": 1.73,
+            "min": 1.73,
+            "max": 2.17
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 32.17,
+            "min": 24.65,
+            "max": 32.98
+          }
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "estimated_decode_tokens_per_second": {
+            "median": 34.03,
+            "min": 29.2,
+            "max": 36.02
+          },
+          "estimated_decode_seconds": {
+            "median": 5.26,
+            "min": 4.97,
+            "max": 6.13
+          },
+          "prefill_seconds": {
+            "median": 0.33,
+            "min": 0.32,
+            "max": 0.45
+          },
+          "total_seconds": {
+            "median": 5.58,
+            "min": 5.3,
+            "max": 6.58
+          },
+          "tokens_per_round": {
+            "median": 1.23,
+            "min": 1.04,
+            "max": 1.28
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 32.26,
+            "min": 27.36,
+            "max": 33.96
+          }
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "estimated_decode_tokens_per_second": {
+            "median": 45.04,
+            "min": 44.56,
+            "max": 45.53
+          },
+          "estimated_decode_seconds": {
+            "median": 3.73,
+            "min": 3.69,
+            "max": 3.77
+          },
+          "prefill_seconds": {
+            "median": 1.65,
+            "min": 1.64,
+            "max": 1.67
+          },
+          "total_seconds": {
+            "median": 5.37,
+            "min": 5.36,
+            "max": 5.42
+          },
+          "tokens_per_round": {
+            "median": 2.71,
+            "min": 2.71,
+            "max": 2.71
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 31.47,
+            "min": 31.18,
+            "max": 31.53
+          }
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "estimated_decode_tokens_per_second": {
+            "median": 69.72,
+            "min": 69.41,
+            "max": 70.05
+          },
+          "estimated_decode_seconds": {
+            "median": 2.18,
+            "min": 2.17,
+            "max": 2.19
+          },
+          "prefill_seconds": {
+            "median": 0.43,
+            "min": 0.43,
+            "max": 0.44
+          },
+          "total_seconds": {
+            "median": 2.61,
+            "min": 2.61,
+            "max": 2.62
+          },
+          "tokens_per_round": {
+            "median": 5.07,
+            "min": 5.07,
+            "max": 5.07
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 58.62,
+            "min": 58.4,
+            "max": 58.62
+          }
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "estimated_decode_tokens_per_second": {
+            "median": 53.7,
+            "min": 52.73,
+            "max": 53.7
+          },
+          "estimated_decode_seconds": {
+            "median": 0.54,
+            "min": 0.54,
+            "max": 0.55
+          },
+          "prefill_seconds": {
+            "median": 0.37,
+            "min": 0.37,
+            "max": 0.38
+          },
+          "total_seconds": {
+            "median": 0.92,
+            "min": 0.91,
+            "max": 0.92
+          },
+          "tokens_per_round": {
+            "median": 3.22,
+            "min": 3.22,
+            "max": 3.22
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 32.61,
+            "min": 32.61,
+            "max": 32.97
+          }
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "estimated_decode_tokens_per_second": {
+            "median": 65.25,
+            "min": 65.25,
+            "max": 66.19
+          },
+          "estimated_decode_seconds": {
+            "median": 1.41,
+            "min": 1.39,
+            "max": 1.41
+          },
+          "prefill_seconds": {
+            "median": 1.93,
+            "min": 1.92,
+            "max": 1.93
+          },
+          "total_seconds": {
+            "median": 3.34,
+            "min": 3.31,
+            "max": 3.34
+          },
+          "tokens_per_round": {
+            "median": 4.6,
+            "min": 4.38,
+            "max": 4.6
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 27.84,
+            "min": 27.84,
+            "max": 28.1
+          }
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "estimated_decode_tokens_per_second": {
+            "median": 65.16,
+            "min": 61.39,
+            "max": 66.81
+          },
+          "estimated_decode_seconds": {
+            "median": 2.44,
+            "min": 2.38,
+            "max": 2.59
+          },
+          "prefill_seconds": {
+            "median": 0.33,
+            "min": 0.32,
+            "max": 0.34
+          },
+          "total_seconds": {
+            "median": 2.76,
+            "min": 2.71,
+            "max": 2.93
+          },
+          "tokens_per_round": {
+            "median": 4.68,
+            "min": 4.08,
+            "max": 4.68
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 57.97,
+            "min": 54.61,
+            "max": 59.04
+          }
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "estimated_decode_tokens_per_second": {
+            "median": 51.87,
+            "min": 50.92,
+            "max": 52.36
+          },
+          "estimated_decode_seconds": {
+            "median": 2.14,
+            "min": 2.12,
+            "max": 2.18
+          },
+          "prefill_seconds": {
+            "median": 0.33,
+            "min": 0.33,
+            "max": 0.33
+          },
+          "total_seconds": {
+            "median": 2.47,
+            "min": 2.45,
+            "max": 2.51
+          },
+          "tokens_per_round": {
+            "median": 3.17,
+            "min": 3.17,
+            "max": 3.36
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 45.34,
+            "min": 44.62,
+            "max": 45.71
+          }
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "estimated_decode_tokens_per_second": {
+            "median": 61.86,
+            "min": 58.85,
+            "max": 62.15
+          },
+          "estimated_decode_seconds": {
+            "median": 2.15,
+            "min": 2.14,
+            "max": 2.26
+          },
+          "prefill_seconds": {
+            "median": 1.91,
+            "min": 1.86,
+            "max": 2.0
+          },
+          "total_seconds": {
+            "median": 4.05,
+            "min": 4.01,
+            "max": 4.26
+          },
+          "tokens_per_round": {
+            "median": 4.03,
+            "min": 3.69,
+            "max": 4.03
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 33.09,
+            "min": 31.46,
+            "max": 33.42
+          }
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "estimated_decode_tokens_per_second": {
+            "median": 39.01,
+            "min": 38.9,
+            "max": 40.82
+          },
+          "estimated_decode_seconds": {
+            "median": 3.82,
+            "min": 3.65,
+            "max": 3.83
+          },
+          "prefill_seconds": {
+            "median": 0.31,
+            "min": 0.3,
+            "max": 0.31
+          },
+          "total_seconds": {
+            "median": 4.13,
+            "min": 3.96,
+            "max": 4.13
+          },
+          "tokens_per_round": {
+            "median": 2.07,
+            "min": 1.91,
+            "max": 2.1
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 36.32,
+            "min": 36.32,
+            "max": 37.88
+          }
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "estimated_decode_tokens_per_second": {
+            "median": 48.03,
+            "min": 45.52,
+            "max": 48.03
+          },
+          "estimated_decode_seconds": {
+            "median": 1.27,
+            "min": 1.27,
+            "max": 1.34
+          },
+          "prefill_seconds": {
+            "median": 0.41,
+            "min": 0.41,
+            "max": 0.43
+          },
+          "total_seconds": {
+            "median": 1.68,
+            "min": 1.68,
+            "max": 1.77
+          },
+          "tokens_per_round": {
+            "median": 2.65,
+            "min": 2.65,
+            "max": 2.77
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 36.9,
+            "min": 35.03,
+            "max": 36.9
+          }
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "estimated_decode_tokens_per_second": {
+            "median": 46.6,
+            "min": 46.6,
+            "max": 47.52
+          },
+          "estimated_decode_seconds": {
+            "median": 1.03,
+            "min": 1.01,
+            "max": 1.03
+          },
+          "prefill_seconds": {
+            "median": 1.37,
+            "min": 1.31,
+            "max": 1.64
+          },
+          "total_seconds": {
+            "median": 2.38,
+            "min": 2.34,
+            "max": 2.67
+          },
+          "tokens_per_round": {
+            "median": 2.67,
+            "min": 2.67,
+            "max": 3.2
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 20.59,
+            "min": 18.35,
+            "max": 20.94
+          }
+        }
+      ]
+    },
+    {
+      "variant": "dspark",
+      "mode": "dspark",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": false,
+          "rdma_best": false,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": true
+        }
+      },
+      "runs": 3,
+      "estimated_decode_tokens_per_second": {
+        "median": 71.67,
+        "min": 71.42,
+        "max": 71.99
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 48.28,
+        "min": 48.25,
+        "max": 48.72
+      },
+      "estimated_decode_seconds": {
+        "median": 20.05,
+        "min": 19.96,
+        "max": 20.12
+      },
+      "total_seconds_including_prefill": {
+        "median": 30.01,
+        "min": 29.74,
+        "max": 30.03
+      },
+      "tokens_per_round": {
+        "median": 3.39,
+        "min": 3.38,
+        "max": 3.41
+      },
+      "draft_pass_ms": {
+        "median": 3.68,
+        "min": 3.65,
+        "max": 3.69
+      },
+      "draft_ms_per_round": {
+        "median": 3.68,
+        "min": 3.65,
+        "max": 3.69
+      },
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "estimated_decode_tokens_per_second": {
+            "median": 59.32,
+            "min": 56.73,
+            "max": 59.32
+          },
+          "estimated_decode_seconds": {
+            "median": 2.63,
+            "min": 2.63,
+            "max": 2.75
+          },
+          "prefill_seconds": {
+            "median": 0.52,
+            "min": 0.5,
+            "max": 0.54
+          },
+          "total_seconds": {
+            "median": 3.17,
+            "min": 3.15,
+            "max": 3.25
+          },
+          "tokens_per_round": {
+            "median": 2.64,
+            "min": 2.64,
+            "max": 2.79
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 49.53,
+            "min": 48.31,
+            "max": 49.84
+          }
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "estimated_decode_tokens_per_second": {
+            "median": 47.86,
+            "min": 47.73,
+            "max": 48.38
+          },
+          "estimated_decode_seconds": {
+            "median": 3.74,
+            "min": 3.7,
+            "max": 3.75
+          },
+          "prefill_seconds": {
+            "median": 0.33,
+            "min": 0.33,
+            "max": 0.34
+          },
+          "total_seconds": {
+            "median": 4.07,
+            "min": 4.04,
+            "max": 4.08
+          },
+          "tokens_per_round": {
+            "median": 1.92,
+            "min": 1.92,
+            "max": 1.95
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 44.23,
+            "min": 44.12,
+            "max": 44.55
+          }
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "estimated_decode_tokens_per_second": {
+            "median": 63.4,
+            "min": 62.92,
+            "max": 63.64
+          },
+          "estimated_decode_seconds": {
+            "median": 2.65,
+            "min": 2.64,
+            "max": 2.67
+          },
+          "prefill_seconds": {
+            "median": 1.65,
+            "min": 1.64,
+            "max": 1.66
+          },
+          "total_seconds": {
+            "median": 4.3,
+            "min": 4.28,
+            "max": 4.33
+          },
+          "tokens_per_round": {
+            "median": 3.11,
+            "min": 3.11,
+            "max": 3.11
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 39.3,
+            "min": 39.03,
+            "max": 39.49
+          }
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "estimated_decode_tokens_per_second": {
+            "median": 98.7,
+            "min": 96.82,
+            "max": 99.35
+          },
+          "estimated_decode_seconds": {
+            "median": 1.54,
+            "min": 1.53,
+            "max": 1.57
+          },
+          "prefill_seconds": {
+            "median": 0.44,
+            "min": 0.43,
+            "max": 0.44
+          },
+          "total_seconds": {
+            "median": 1.98,
+            "min": 1.96,
+            "max": 2.01
+          },
+          "tokens_per_round": {
+            "median": 5.43,
+            "min": 5.43,
+            "max": 5.43
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 77.27,
+            "min": 76.12,
+            "max": 78.06
+          }
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "estimated_decode_tokens_per_second": {
+            "median": 85.29,
+            "min": 85.29,
+            "max": 87.88
+          },
+          "estimated_decode_seconds": {
+            "median": 0.34,
+            "min": 0.33,
+            "max": 0.34
+          },
+          "prefill_seconds": {
+            "median": 0.38,
+            "min": 0.38,
+            "max": 0.38
+          },
+          "total_seconds": {
+            "median": 0.72,
+            "min": 0.71,
+            "max": 0.72
+          },
+          "tokens_per_round": {
+            "median": 4.83,
+            "min": 4.83,
+            "max": 4.83
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 41.67,
+            "min": 41.67,
+            "max": 42.25
+          }
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "estimated_decode_tokens_per_second": {
+            "median": 94.85,
+            "min": 92.93,
+            "max": 94.85
+          },
+          "estimated_decode_seconds": {
+            "median": 0.97,
+            "min": 0.97,
+            "max": 0.99
+          },
+          "prefill_seconds": {
+            "median": 1.91,
+            "min": 1.9,
+            "max": 1.94
+          },
+          "total_seconds": {
+            "median": 2.9,
+            "min": 2.87,
+            "max": 2.91
+          },
+          "tokens_per_round": {
+            "median": 5.41,
+            "min": 5.41,
+            "max": 5.41
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 32.07,
+            "min": 31.96,
+            "max": 32.4
+          }
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "estimated_decode_tokens_per_second": {
+            "median": 100.63,
+            "min": 99.38,
+            "max": 101.27
+          },
+          "estimated_decode_seconds": {
+            "median": 1.58,
+            "min": 1.57,
+            "max": 1.6
+          },
+          "prefill_seconds": {
+            "median": 0.34,
+            "min": 0.33,
+            "max": 0.34
+          },
+          "total_seconds": {
+            "median": 1.91,
+            "min": 1.91,
+            "max": 1.94
+          },
+          "tokens_per_round": {
+            "median": 5.48,
+            "min": 5.48,
+            "max": 5.48
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 83.77,
+            "min": 82.47,
+            "max": 83.77
+          }
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "estimated_decode_tokens_per_second": {
+            "median": 89.52,
+            "min": 88.1,
+            "max": 89.52
+          },
+          "estimated_decode_seconds": {
+            "median": 1.24,
+            "min": 1.24,
+            "max": 1.26
+          },
+          "prefill_seconds": {
+            "median": 0.34,
+            "min": 0.33,
+            "max": 0.34
+          },
+          "total_seconds": {
+            "median": 1.58,
+            "min": 1.57,
+            "max": 1.6
+          },
+          "tokens_per_round": {
+            "median": 4.62,
+            "min": 4.62,
+            "max": 4.62
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 70.89,
+            "min": 70.0,
+            "max": 71.34
+          }
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "estimated_decode_tokens_per_second": {
+            "median": 100.76,
+            "min": 99.25,
+            "max": 100.76
+          },
+          "estimated_decode_seconds": {
+            "median": 1.32,
+            "min": 1.32,
+            "max": 1.34
+          },
+          "prefill_seconds": {
+            "median": 1.91,
+            "min": 1.88,
+            "max": 1.94
+          },
+          "total_seconds": {
+            "median": 3.23,
+            "min": 3.2,
+            "max": 3.28
+          },
+          "tokens_per_round": {
+            "median": 5.54,
+            "min": 5.54,
+            "max": 5.54
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 41.49,
+            "min": 40.85,
+            "max": 41.88
+          }
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "estimated_decode_tokens_per_second": {
+            "median": 57.98,
+            "min": 57.98,
+            "max": 58.43
+          },
+          "estimated_decode_seconds": {
+            "median": 2.57,
+            "min": 2.55,
+            "max": 2.57
+          },
+          "prefill_seconds": {
+            "median": 0.31,
+            "min": 0.31,
+            "max": 0.32
+          },
+          "total_seconds": {
+            "median": 2.88,
+            "min": 2.86,
+            "max": 2.89
+          },
+          "tokens_per_round": {
+            "median": 2.4,
+            "min": 2.4,
+            "max": 2.4
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 52.08,
+            "min": 51.9,
+            "max": 52.45
+          }
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "estimated_decode_tokens_per_second": {
+            "median": 73.49,
+            "min": 73.49,
+            "max": 74.39
+          },
+          "estimated_decode_seconds": {
+            "median": 0.83,
+            "min": 0.82,
+            "max": 0.83
+          },
+          "prefill_seconds": {
+            "median": 0.41,
+            "min": 0.41,
+            "max": 0.42
+          },
+          "total_seconds": {
+            "median": 1.24,
+            "min": 1.23,
+            "max": 1.25
+          },
+          "tokens_per_round": {
+            "median": 3.59,
+            "min": 3.59,
+            "max": 3.59
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 50.0,
+            "min": 49.6,
+            "max": 50.41
+          }
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "estimated_decode_tokens_per_second": {
+            "median": 82.76,
+            "min": 81.36,
+            "max": 82.76
+          },
+          "estimated_decode_seconds": {
+            "median": 0.58,
+            "min": 0.58,
+            "max": 0.59
+          },
+          "prefill_seconds": {
+            "median": 1.33,
+            "min": 1.31,
+            "max": 1.37
+          },
+          "total_seconds": {
+            "median": 1.92,
+            "min": 1.89,
+            "max": 1.95
+          },
+          "tokens_per_round": {
+            "median": 4.0,
+            "min": 4.0,
+            "max": 4.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 25.52,
+            "min": 25.13,
+            "max": 25.93
+          }
+        }
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "mode": "serial",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 1449,
+      "decode_tokens": 1437,
+      "rounds": 1437,
+      "drafted": 0,
+      "accepted": 0,
+      "total_seconds_including_prefill": 47.68,
+      "summed_reported_prefill_seconds": 9.96,
+      "estimated_decode_seconds": 37.72,
+      "estimated_decode_tokens_per_second": 38.1,
+      "end_to_end_tokens_per_second": 30.39,
+      "tokens_per_round": 1.0,
+      "proposed_per_round": 0.0,
+      "accepted_per_round": 0.0,
+      "acceptance_rate": null,
+      "native_profile": {
+        "step_ms": 26.24,
+        "forward_ms": 26.17,
+        "pass_ms": 0.0,
+        "rows_per_round": 1.0,
+        "step_seconds": 37.71,
+        "passes": 0,
+        "draft_ms_per_round": 0.0
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": null,
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "rounds": 156,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.49,
+          "total_seconds": 4.65,
+          "estimated_decode_seconds": 4.16,
+          "estimated_decode_tokens_per_second": 37.5,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "rounds": 179,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.32,
+          "total_seconds": 4.96,
+          "estimated_decode_seconds": 4.64,
+          "estimated_decode_tokens_per_second": 38.58,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "rounds": 168,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 1.68,
+          "total_seconds": 6.12,
+          "estimated_decode_seconds": 4.44,
+          "estimated_decode_tokens_per_second": 37.84,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "rounds": 152,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.43,
+          "total_seconds": 4.34,
+          "estimated_decode_seconds": 3.91,
+          "estimated_decode_tokens_per_second": 38.87,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "rounds": 29,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.37,
+          "total_seconds": 1.14,
+          "estimated_decode_seconds": 0.77,
+          "estimated_decode_tokens_per_second": 37.66,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "rounds": 92,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 1.97,
+          "total_seconds": 4.45,
+          "estimated_decode_seconds": 2.48,
+          "estimated_decode_tokens_per_second": 37.1,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "rounds": 159,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.33,
+          "total_seconds": 4.49,
+          "estimated_decode_seconds": 4.16,
+          "estimated_decode_tokens_per_second": 38.22,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "rounds": 111,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.33,
+          "total_seconds": 3.24,
+          "estimated_decode_seconds": 2.91,
+          "estimated_decode_tokens_per_second": 38.14,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "rounds": 133,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 1.94,
+          "total_seconds": 5.45,
+          "estimated_decode_seconds": 3.51,
+          "estimated_decode_tokens_per_second": 37.89,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "rounds": 149,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.31,
+          "total_seconds": 4.2,
+          "estimated_decode_seconds": 3.89,
+          "estimated_decode_tokens_per_second": 38.3,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "rounds": 61,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.41,
+          "total_seconds": 2.01,
+          "estimated_decode_seconds": 1.6,
+          "estimated_decode_tokens_per_second": 38.12,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "rounds": 48,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 1.38,
+          "total_seconds": 2.64,
+          "estimated_decode_seconds": 1.26,
+          "estimated_decode_tokens_per_second": 38.1,
+          "tokens_per_round": 1.0
+        }
+      ],
+      "variant": "serial",
+      "repeat": 1,
+      "order": 1,
+      "receipt": "run-001-serial-r1.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 1449,
+      "decode_tokens": 1437,
+      "rounds": 561,
+      "drafted": 1233,
+      "accepted": 886,
+      "total_seconds_including_prefill": 42.69,
+      "summed_reported_prefill_seconds": 10.46,
+      "estimated_decode_seconds": 32.23,
+      "estimated_decode_tokens_per_second": 44.59,
+      "end_to_end_tokens_per_second": 33.94,
+      "tokens_per_round": 2.56,
+      "proposed_per_round": 2.2,
+      "accepted_per_round": 1.58,
+      "acceptance_rate": 0.719,
+      "native_profile": {
+        "step_ms": 57.42,
+        "forward_ms": 41.03,
+        "pass_ms": 22.46,
+        "rows_per_round": 3.2,
+        "step_seconds": 32.21,
+        "passes": 404,
+        "draft_ms_per_round": 16.174402852049912
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 62.1,
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "rounds": 90,
+          "drafted": 116,
+          "accepted": 66,
+          "prefill_seconds": 0.78,
+          "total_seconds": 6.37,
+          "estimated_decode_seconds": 5.59,
+          "estimated_decode_tokens_per_second": 27.91,
+          "tokens_per_round": 1.73
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "rounds": 140,
+          "drafted": 114,
+          "accepted": 39,
+          "prefill_seconds": 0.45,
+          "total_seconds": 6.58,
+          "estimated_decode_seconds": 6.13,
+          "estimated_decode_tokens_per_second": 29.2,
+          "tokens_per_round": 1.28
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "rounds": 62,
+          "drafted": 168,
+          "accepted": 107,
+          "prefill_seconds": 1.64,
+          "total_seconds": 5.37,
+          "estimated_decode_seconds": 3.73,
+          "estimated_decode_tokens_per_second": 45.04,
+          "tokens_per_round": 2.71
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "rounds": 30,
+          "drafted": 130,
+          "accepted": 125,
+          "prefill_seconds": 0.43,
+          "total_seconds": 2.62,
+          "estimated_decode_seconds": 2.19,
+          "estimated_decode_tokens_per_second": 69.41,
+          "tokens_per_round": 5.07
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "rounds": 9,
+          "drafted": 24,
+          "accepted": 20,
+          "prefill_seconds": 0.37,
+          "total_seconds": 0.92,
+          "estimated_decode_seconds": 0.55,
+          "estimated_decode_tokens_per_second": 52.73,
+          "tokens_per_round": 3.22
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "rounds": 20,
+          "drafted": 77,
+          "accepted": 74,
+          "prefill_seconds": 1.92,
+          "total_seconds": 3.31,
+          "estimated_decode_seconds": 1.39,
+          "estimated_decode_tokens_per_second": 66.19,
+          "tokens_per_round": 4.6
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "rounds": 34,
+          "drafted": 144,
+          "accepted": 126,
+          "prefill_seconds": 0.32,
+          "total_seconds": 2.76,
+          "estimated_decode_seconds": 2.44,
+          "estimated_decode_tokens_per_second": 65.16,
+          "tokens_per_round": 4.68
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "rounds": 35,
+          "drafted": 99,
+          "accepted": 77,
+          "prefill_seconds": 0.33,
+          "total_seconds": 2.45,
+          "estimated_decode_seconds": 2.12,
+          "estimated_decode_tokens_per_second": 52.36,
+          "tokens_per_round": 3.17
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "rounds": 33,
+          "drafted": 115,
+          "accepted": 101,
+          "prefill_seconds": 1.86,
+          "total_seconds": 4.01,
+          "estimated_decode_seconds": 2.15,
+          "estimated_decode_tokens_per_second": 61.86,
+          "tokens_per_round": 4.03
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "rounds": 71,
+          "drafted": 133,
+          "accepted": 78,
+          "prefill_seconds": 0.31,
+          "total_seconds": 3.96,
+          "estimated_decode_seconds": 3.65,
+          "estimated_decode_tokens_per_second": 40.82,
+          "tokens_per_round": 2.1
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "rounds": 22,
+          "drafted": 62,
+          "accepted": 39,
+          "prefill_seconds": 0.41,
+          "total_seconds": 1.68,
+          "estimated_decode_seconds": 1.27,
+          "estimated_decode_tokens_per_second": 48.03,
+          "tokens_per_round": 2.77
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "rounds": 15,
+          "drafted": 51,
+          "accepted": 34,
+          "prefill_seconds": 1.64,
+          "total_seconds": 2.67,
+          "estimated_decode_seconds": 1.03,
+          "estimated_decode_tokens_per_second": 46.6,
+          "tokens_per_round": 3.2
+        }
+      ],
+      "variant": "candidate",
+      "repeat": 1,
+      "order": 2,
+      "receipt": "run-002-candidate-r1.json"
+    },
+    {
+      "mode": "dspark",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 1449,
+      "decode_tokens": 1437,
+      "rounds": 425,
+      "drafted": 1377,
+      "accepted": 1022,
+      "total_seconds_including_prefill": 29.74,
+      "summed_reported_prefill_seconds": 9.78,
+      "estimated_decode_seconds": 19.96,
+      "estimated_decode_tokens_per_second": 71.99,
+      "end_to_end_tokens_per_second": 48.72,
+      "tokens_per_round": 3.38,
+      "proposed_per_round": 3.24,
+      "accepted_per_round": 2.4,
+      "acceptance_rate": 0.742,
+      "native_profile": {
+        "step_ms": 46.96,
+        "forward_ms": 42.91,
+        "pass_ms": 3.65,
+        "rows_per_round": 4.24,
+        "step_seconds": 19.96,
+        "passes": 425,
+        "draft_ms_per_round": 3.65
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 78.07,
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "rounds": 59,
+          "drafted": 157,
+          "accepted": 98,
+          "prefill_seconds": 0.52,
+          "total_seconds": 3.15,
+          "estimated_decode_seconds": 2.63,
+          "estimated_decode_tokens_per_second": 59.32,
+          "tokens_per_round": 2.64
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "rounds": 93,
+          "drafted": 166,
+          "accepted": 87,
+          "prefill_seconds": 0.33,
+          "total_seconds": 4.08,
+          "estimated_decode_seconds": 3.75,
+          "estimated_decode_tokens_per_second": 47.73,
+          "tokens_per_round": 1.92
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "rounds": 54,
+          "drafted": 182,
+          "accepted": 115,
+          "prefill_seconds": 1.64,
+          "total_seconds": 4.28,
+          "estimated_decode_seconds": 2.64,
+          "estimated_decode_tokens_per_second": 63.64,
+          "tokens_per_round": 3.11
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "rounds": 28,
+          "drafted": 137,
+          "accepted": 125,
+          "prefill_seconds": 0.43,
+          "total_seconds": 1.96,
+          "estimated_decode_seconds": 1.53,
+          "estimated_decode_tokens_per_second": 99.35,
+          "tokens_per_round": 5.43
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "rounds": 6,
+          "drafted": 29,
+          "accepted": 24,
+          "prefill_seconds": 0.38,
+          "total_seconds": 0.71,
+          "estimated_decode_seconds": 0.33,
+          "estimated_decode_tokens_per_second": 87.88,
+          "tokens_per_round": 4.83
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "rounds": 17,
+          "drafted": 85,
+          "accepted": 76,
+          "prefill_seconds": 1.9,
+          "total_seconds": 2.87,
+          "estimated_decode_seconds": 0.97,
+          "estimated_decode_tokens_per_second": 94.85,
+          "tokens_per_round": 5.41
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "rounds": 29,
+          "drafted": 143,
+          "accepted": 131,
+          "prefill_seconds": 0.33,
+          "total_seconds": 1.91,
+          "estimated_decode_seconds": 1.58,
+          "estimated_decode_tokens_per_second": 100.63,
+          "tokens_per_round": 5.48
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "rounds": 24,
+          "drafted": 99,
+          "accepted": 88,
+          "prefill_seconds": 0.33,
+          "total_seconds": 1.57,
+          "estimated_decode_seconds": 1.24,
+          "estimated_decode_tokens_per_second": 89.52,
+          "tokens_per_round": 4.62
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "rounds": 24,
+          "drafted": 118,
+          "accepted": 110,
+          "prefill_seconds": 1.88,
+          "total_seconds": 3.2,
+          "estimated_decode_seconds": 1.32,
+          "estimated_decode_tokens_per_second": 100.76,
+          "tokens_per_round": 5.54
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "rounds": 62,
+          "drafted": 141,
+          "accepted": 88,
+          "prefill_seconds": 0.32,
+          "total_seconds": 2.89,
+          "estimated_decode_seconds": 2.57,
+          "estimated_decode_tokens_per_second": 57.98,
+          "tokens_per_round": 2.4
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "rounds": 17,
+          "drafted": 71,
+          "accepted": 44,
+          "prefill_seconds": 0.41,
+          "total_seconds": 1.23,
+          "estimated_decode_seconds": 0.82,
+          "estimated_decode_tokens_per_second": 74.39,
+          "tokens_per_round": 3.59
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "rounds": 12,
+          "drafted": 49,
+          "accepted": 36,
+          "prefill_seconds": 1.31,
+          "total_seconds": 1.89,
+          "estimated_decode_seconds": 0.58,
+          "estimated_decode_tokens_per_second": 82.76,
+          "tokens_per_round": 4.0
+        }
+      ],
+      "variant": "dspark",
+      "repeat": 1,
+      "order": 3,
+      "receipt": "run-003-dspark-r1.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 1449,
+      "decode_tokens": 1437,
+      "rounds": 583,
+      "drafted": 1201,
+      "accepted": 862,
+      "total_seconds_including_prefill": 40.17,
+      "summed_reported_prefill_seconds": 10.03,
+      "estimated_decode_seconds": 30.14,
+      "estimated_decode_tokens_per_second": 47.68,
+      "end_to_end_tokens_per_second": 36.07,
+      "tokens_per_round": 2.46,
+      "proposed_per_round": 2.06,
+      "accepted_per_round": 1.48,
+      "acceptance_rate": 0.718,
+      "native_profile": {
+        "step_ms": 51.67,
+        "forward_ms": 37.51,
+        "pass_ms": 20.05,
+        "rows_per_round": 3.06,
+        "step_seconds": 30.12,
+        "passes": 406,
+        "draft_ms_per_round": 13.96277873070326
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 65.37,
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "rounds": 72,
+          "drafted": 166,
+          "accepted": 84,
+          "prefill_seconds": 0.55,
+          "total_seconds": 4.88,
+          "estimated_decode_seconds": 4.33,
+          "estimated_decode_tokens_per_second": 36.03,
+          "tokens_per_round": 2.17
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "rounds": 172,
+          "drafted": 38,
+          "accepted": 7,
+          "prefill_seconds": 0.33,
+          "total_seconds": 5.3,
+          "estimated_decode_seconds": 4.97,
+          "estimated_decode_tokens_per_second": 36.02,
+          "tokens_per_round": 1.04
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "rounds": 62,
+          "drafted": 168,
+          "accepted": 106,
+          "prefill_seconds": 1.65,
+          "total_seconds": 5.42,
+          "estimated_decode_seconds": 3.77,
+          "estimated_decode_tokens_per_second": 44.56,
+          "tokens_per_round": 2.71
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "rounds": 30,
+          "drafted": 128,
+          "accepted": 125,
+          "prefill_seconds": 0.43,
+          "total_seconds": 2.61,
+          "estimated_decode_seconds": 2.18,
+          "estimated_decode_tokens_per_second": 69.72,
+          "tokens_per_round": 5.07
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "rounds": 9,
+          "drafted": 24,
+          "accepted": 20,
+          "prefill_seconds": 0.37,
+          "total_seconds": 0.91,
+          "estimated_decode_seconds": 0.54,
+          "estimated_decode_tokens_per_second": 53.7,
+          "tokens_per_round": 3.22
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "rounds": 20,
+          "drafted": 80,
+          "accepted": 74,
+          "prefill_seconds": 1.93,
+          "total_seconds": 3.34,
+          "estimated_decode_seconds": 1.41,
+          "estimated_decode_tokens_per_second": 65.25,
+          "tokens_per_round": 4.6
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "rounds": 34,
+          "drafted": 139,
+          "accepted": 126,
+          "prefill_seconds": 0.33,
+          "total_seconds": 2.71,
+          "estimated_decode_seconds": 2.38,
+          "estimated_decode_tokens_per_second": 66.81,
+          "tokens_per_round": 4.68
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "rounds": 35,
+          "drafted": 99,
+          "accepted": 77,
+          "prefill_seconds": 0.33,
+          "total_seconds": 2.47,
+          "estimated_decode_seconds": 2.14,
+          "estimated_decode_tokens_per_second": 51.87,
+          "tokens_per_round": 3.17
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "rounds": 36,
+          "drafted": 111,
+          "accepted": 97,
+          "prefill_seconds": 2.0,
+          "total_seconds": 4.26,
+          "estimated_decode_seconds": 2.26,
+          "estimated_decode_tokens_per_second": 58.85,
+          "tokens_per_round": 3.69
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "rounds": 72,
+          "drafted": 141,
+          "accepted": 77,
+          "prefill_seconds": 0.31,
+          "total_seconds": 4.13,
+          "estimated_decode_seconds": 3.82,
+          "estimated_decode_tokens_per_second": 39.01,
+          "tokens_per_round": 2.07
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "rounds": 23,
+          "drafted": 64,
+          "accepted": 39,
+          "prefill_seconds": 0.43,
+          "total_seconds": 1.77,
+          "estimated_decode_seconds": 1.34,
+          "estimated_decode_tokens_per_second": 45.52,
+          "tokens_per_round": 2.65
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "rounds": 18,
+          "drafted": 43,
+          "accepted": 30,
+          "prefill_seconds": 1.37,
+          "total_seconds": 2.38,
+          "estimated_decode_seconds": 1.01,
+          "estimated_decode_tokens_per_second": 47.52,
+          "tokens_per_round": 2.67
+        }
+      ],
+      "variant": "candidate",
+      "repeat": 2,
+      "order": 4,
+      "receipt": "run-004-candidate-r2.json"
+    },
+    {
+      "mode": "dspark",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 1449,
+      "decode_tokens": 1437,
+      "rounds": 424,
+      "drafted": 1380,
+      "accepted": 1023,
+      "total_seconds_including_prefill": 30.03,
+      "summed_reported_prefill_seconds": 9.98,
+      "estimated_decode_seconds": 20.05,
+      "estimated_decode_tokens_per_second": 71.67,
+      "end_to_end_tokens_per_second": 48.25,
+      "tokens_per_round": 3.39,
+      "proposed_per_round": 3.25,
+      "accepted_per_round": 2.41,
+      "acceptance_rate": 0.741,
+      "native_profile": {
+        "step_ms": 47.29,
+        "forward_ms": 43.18,
+        "pass_ms": 3.69,
+        "rows_per_round": 4.25,
+        "step_seconds": 20.05,
+        "passes": 424,
+        "draft_ms_per_round": 3.69
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 77.73,
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "rounds": 59,
+          "drafted": 157,
+          "accepted": 98,
+          "prefill_seconds": 0.54,
+          "total_seconds": 3.17,
+          "estimated_decode_seconds": 2.63,
+          "estimated_decode_tokens_per_second": 59.32,
+          "tokens_per_round": 2.64
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "rounds": 92,
+          "drafted": 166,
+          "accepted": 88,
+          "prefill_seconds": 0.34,
+          "total_seconds": 4.04,
+          "estimated_decode_seconds": 3.7,
+          "estimated_decode_tokens_per_second": 48.38,
+          "tokens_per_round": 1.95
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "rounds": 54,
+          "drafted": 184,
+          "accepted": 115,
+          "prefill_seconds": 1.65,
+          "total_seconds": 4.3,
+          "estimated_decode_seconds": 2.65,
+          "estimated_decode_tokens_per_second": 63.4,
+          "tokens_per_round": 3.11
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "rounds": 28,
+          "drafted": 137,
+          "accepted": 125,
+          "prefill_seconds": 0.44,
+          "total_seconds": 2.01,
+          "estimated_decode_seconds": 1.57,
+          "estimated_decode_tokens_per_second": 96.82,
+          "tokens_per_round": 5.43
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "rounds": 6,
+          "drafted": 29,
+          "accepted": 24,
+          "prefill_seconds": 0.38,
+          "total_seconds": 0.72,
+          "estimated_decode_seconds": 0.34,
+          "estimated_decode_tokens_per_second": 85.29,
+          "tokens_per_round": 4.83
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "rounds": 17,
+          "drafted": 85,
+          "accepted": 76,
+          "prefill_seconds": 1.91,
+          "total_seconds": 2.9,
+          "estimated_decode_seconds": 0.99,
+          "estimated_decode_tokens_per_second": 92.93,
+          "tokens_per_round": 5.41
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "rounds": 29,
+          "drafted": 143,
+          "accepted": 131,
+          "prefill_seconds": 0.34,
+          "total_seconds": 1.94,
+          "estimated_decode_seconds": 1.6,
+          "estimated_decode_tokens_per_second": 99.38,
+          "tokens_per_round": 5.48
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "rounds": 24,
+          "drafted": 100,
+          "accepted": 88,
+          "prefill_seconds": 0.34,
+          "total_seconds": 1.6,
+          "estimated_decode_seconds": 1.26,
+          "estimated_decode_tokens_per_second": 88.1,
+          "tokens_per_round": 4.62
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "rounds": 24,
+          "drafted": 118,
+          "accepted": 110,
+          "prefill_seconds": 1.94,
+          "total_seconds": 3.28,
+          "estimated_decode_seconds": 1.34,
+          "estimated_decode_tokens_per_second": 99.25,
+          "tokens_per_round": 5.54
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "rounds": 62,
+          "drafted": 141,
+          "accepted": 88,
+          "prefill_seconds": 0.31,
+          "total_seconds": 2.88,
+          "estimated_decode_seconds": 2.57,
+          "estimated_decode_tokens_per_second": 57.98,
+          "tokens_per_round": 2.4
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "rounds": 17,
+          "drafted": 71,
+          "accepted": 44,
+          "prefill_seconds": 0.42,
+          "total_seconds": 1.25,
+          "estimated_decode_seconds": 0.83,
+          "estimated_decode_tokens_per_second": 73.49,
+          "tokens_per_round": 3.59
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "rounds": 12,
+          "drafted": 49,
+          "accepted": 36,
+          "prefill_seconds": 1.37,
+          "total_seconds": 1.95,
+          "estimated_decode_seconds": 0.58,
+          "estimated_decode_tokens_per_second": 82.76,
+          "tokens_per_round": 4.0
+        }
+      ],
+      "variant": "dspark",
+      "repeat": 2,
+      "order": 5,
+      "receipt": "run-005-dspark-r2.json"
+    },
+    {
+      "mode": "serial",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 1449,
+      "decode_tokens": 1437,
+      "rounds": 1437,
+      "drafted": 0,
+      "accepted": 0,
+      "total_seconds_including_prefill": 47.8,
+      "summed_reported_prefill_seconds": 9.99,
+      "estimated_decode_seconds": 37.81,
+      "estimated_decode_tokens_per_second": 38.01,
+      "end_to_end_tokens_per_second": 30.31,
+      "tokens_per_round": 1.0,
+      "proposed_per_round": 0.0,
+      "accepted_per_round": 0.0,
+      "acceptance_rate": null,
+      "native_profile": {
+        "step_ms": 26.31,
+        "forward_ms": 26.23,
+        "pass_ms": 0.0,
+        "rows_per_round": 1.0,
+        "step_seconds": 37.81,
+        "passes": 0,
+        "draft_ms_per_round": 0.0
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": null,
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "rounds": 156,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.48,
+          "total_seconds": 4.62,
+          "estimated_decode_seconds": 4.14,
+          "estimated_decode_tokens_per_second": 37.68,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "rounds": 179,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.32,
+          "total_seconds": 4.99,
+          "estimated_decode_seconds": 4.67,
+          "estimated_decode_tokens_per_second": 38.33,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "rounds": 168,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 1.65,
+          "total_seconds": 6.1,
+          "estimated_decode_seconds": 4.45,
+          "estimated_decode_tokens_per_second": 37.75,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "rounds": 152,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.44,
+          "total_seconds": 4.36,
+          "estimated_decode_seconds": 3.92,
+          "estimated_decode_tokens_per_second": 38.78,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "rounds": 29,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.38,
+          "total_seconds": 1.14,
+          "estimated_decode_seconds": 0.76,
+          "estimated_decode_tokens_per_second": 38.16,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "rounds": 92,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 1.95,
+          "total_seconds": 4.38,
+          "estimated_decode_seconds": 2.43,
+          "estimated_decode_tokens_per_second": 37.86,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "rounds": 159,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.33,
+          "total_seconds": 4.47,
+          "estimated_decode_seconds": 4.14,
+          "estimated_decode_tokens_per_second": 38.41,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "rounds": 111,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.33,
+          "total_seconds": 3.25,
+          "estimated_decode_seconds": 2.92,
+          "estimated_decode_tokens_per_second": 38.01,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "rounds": 133,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 1.94,
+          "total_seconds": 5.48,
+          "estimated_decode_seconds": 3.54,
+          "estimated_decode_tokens_per_second": 37.57,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "rounds": 149,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.31,
+          "total_seconds": 4.19,
+          "estimated_decode_seconds": 3.88,
+          "estimated_decode_tokens_per_second": 38.4,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "rounds": 61,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.42,
+          "total_seconds": 2.02,
+          "estimated_decode_seconds": 1.6,
+          "estimated_decode_tokens_per_second": 38.12,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "rounds": 48,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 1.44,
+          "total_seconds": 2.8,
+          "estimated_decode_seconds": 1.36,
+          "estimated_decode_tokens_per_second": 35.29,
+          "tokens_per_round": 1.0
+        }
+      ],
+      "variant": "serial",
+      "repeat": 2,
+      "order": 6,
+      "receipt": "run-006-serial-r2.json"
+    },
+    {
+      "mode": "dspark",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 1449,
+      "decode_tokens": 1437,
+      "rounds": 422,
+      "drafted": 1382,
+      "accepted": 1025,
+      "total_seconds_including_prefill": 30.01,
+      "summed_reported_prefill_seconds": 9.89,
+      "estimated_decode_seconds": 20.12,
+      "estimated_decode_tokens_per_second": 71.42,
+      "end_to_end_tokens_per_second": 48.28,
+      "tokens_per_round": 3.41,
+      "proposed_per_round": 3.27,
+      "accepted_per_round": 2.43,
+      "acceptance_rate": 0.742,
+      "native_profile": {
+        "step_ms": 47.67,
+        "forward_ms": 43.59,
+        "pass_ms": 3.68,
+        "rows_per_round": 4.27,
+        "step_seconds": 20.12,
+        "passes": 422,
+        "draft_ms_per_round": 3.68
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 77.41,
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "rounds": 56,
+          "drafted": 160,
+          "accepted": 101,
+          "prefill_seconds": 0.5,
+          "total_seconds": 3.25,
+          "estimated_decode_seconds": 2.75,
+          "estimated_decode_tokens_per_second": 56.73,
+          "tokens_per_round": 2.79
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "rounds": 93,
+          "drafted": 166,
+          "accepted": 87,
+          "prefill_seconds": 0.33,
+          "total_seconds": 4.07,
+          "estimated_decode_seconds": 3.74,
+          "estimated_decode_tokens_per_second": 47.86,
+          "tokens_per_round": 1.92
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "rounds": 54,
+          "drafted": 184,
+          "accepted": 115,
+          "prefill_seconds": 1.66,
+          "total_seconds": 4.33,
+          "estimated_decode_seconds": 2.67,
+          "estimated_decode_tokens_per_second": 62.92,
+          "tokens_per_round": 3.11
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "rounds": 28,
+          "drafted": 137,
+          "accepted": 125,
+          "prefill_seconds": 0.44,
+          "total_seconds": 1.98,
+          "estimated_decode_seconds": 1.54,
+          "estimated_decode_tokens_per_second": 98.7,
+          "tokens_per_round": 5.43
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "rounds": 6,
+          "drafted": 29,
+          "accepted": 24,
+          "prefill_seconds": 0.38,
+          "total_seconds": 0.72,
+          "estimated_decode_seconds": 0.34,
+          "estimated_decode_tokens_per_second": 85.29,
+          "tokens_per_round": 4.83
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "rounds": 17,
+          "drafted": 85,
+          "accepted": 76,
+          "prefill_seconds": 1.94,
+          "total_seconds": 2.91,
+          "estimated_decode_seconds": 0.97,
+          "estimated_decode_tokens_per_second": 94.85,
+          "tokens_per_round": 5.41
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "rounds": 29,
+          "drafted": 143,
+          "accepted": 131,
+          "prefill_seconds": 0.34,
+          "total_seconds": 1.91,
+          "estimated_decode_seconds": 1.57,
+          "estimated_decode_tokens_per_second": 101.27,
+          "tokens_per_round": 5.48
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "rounds": 24,
+          "drafted": 99,
+          "accepted": 88,
+          "prefill_seconds": 0.34,
+          "total_seconds": 1.58,
+          "estimated_decode_seconds": 1.24,
+          "estimated_decode_tokens_per_second": 89.52,
+          "tokens_per_round": 4.62
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "rounds": 24,
+          "drafted": 118,
+          "accepted": 110,
+          "prefill_seconds": 1.91,
+          "total_seconds": 3.23,
+          "estimated_decode_seconds": 1.32,
+          "estimated_decode_tokens_per_second": 100.76,
+          "tokens_per_round": 5.54
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "rounds": 62,
+          "drafted": 141,
+          "accepted": 88,
+          "prefill_seconds": 0.31,
+          "total_seconds": 2.86,
+          "estimated_decode_seconds": 2.55,
+          "estimated_decode_tokens_per_second": 58.43,
+          "tokens_per_round": 2.4
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "rounds": 17,
+          "drafted": 71,
+          "accepted": 44,
+          "prefill_seconds": 0.41,
+          "total_seconds": 1.24,
+          "estimated_decode_seconds": 0.83,
+          "estimated_decode_tokens_per_second": 73.49,
+          "tokens_per_round": 3.59
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "rounds": 12,
+          "drafted": 49,
+          "accepted": 36,
+          "prefill_seconds": 1.33,
+          "total_seconds": 1.92,
+          "estimated_decode_seconds": 0.59,
+          "estimated_decode_tokens_per_second": 81.36,
+          "tokens_per_round": 4.0
+        }
+      ],
+      "variant": "dspark",
+      "repeat": 3,
+      "order": 7,
+      "receipt": "run-007-dspark-r3.json"
+    },
+    {
+      "mode": "serial",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 1449,
+      "decode_tokens": 1437,
+      "rounds": 1437,
+      "drafted": 0,
+      "accepted": 0,
+      "total_seconds_including_prefill": 47.78,
+      "summed_reported_prefill_seconds": 9.98,
+      "estimated_decode_seconds": 37.8,
+      "estimated_decode_tokens_per_second": 38.02,
+      "end_to_end_tokens_per_second": 30.33,
+      "tokens_per_round": 1.0,
+      "proposed_per_round": 0.0,
+      "accepted_per_round": 0.0,
+      "acceptance_rate": null,
+      "native_profile": {
+        "step_ms": 26.31,
+        "forward_ms": 26.24,
+        "pass_ms": 0.0,
+        "rows_per_round": 1.0,
+        "step_seconds": 37.81,
+        "passes": 0,
+        "draft_ms_per_round": 0.0
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": null,
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "rounds": 156,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.51,
+          "total_seconds": 4.64,
+          "estimated_decode_seconds": 4.13,
+          "estimated_decode_tokens_per_second": 37.77,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "rounds": 179,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.33,
+          "total_seconds": 5.06,
+          "estimated_decode_seconds": 4.73,
+          "estimated_decode_tokens_per_second": 37.84,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "rounds": 168,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 1.66,
+          "total_seconds": 6.13,
+          "estimated_decode_seconds": 4.47,
+          "estimated_decode_tokens_per_second": 37.58,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "rounds": 152,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.42,
+          "total_seconds": 4.37,
+          "estimated_decode_seconds": 3.95,
+          "estimated_decode_tokens_per_second": 38.48,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "rounds": 29,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.39,
+          "total_seconds": 1.16,
+          "estimated_decode_seconds": 0.77,
+          "estimated_decode_tokens_per_second": 37.66,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "rounds": 92,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 1.92,
+          "total_seconds": 4.36,
+          "estimated_decode_seconds": 2.44,
+          "estimated_decode_tokens_per_second": 37.7,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "rounds": 159,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.33,
+          "total_seconds": 4.46,
+          "estimated_decode_seconds": 4.13,
+          "estimated_decode_tokens_per_second": 38.5,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "rounds": 111,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.34,
+          "total_seconds": 3.24,
+          "estimated_decode_seconds": 2.9,
+          "estimated_decode_tokens_per_second": 38.28,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "rounds": 133,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 2.01,
+          "total_seconds": 5.53,
+          "estimated_decode_seconds": 3.52,
+          "estimated_decode_tokens_per_second": 37.78,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "rounds": 149,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.31,
+          "total_seconds": 4.21,
+          "estimated_decode_seconds": 3.9,
+          "estimated_decode_tokens_per_second": 38.21,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "rounds": 61,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.41,
+          "total_seconds": 2.01,
+          "estimated_decode_seconds": 1.6,
+          "estimated_decode_tokens_per_second": 38.12,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "rounds": 48,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 1.35,
+          "total_seconds": 2.61,
+          "estimated_decode_seconds": 1.26,
+          "estimated_decode_tokens_per_second": 38.1,
+          "tokens_per_round": 1.0
+        }
+      ],
+      "variant": "serial",
+      "repeat": 3,
+      "order": 8,
+      "receipt": "run-008-serial-r3.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 1449,
+      "decode_tokens": 1437,
+      "rounds": 582,
+      "drafted": 1227,
+      "accepted": 866,
+      "total_seconds_including_prefill": 40.23,
+      "summed_reported_prefill_seconds": 9.86,
+      "estimated_decode_seconds": 30.37,
+      "estimated_decode_tokens_per_second": 47.32,
+      "end_to_end_tokens_per_second": 36.02,
+      "tokens_per_round": 2.47,
+      "proposed_per_round": 2.11,
+      "accepted_per_round": 1.49,
+      "acceptance_rate": 0.706,
+      "native_profile": {
+        "step_ms": 52.17,
+        "forward_ms": 37.7,
+        "pass_ms": 19.51,
+        "rows_per_round": 3.11,
+        "step_seconds": 30.36,
+        "passes": 426,
+        "draft_ms_per_round": 14.280515463917526
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 65.17,
+      "requests": [
+        {
+          "name": "prose_greedy_idempotent",
+          "prompt_tokens": 84,
+          "output_tokens": 157,
+          "rounds": 90,
+          "drafted": 127,
+          "accepted": 66,
+          "prefill_seconds": 0.52,
+          "total_seconds": 4.76,
+          "estimated_decode_seconds": 4.24,
+          "estimated_decode_tokens_per_second": 36.79,
+          "tokens_per_round": 1.73
+        },
+        {
+          "name": "prose_sampled_tradeoff",
+          "prompt_tokens": 91,
+          "output_tokens": 180,
+          "rounds": 146,
+          "drafted": 107,
+          "accepted": 33,
+          "prefill_seconds": 0.32,
+          "total_seconds": 5.58,
+          "estimated_decode_seconds": 5.26,
+          "estimated_decode_tokens_per_second": 34.03,
+          "tokens_per_round": 1.23
+        },
+        {
+          "name": "prose_greedy_incident",
+          "prompt_tokens": 2566,
+          "output_tokens": 169,
+          "rounds": 62,
+          "drafted": 167,
+          "accepted": 107,
+          "prefill_seconds": 1.67,
+          "total_seconds": 5.36,
+          "estimated_decode_seconds": 3.69,
+          "estimated_decode_tokens_per_second": 45.53,
+          "tokens_per_round": 2.71
+        },
+        {
+          "name": "structured_sampled_catalog",
+          "prompt_tokens": 134,
+          "output_tokens": 153,
+          "rounds": 30,
+          "drafted": 127,
+          "accepted": 125,
+          "prefill_seconds": 0.44,
+          "total_seconds": 2.61,
+          "estimated_decode_seconds": 2.17,
+          "estimated_decode_tokens_per_second": 70.05,
+          "tokens_per_round": 5.07
+        },
+        {
+          "name": "structured_greedy_schedule",
+          "prompt_tokens": 115,
+          "output_tokens": 30,
+          "rounds": 9,
+          "drafted": 24,
+          "accepted": 20,
+          "prefill_seconds": 0.38,
+          "total_seconds": 0.92,
+          "estimated_decode_seconds": 0.54,
+          "estimated_decode_tokens_per_second": 53.7,
+          "tokens_per_round": 3.22
+        },
+        {
+          "name": "structured_sampled_readings",
+          "prompt_tokens": 3018,
+          "output_tokens": 93,
+          "rounds": 21,
+          "drafted": 74,
+          "accepted": 72,
+          "prefill_seconds": 1.93,
+          "total_seconds": 3.34,
+          "estimated_decode_seconds": 1.41,
+          "estimated_decode_tokens_per_second": 65.25,
+          "tokens_per_round": 4.38
+        },
+        {
+          "name": "code_greedy_runlength",
+          "prompt_tokens": 94,
+          "output_tokens": 160,
+          "rounds": 39,
+          "drafted": 141,
+          "accepted": 121,
+          "prefill_seconds": 0.34,
+          "total_seconds": 2.93,
+          "estimated_decode_seconds": 2.59,
+          "estimated_decode_tokens_per_second": 61.39,
+          "tokens_per_round": 4.08
+        },
+        {
+          "name": "code_sampled_leftjoin",
+          "prompt_tokens": 95,
+          "output_tokens": 112,
+          "rounds": 33,
+          "drafted": 116,
+          "accepted": 79,
+          "prefill_seconds": 0.33,
+          "total_seconds": 2.51,
+          "estimated_decode_seconds": 2.18,
+          "estimated_decode_tokens_per_second": 50.92,
+          "tokens_per_round": 3.36
+        },
+        {
+          "name": "code_greedy_configparse",
+          "prompt_tokens": 2176,
+          "output_tokens": 134,
+          "rounds": 33,
+          "drafted": 116,
+          "accepted": 101,
+          "prefill_seconds": 1.91,
+          "total_seconds": 4.05,
+          "estimated_decode_seconds": 2.14,
+          "estimated_decode_tokens_per_second": 62.15,
+          "tokens_per_round": 4.03
+        },
+        {
+          "name": "multilingual_sampled_spanish",
+          "prompt_tokens": 90,
+          "output_tokens": 150,
+          "rounds": 78,
+          "drafted": 123,
+          "accepted": 72,
+          "prefill_seconds": 0.3,
+          "total_seconds": 4.13,
+          "estimated_decode_seconds": 3.83,
+          "estimated_decode_tokens_per_second": 38.9,
+          "tokens_per_round": 1.91
+        },
+        {
+          "name": "multilingual_greedy_french",
+          "prompt_tokens": 137,
+          "output_tokens": 62,
+          "rounds": 23,
+          "drafted": 57,
+          "accepted": 39,
+          "prefill_seconds": 0.41,
+          "total_seconds": 1.68,
+          "estimated_decode_seconds": 1.27,
+          "estimated_decode_tokens_per_second": 48.03,
+          "tokens_per_round": 2.65
+        },
+        {
+          "name": "multilingual_sampled_japanese",
+          "prompt_tokens": 1628,
+          "output_tokens": 49,
+          "rounds": 18,
+          "drafted": 48,
+          "accepted": 31,
+          "prefill_seconds": 1.31,
+          "total_seconds": 2.34,
+          "estimated_decode_seconds": 1.03,
+          "estimated_decode_tokens_per_second": 46.6,
+          "tokens_per_round": 2.67
+        }
+      ],
+      "variant": "candidate",
+      "repeat": 3,
+      "order": 9,
+      "receipt": "run-009-candidate-r3.json"
+    }
+  ],
+  "output_tokens_per_run": 1449,
+  "timing_method": "Per run: output tokens after the first per request divided by total minus prefill; cross-checked against reply and native step clocks. Median/min/max across repeats; no confidence-interval claim."
+}

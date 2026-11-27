@@ -39,7 +39,7 @@ def absolute(value):
 
 
 def validate(value):
-    keys(value, {"version", "image", "nodes", "paths", "execution", "stopped"}, {"version", "nodes", "paths"})
+    keys(value, {"version", "image", "nodes", "paths", "execution", "stopped", "experimental"}, {"version", "nodes", "paths"})
     if value["version"] != 1 or type(value["version"]) is not int:
         raise ConfigError("Unsupported cluster configuration version")
     out = {"version": 1, "image": text(value.get("image", "dfly2-two-sparks:experimental"), r"[A-Za-z0-9][A-Za-z0-9._/:@-]{0,254}", "Docker image")}
@@ -89,6 +89,37 @@ def validate(value):
         if not PurePosixPath(paths[key]).is_relative_to(experiment) or paths[key] == str(experiment):
             raise ConfigError(f"{key} must be inside experiment_root")
     out["paths"] = paths
+    if "experimental" in value:
+        exp = value["experimental"]
+        keys(exp, {"device_feedback", "rdma_best", "detailed_profile", "adaptive", "copies", "capture", "dfly_depth", "reference_norms"})
+        flags = {}
+        for key in ("device_feedback", "rdma_best", "detailed_profile", "adaptive", "reference_norms"):
+            flag = exp.get(key, False)
+            if type(flag) is not bool:
+                raise ConfigError(f"experimental.{key} must be boolean")
+            flags[key] = flag
+        if "copies" in exp:
+            if type(exp["copies"]) is not bool:
+                raise ConfigError("experimental.copies must be boolean")
+            flags["copies"] = exp["copies"]
+        if "dfly_depth" in exp:
+            flags["dfly_depth"] = integer(exp["dfly_depth"], 0, 5, "DFly fixed depth")
+            if flags["adaptive"]:
+                raise ConfigError("Fixed DFly depth and adaptive policy are mutually exclusive")
+        if "capture" in exp:
+            if flags["adaptive"]:
+                raise ConfigError("Reference capture requires fixed five-draft execution")
+            if flags.get("dfly_depth", 5) != 5:
+                raise ConfigError("Reference capture requires all five drafts")
+            cap = exp["capture"]
+            keys(cap, {"directory", "limit", "every"}, {"directory"})
+            capture_path = PurePosixPath(absolute(cap["directory"]))
+            if capture_path == experiment or not capture_path.is_relative_to(experiment):
+                raise ConfigError("Capture directory must be strictly inside experiment_root")
+            flags["capture"] = {"directory": str(capture_path),
+                                "limit": integer(cap.get("limit", 4), 1, 64, "capture limit"),
+                                "every": integer(cap.get("every", 1), 1, 4096, "capture interval")}
+        out["experimental"] = flags
     execution = value.get("execution", {})
     keys(execution, {"port", "pool", "min_available_gib", "timeout_seconds"})
     out["execution"] = {"port": integer(execution.get("port", 4460), 1024, 65535, "rendezvous port"),

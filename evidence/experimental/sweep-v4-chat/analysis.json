@@ -1,0 +1,27 @@
+{
+  "schema": "dfly2-lab-analysis-v1",
+  "purpose": "benchmark",
+  "complete": true,
+  "benchmark_eligible": false,
+  "attempted_runs": 9,
+  "successful_runs": 9,
+  "requests_sha256": "5243088b517b75309cb57a5d72a379a468339ed2aad98b2e58b533f0b6cd6f23",
+  "all_successful_token_arrays_and_finish_reasons_equal": true,
+  "failure_retained": false,
+  "measurement_scope": "One-stream eager, 8192-token pool. Exact target outputs do not establish Tencent drafter parity.",
+  "known_issues": [
+    {
+      "schema": "dfly2-known-issue-v1",
+      "code": "initial_draft_depth_bypass",
+      "affected_variants": [
+        "depth0",
+        "depth1",
+        "depth2",
+        "depth3",
+        "depth4",
+        "adaptive"
+      ]
+    }
+  ],
+  "reason": "Declared known issues disqualify this matrix from throughput comparisons; raw run receipts remain available."
+}

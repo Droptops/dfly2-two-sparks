@@ -171,8 +171,15 @@ individual receipts retain the full measured ranges, including the short
 prose slowdown and the longer fixture's slower DFly2 prefill repeat. These
 records are separate from all earlier single-run evidence.
 
-In recorded execution settings, `fixed_draft_depth` describes a command-line
+In these historical execution settings, `fixed_draft_depth` describes a command-line
 override. It is `5` for `dspark_fixed5` and `null` for DFly2 because no
 `--fix-k` override is passed to that mode. The native DFly2 implementation
 itself always proposes five drafts. A null override does not mean adaptive
 DFly2 depth. The suite matches depth only: DSpark copy proposals remain enabled.
+
+The separate [experimental evidence](EXPERIMENTAL.md#offline-matrix-evidence)
+uses distinct schemas and records effective controls, including fixed/adaptive
+DFly2 depth and suffix-copy policy. Its reference bundles contain reviewed
+numerical summaries and hashes; [REFERENCE.md](REFERENCE.md) explains their
+failed parity gates and the limits of offline verification. Historical receipts
+and their verification remain unchanged.

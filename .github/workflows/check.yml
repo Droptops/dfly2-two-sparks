@@ -23,3 +23,7 @@ jobs:
         run: |
           python3 scripts/prepare_source.py --destination "$RUNNER_TEMP/dfly2-sources"
           python3 scripts/prepare_source.py --check --destination "$RUNNER_TEMP/dfly2-sources"
+      - name: Reconstruct and verify experimental sources
+        run: |
+          python3 scripts/prepare_experimental.py --destination "$RUNNER_TEMP/dfly2-experimental"
+          python3 scripts/prepare_experimental.py --check --destination "$RUNNER_TEMP/dfly2-experimental"

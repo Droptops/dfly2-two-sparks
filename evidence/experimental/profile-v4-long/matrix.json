@@ -1,0 +1,178 @@
+{
+  "schema": "dfly2-lab-matrix-public-v1",
+  "purpose": "profile",
+  "repeats": 1,
+  "complete": true,
+  "variants": [
+    {
+      "name": "serial",
+      "mode": "serial",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": false,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": false,
+          "rdma_best": false,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "legacy",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": false,
+          "rdma_best": false,
+          "detailed_profile": true,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "feedback",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": false,
+          "detailed_profile": true,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "rdma",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": false,
+          "rdma_best": true,
+          "detailed_profile": true,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "both",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": true,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "norms",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": true,
+          "adaptive": false,
+          "reference_norms": true,
+          "copies": false
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "order": 1,
+      "variant": "serial",
+      "repeat": 1,
+      "file": "run-001-serial-r1.json"
+    },
+    {
+      "order": 2,
+      "variant": "legacy",
+      "repeat": 1,
+      "file": "run-002-legacy-r1.json"
+    },
+    {
+      "order": 3,
+      "variant": "feedback",
+      "repeat": 1,
+      "file": "run-003-feedback-r1.json"
+    },
+    {
+      "order": 4,
+      "variant": "rdma",
+      "repeat": 1,
+      "file": "run-004-rdma-r1.json"
+    },
+    {
+      "order": 5,
+      "variant": "both",
+      "repeat": 1,
+      "file": "run-005-both-r1.json"
+    },
+    {
+      "order": 6,
+      "variant": "norms",
+      "repeat": 1,
+      "file": "run-006-norms-r1.json"
+    }
+  ]
+}

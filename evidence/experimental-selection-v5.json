@@ -1,0 +1,92 @@
+{
+  "schema": "dfly2-public-candidate-selection-v1",
+  "frozen_utc": "2026-11-27T01:16:06.174077+00:00",
+  "rule": {
+    "source_matrix": "sweep-v5-chat",
+    "eligible_variants_in_order": [
+      "depth1",
+      "depth2",
+      "depth3",
+      "depth4",
+      "depth5",
+      "adaptive",
+      "norms"
+    ],
+    "criterion": "maximum_aggregate_estimated_decode_tokens_per_second_median",
+    "tie_breaker": "earliest_in_frozen_sweep_order",
+    "selection_repeats": 1,
+    "heldout_used_for_selection": false
+  },
+  "selected_sweep_variant": "adaptive",
+  "selected_exploratory_decode_tokens_per_second": 48.72,
+  "effective_execution": {
+    "world_size": 2,
+    "streams": 1,
+    "parallel": 1,
+    "pool_tokens": 8192,
+    "cuda_graphs": false,
+    "profiling": true,
+    "drafting": true,
+    "fixed_draft_depth": null,
+    "experimental": {
+      "device_feedback": true,
+      "rdma_best": true,
+      "detailed_profile": false,
+      "adaptive": true,
+      "reference_norms": false,
+      "copies": false
+    }
+  },
+  "source_sweep": {
+    "folder": "sweep-v5-chat",
+    "files_sha256": {
+      "matrix.json": "1dd6eec03e6776e06374a8c0a8e1ed21ca109fecca2bf34bf5a7b16edf20d2ad",
+      "analysis.json": "3fe72cd582eef0dc237eecd285a3eb9094f66ccf2fcece7bcde870511b74501b",
+      "requests.json": "5243088b517b75309cb57a5d72a379a468339ed2aad98b2e58b533f0b6cd6f23",
+      "run-001-serial-r1.json": "1e611e75c851d448e38030f2e3c843a2108c43b9d291d6d5ae18d58b2aec0ae9",
+      "run-002-depth0-r1.json": "0a0018d5325be63eb369578f6bb8c99eb0603889fd05e4ceb1dc419201381833",
+      "run-003-depth1-r1.json": "bddb8ea0f47d901ea3a1cdfa7d143cfc6ed8a4790b0a02acf3fb1ba84e54b263",
+      "run-004-depth2-r1.json": "b42e23d903a7529fc99d1d2cb3695750ad8877b99bd9763653db62552df29f42",
+      "run-005-depth3-r1.json": "876fc1790539eca317568363e60ffad176fc1fc9d02c89748313abff464109c7",
+      "run-006-depth4-r1.json": "814a37549e50e6ac1f46d2448799deabae1d5835ecc8542c8c3494d9f6ca1e18",
+      "run-007-depth5-r1.json": "73941afab6264799fd0c6f0e9a1cc273178598617055103251e9d4a2e86f8e3c",
+      "run-008-adaptive-r1.json": "a90094233fd13c2746be2e74c91f98188c77ac85b72ed3e26ab8d48595f98e25",
+      "run-009-norms-r1.json": "f66218c20515c09e0ca3b9b6f1ec12eee3b429477d40e402809fb20056f4ffe2"
+    }
+  },
+  "build_identity": {
+    "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+    "launcher_sha256": "a12e354b4bb4b962680e5875fc160d4433175042792ef7387db6af854b162da4",
+    "image_content_sha256": "b02285e9fec87dee2b18cc04280d1c0b636fd9839225efc5e18d33dc0d6866cc",
+    "target_config_sha256": "4eac47f0da99a65f2bcfb97ca357f7d5388a79c9b377d6dd65b1ed18548d846d",
+    "target_rank_cache_bytes": [
+      106120462823,
+      106120890008
+    ],
+    "pack_manifest_sha256": "cdb1a38bb46af18fee74357562f4b855f67f5d70897f1ef9dd8976dbaf269ac4",
+    "build_receipt_sha256": "2f4e90f92c6c718abb742c22e59c5b16f5347806e82acd83b48eda1b64190fa1",
+    "experimental_lock_sha256": "4c368078d72d12f440e9a8c9c164cb787c7a685d78ce6a84fd6482d7dc6f873a"
+  },
+  "heldout": {
+    "tasks_sha256": "09d417bd0f270514263aa135e1805ed3524cea203be1c5b2da0c2261ec690e83",
+    "requests_sha256": "58c5d2c0bf4cce0d00db45a80783d48f48a94b9068e6da9091e1ea9e55856910",
+    "used_for_selection": false
+  },
+  "evaluation": {
+    "matrices": [
+      "benchmark-chat",
+      "benchmark-long",
+      "heldout"
+    ],
+    "repeats": 3,
+    "rotation": "left_by_repeat_index",
+    "expected_successful_runs": 39,
+    "exact_token_arrays_and_finish_reasons_required": true
+  },
+  "provenance": {
+    "private_freeze_sha256": "58c9aaae58bd82c29dd60f9987999cf23a03d17d5cc762c394970ef2ddb42efc",
+    "private_rule_sha256": "d1694902e00d397290e3a7b6c8cd81524855d6bee79d0d242a90c769fc70d537",
+    "private_selection_analysis_sha256": "3fe72cd582eef0dc237eecd285a3eb9094f66ccf2fcece7bcde870511b74501b"
+  },
+  "limitation": "Offline consistency checks do not authenticate GPU execution or recorded timestamps. Selection on one exploratory chat repeat can overfit and does not establish Tencent drafter parity."
+}
