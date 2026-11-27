@@ -1,0 +1,172 @@
+{
+  "schema": "dfly2-experimental-build-validation-v1",
+  "version": "v5",
+  "status": "complete",
+  "platform": "linux/arm64",
+  "historical_validation_applies": false,
+  "source": {
+    "experimental_lock_path": "experimental/native.lock.json",
+    "experimental_lock_sha256": "4c368078d72d12f440e9a8c9c164cb787c7a685d78ce6a84fd6482d7dc6f873a",
+    "lock_hash_method": "SHA256 of UTF-8 json.dumps(value, sort_keys=True)",
+    "baseline_lock_sha256": "95500dc6c3747824e35aff76c3dc5bf9f91f345bed42636616dbe7e59a4925c4",
+    "upstream_revisions": {
+      "recipe": "c7f2b85100f0a7b099c92a4e21825e30d93c9c51",
+      "tensorfold": "fbbc97132cd004237d9887b8d3185896efaedc5c",
+      "inputs": "59402086381a42c74d53053443224eec2790b4c5"
+    },
+    "patches": [
+      {
+        "path": "experimental/0001-native-performance.patch",
+        "sha256": "40d0fdbcd4f4b0b15df1db02c135f11df7140f7a7b1311a38ff2d0bd30e53f7a"
+      },
+      {
+        "path": "experimental/0002-initial-draft-depth.patch",
+        "sha256": "15aea6fa45c9c8b19d14689d34ace0b206bdf07de5f24d4cf4f033534f38478f"
+      }
+    ],
+    "prepared_trees": {
+      "tensorfold": "0bac5a8fa921a7ed861acd224e3cb93654f55036",
+      "inputs": "5ec4b426016ea39ca2d41e933001fc8b8ea1a0d9"
+    },
+    "source_files_sha256": "a5b9bda4a7c644eb337efc90d5f607ce5edaae914242c386acdf22ae9f48974e",
+    "baseline_source_files_sha256": "a05ff44c57ab78f0a965f7feb38e010eba45d79413b19821efbfeafea067cbbe",
+    "build_inputs_sha256": {
+      "build/Dockerfile": "f52134bfbfe5c820ea5dc1a8e1f24a9740fb27e596109af38f4c3dbea1f80b87",
+      "build/tool-requirements.txt": "f568006d882e0861dfa78f3b94bb1d1029af41f8ad72fe866b99d0c5bc105407",
+      "build/verify_tools.py": "e6aea90db64007093e644d2b5216f4b23fa14e8174c10952e1f92b7b05ad0d6e",
+      "scripts/prepare_source.py": "ca1377b40bb6e719c0a095a07925a2e39a0264d23bc1acb33f1a3c582a9088ec",
+      "scripts/prepare_experimental.py": "8f962a3d35d00b451bd90ce5a3a8d58dcfdb768b2774c7c7b66e5d27bcd02c71",
+      "scripts/build_experimental.py": "5d28915c00b42ad3ef63000884c09daaaa8ea70ac09111ee86403289998dde35"
+    },
+    "native_files_sha256": {
+      "zig/build/cuda.zig": "4388147476ac80fc7551c733460d9478eef4770c77f24276688bf6e5c141bcd8",
+      "zig/kernels/cuda/dsv41_dfly2.cu": "0c46b946426b654719f76aab526ae2e4c310a351741a407f2cf93f2d6bd428e5",
+      "zig/src/core/lanes/backend.zig": "9212a9a5bb13badcc5eaa3c68178e947777869e6dc1917f254be57236a843b7d",
+      "zig/src/core/lanes/engine.zig": "4f9ed5fa744bdfb2b874f74dc056f2ba73961c60e912f40a6e248f84fd7a7b5e",
+      "zig/src/core/lanes/engine_test.zig": "f4a012505f3e65f4d3fef8aa07f9d4336498f49bcbf37d389d8022981980936c",
+      "zig/src/families/dsv41/dfly.zig": "6231d74232a3cc740ad9f37a509c1aa5adf9319246e9606bb430df8ea5f82801",
+      "zig/src/families/dsv41/dfly_capture.zig": "f7b0409bca7693ba9e8dcd0fc8a484b760696815bbe821ce9fbed2b4f5569940",
+      "zig/src/families/dsv41/dfly_head_main.zig": "8ec3913f24688dd19f16ecfb72fc1edd25ebf2f1d0dd57dcf311bc32ce033ecb",
+      "zig/src/families/dsv41/dfly_kernels.zig": "723c90ef5f09b0167612648138c76567b229dc1b28a041327cd8caedae603197",
+      "zig/src/families/dsv41/dfly_policy.zig": "9e99d5300ac0b08859ff4dcc9a7284df341c6b4f26f5e6105ef0d8c1d28b9e79",
+      "zig/src/families/dsv41/dfly_profile.zig": "d927ab76d44461a1024889fc3532c792099eca404c4c62d7b461a4102a4c6d89",
+      "zig/src/families/dsv41/lanes.zig": "b565f8ca4c2b286c05449242eee3cb23019dadc2b97c74280713b4e384d800dd",
+      "zig/src/families/dsv41/lanes_main.zig": "9103bed7b754ca61f03951b8ec3728b39b355085f178297ee62b8a1c7f96e5d3",
+      "zig/src/families/dsv41/model.zig": "41878152d70c996c2c9b90864a9d1ab289b1bbcd6f698ca0a315d5e8a0022401",
+      "zig/src/families/dsv41/weights.zig": "694272f9d2a2d8aef7514d585ad1b3c19f742ff678cfbf53c0289709b85485bb"
+    },
+    "native_files_checked": 15,
+    "preparation_exit_code": 0,
+    "source_check_exit_code": 0
+  },
+  "public_image": {
+    "build_started_utc": "2026-11-27T00:47:34Z",
+    "build_finished_utc": "2026-11-27T00:53:50Z",
+    "build_exit_code": 0,
+    "base_image": "nvcr.io/nvidia/pytorch@sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c",
+    "zig_version": "0.17.0",
+    "zig_archive_sha256": "9e8d11661d4ae3bd57702a3832781e23ad151dde5798e16a5ccd503f65234ff8",
+    "cuda_architecture": "sm_121",
+    "image_content_sha256": "b02285e9fec87dee2b18cc04280d1c0b636fd9839225efc5e18d33dc0d6866cc",
+    "store_specific_image_ids_by_rank": [
+      {
+        "rank": 0,
+        "image_id": "sha256:757e53ac88d434bb888f5bf4c3671d4393da321ad167e2fe068da183c0fe3080"
+      },
+      {
+        "rank": 1,
+        "image_id": "sha256:d0890d258592dc27db529ef5a72666fc7100182be248018c78f96411695408bd"
+      }
+    ],
+    "transferred_content_verified": true,
+    "content_identity_scope": "Architecture, OS, variant, complete image configuration and ordered uncompressed filesystem layers",
+    "binaries_sha256": {
+      "tf-dsv41-lanes": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "tf-dsv41-dfly-weights": "35df7a30e50415facb7ba6f3707b93ecd2c5912977d93a35899a459d00455b53",
+      "tf-dsv41-dfly-head": "8420aca1994ee8a719d17d5376fd9a24467cfea4c47c54f97298ee2f704cff9f"
+    },
+    "staged_binaries_matched_on_ranks": [
+      0,
+      1
+    ],
+    "cuda_info": {
+      "exit_code": 0,
+      "device": "NVIDIA GB10",
+      "compute_capability": 121,
+      "driver_cuda_api_version": 13000,
+      "embedded_kernels": true
+    }
+  },
+  "separate_source_host_tests": {
+    "exit_code": 0,
+    "tests_passed": 594,
+    "tests_total": 594,
+    "build_steps_succeeded": 23,
+    "build_steps_total": 23,
+    "gpu_access_requested": false,
+    "scope": "Native v5 source tests ran from a separately mounted source tree in the earlier build environment; this is not a host-test run inside the final public image. The 15 changed native source files match the fresh public build."
+  },
+  "synthetic_gpu_checks": {
+    "source_sha256": "0c46b946426b654719f76aab526ae2e4c310a351741a407f2cf93f2d6bd428e5",
+    "device": "NVIDIA GB10",
+    "artifact_kind": "cubin",
+    "artifact_sha256": "1e28bcbc9222a9ce7ebfc3dcdbb7a48dd9c414ba23bd85fb62cc786222a1464b",
+    "compiled_for_checks": true,
+    "compile_flags": [
+      "-cubin",
+      "-O3",
+      "--std=c++17",
+      "--fmad=false",
+      "--ftz=false",
+      "-arch=sm_121"
+    ],
+    "feedback": {
+      "exit_code": 0,
+      "groups_passed": 13,
+      "groups_total": 13
+    },
+    "reference_norms": {
+      "exit_code": 0,
+      "groups_passed": 8,
+      "groups_total": 8,
+      "primitive_helper_sha256": "9eade5597d65ad859b34fb8857a00492c3be002bae2156122b6fb44e3fbb49ee"
+    },
+    "scope": "Constructed selection/dependency and normalization primitive fixtures; no whole-drafter numerical parity or throughput conclusion."
+  },
+  "earlier_mounted_build": {
+    "binaries_sha256": {
+      "tf-dsv41-lanes": "078f89d13e638584d6ba473b1ef98acf78a2121eaa3719fd917c26c296ebf442",
+      "tf-dsv41-dfly-weights": "d8b4ae7ba3e1bf1ed5045b1ff4536f6b7b9e49f1f571cd39925611de639d7c02",
+      "tf-dsv41-dfly-head": "8420aca1994ee8a719d17d5376fd9a24467cfea4c47c54f97298ee2f704cff9f"
+    },
+    "scope": "Earlier v5 compilation mounted its executables into an existing runtime image. Its lane-runner hash differs from the final public image and must not identify that final image."
+  },
+  "retained_v4_source": {
+    "lock_path": "experimental/v4.native.lock.json",
+    "lock_sha256": "f87f348a55fcfb3e481746da639ca5c19ee2c9d2144950b41e216fcc81515da7",
+    "prepared_trees": {
+      "tensorfold": "15adb33feb21ecd558b93df869392182a6ea5317",
+      "inputs": "5ec4b426016ea39ca2d41e933001fc8b8ea1a0d9"
+    },
+    "depth_sweep_qualified": false,
+    "disqualification": "initial_draft_depth_bypass"
+  },
+  "private_record_sha256": {
+    "public_native_build_receipt": "56426583ccb8d203c2366849d63b2d636a98f9cf1978c4b17efa9b0d617e3a7a",
+    "earlier_mounted_build_receipt": "50c10acf126a51febc92dc76ad81e803dbc7f6e6c7abc42dc0e89b5d2d1ebe1c",
+    "validation_receipt": "9151969e70a4bac6b3d7a8035148b16bb95193f24daeed2864db851d5e4e35bc",
+    "final_image_build_receipt": "328b769f386fc1241fc6a0dc1dc7bdc406ac53fcdb4177fa96a9e09d0035dd23",
+    "host_tests_receipt": "b24cd72cdcbfa526e7223c93cfaa266233aedb5e953280e9e4b69f2ddad14ce8",
+    "host_tests_log": "7b41279e20d29748baad3293ee627898c612c50c71515a4f3f06e1d0016f4800",
+    "cuda_info_log": "fec026f05811a8788d0a954e8918de8884bc7268aba42677fa97a86b82bf6326",
+    "diagnostic_receipt": "0c051af2ff222f0ce2a5f7f3e1478c279a30616d3006375b4f41c86a6ec75a3a",
+    "feedback_report": "49e997d1a3c50870cf90390be58fbac931e2a9bbf276c435122d2f6f913b9665",
+    "normalization_report": "2e3edf36cd611b45208835f55fb2748f6f6b4c5fc6d01d6afb1f3f027cca0c7b"
+  },
+  "limitations": [
+    "This reviewed summary records source/build consistency and reported component checks; offline hash agreement does not independently authenticate GPU execution.",
+    "Private logs, infrastructure configuration and model bytes are not published; their hashes identify retained records and cannot recreate those records.",
+    "Historical build, v4 sweep and reference receipts remain separate. These checks do not rehabilitate the disqualified v4 depth sweep.",
+    "This receipt contains no full-model v5 throughput ranking, production qualification or claim of full Tencent drafter numerical parity."
+  ]
+}

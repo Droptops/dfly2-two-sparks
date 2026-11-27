@@ -1,0 +1,19 @@
+{
+  "schema": "dfly2-experimental-native-lock-v1",
+  "status": "finalized",
+  "baseline_lock_sha256": "95500dc6c3747824e35aff76c3dc5bf9f91f345bed42636616dbe7e59a4925c4",
+  "patches": [
+    {
+      "path": "experimental/0001-native-performance.patch",
+      "sha256": "40d0fdbcd4f4b0b15df1db02c135f11df7140f7a7b1311a38ff2d0bd30e53f7a"
+    },
+    {
+      "path": "experimental/0002-initial-draft-depth.patch",
+      "sha256": "15aea6fa45c9c8b19d14689d34ace0b206bdf07de5f24d4cf4f033534f38478f"
+    }
+  ],
+  "prepared_trees": {
+    "tensorfold": "0bac5a8fa921a7ed861acd224e3cb93654f55036",
+    "inputs": "5ec4b426016ea39ca2d41e933001fc8b8ea1a0d9"
+  }
+}

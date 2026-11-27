@@ -1,0 +1,6 @@
+{
+  "schema": "dfly2-reference-public-manifest-v1",
+  "reference_sha256": "ba3857df980fe14ae54f2e6f169f658698de3fa02b87660102405acc77b49b03",
+  "exporter_sha256": "3f7b2cce7887a6df625232b2a40bac94757dba8e92c8393595fe52d5925b8811",
+  "raw_plan_sha256": "33cc5e2a53f493e6b4686b56b7f6e5ac96c0dba855894523dfdc456ceae6c74e"
+}

@@ -1,0 +1,135 @@
+diff --git a/zig/src/core/lanes/engine.zig b/zig/src/core/lanes/engine.zig
+index 153d78c..29fdd5b 100644
+--- a/zig/src/core/lanes/engine.zig
++++ b/zig/src/core/lanes/engine.zig
+@@ -175,7 +175,8 @@ pub const Engine = struct {
+         var asked: ?u32 = null;
+         if (e.cfg.family_mtp and s.drafts) {
+             // the head reads the prompt's last row and the first token, and drafts the one after it
+-            const d: u32 = if (s.gate != null and s.force.items.len > 0) 0 else @intCast(try e.rule.openDepth(win.who(s)));
++            const allowed: u32 = if (s.gate != null and s.force.items.len > 0) 0 else @intCast(try e.rule.openDepth(win.who(s)));
++            const d = try e.selectDraftDepth(s, allowed);
+             asked = d;
+             try e.backend.draft(&.{.{ .stream = s, .follow = &.{}, .first = feed, .rows = null, .start = s.prompt_len, .position = position + 1, .depth = d }});
+             s.dropHeld(e.gpa);
+@@ -516,6 +517,17 @@ pub const Engine = struct {
+         try e.askDrafts(&.{.{ .stream = s, .follow = follow, .rows = path, .start = start, .position = s.cache_len + 1, .depth = d }});
+     }
+ 
++    /// Apply the optional backend policy to both the initial and later drafts.
++    /// Without a hook, preserve the existing planner and held-depth bookkeeping.
++    fn selectDraftDepth(e: *Engine, s: *Stream, allowed: u32) !u32 {
++        const select = e.backend.vtable.draft_depth orelse return allowed;
++        const selected = if (allowed > 0) try select(e.backend.ptr, s, allowed) else 0;
++        if (selected > allowed) return error.DraftPolicyExceedsBudget;
++        s.held_levels = selected;
++        try trail.event(e, &.{ f("ev", str("draft_depth")), f("stream", str(s.id)), f("allowed", int(allowed)), f("selected", int(selected)) });
++        return selected;
++    }
++
+     fn askDrafts(e: *Engine, requests: []const be.DraftRequest) !void {
+         for (requests) |r| try trail.event(e, &.{ f("ev", str("draft")), f("stream", str(r.stream.id)), f("depth", int(r.depth)), f("position", int(r.position)), f("follow", .{ .u32s = r.follow }), f("rows", if (r.rows) |x| .{ .u32s = x } else .null) });
+         // a lone stream's lanes: the head tree or chain + grafts with the most expected tokens a round time
+@@ -546,15 +558,11 @@ pub const Engine = struct {
+             }
+             asked = &one;
+         } else if (requests.len == 1) requests[0].stream.held_levels = requests[0].depth;
+-        if (e.backend.vtable.draft_depth) |select| {
++        if (e.backend.vtable.draft_depth != null) {
+             const selected = try e.arena.allocator().dupe(be.DraftRequest, asked);
+             for (selected) |*r| {
+                 if (r.lanes != null) return error.DraftPolicyCannotSelectTrees;
+-                const allowed = r.depth;
+-                if (allowed > 0) r.depth = try select(e.backend.ptr, r.stream, allowed);
+-                if (r.depth > allowed) return error.DraftPolicyExceedsBudget;
+-                r.stream.held_levels = r.depth;
+-                try trail.event(e, &.{ f("ev", str("draft_depth")), f("stream", str(r.stream.id)), f("allowed", int(allowed)), f("selected", int(r.depth)) });
++                r.depth = try e.selectDraftDepth(r.stream, r.depth);
+             }
+             asked = selected;
+         }
+diff --git a/zig/src/core/lanes/engine_test.zig b/zig/src/core/lanes/engine_test.zig
+index f1812fd..a153175 100644
+--- a/zig/src/core/lanes/engine_test.zig
++++ b/zig/src/core/lanes/engine_test.zig
+@@ -87,6 +87,80 @@ test "backend depth choices cannot increase the core budget" {
+     try std.testing.expectError(error.DraftPolicyExceedsBudget, run(&.{.{ .prompt = &p1, .depth_policy = .invalid }}));
+ }
+ 
++const InitialDepthProbe = struct {
++    target: fake.Fake,
++    cap: ?u32,
++    choices: usize = 0,
++
++    fn select(ptr: *anyopaque, _: *sm.Stream, allowed: u32) anyerror!u32 {
++        const target: *fake.Fake = @ptrCast(@alignCast(ptr));
++        const probe: *@This() = @fieldParentPtr("target", target);
++        probe.choices += 1;
++        // A stateful policy makes a duplicate initial selection observable.
++        const depth = probe.cap orelse switch (probe.choices) { 1 => 0, 2 => 1, else => allowed };
++        return @min(allowed, depth);
++    }
++};
++
++fn checkInitialDepth(cap: ?u32) !void {
++    var cfg = try model();
++    defer cfg.deinit(gpa);
++    var probe: InitialDepthProbe = .{ .target = .{ .gpa = gpa }, .cap = cap };
++    defer probe.target.deinit();
++    var clock: fake.FixedClock = .{};
++    var backend = probe.target.backend();
++    var vtable = backend.vtable.*;
++    vtable.draft_depth = InitialDepthProbe.select;
++    backend.vtable = &vtable;
++    var engine = Engine.init(gpa, &cfg, backend, clock.clock());
++    defer engine.deinit();
++    var stream = try sm.Stream.init(gpa, .{ .id = "initial-depth", .prompt = &p1, .max_new = 40, .eos = &.{} });
++    defer stream.deinit(gpa);
++
++    try engine.addStream(&stream);
++    const first = cap orelse 0;
++    try std.testing.expectEqual(@as(usize, 1), probe.choices);
++    try std.testing.expect(stream.next != null);
++    try std.testing.expectEqual(first, stream.next.?.count);
++    try std.testing.expectEqual(first, stream.held_levels);
++    try std.testing.expectEqual(@as(usize, first), probe.target.lanes.get(&stream).?.held.items.len);
++
++    if (cap == null) {
++        try engine.step();
++        try std.testing.expectEqual(@as(usize, 2), probe.choices);
++        try std.testing.expect(stream.next != null);
++        try std.testing.expectEqual(@as(u32, 1), stream.next.?.count);
++        try std.testing.expectEqual(@as(u32, 1), stream.held_levels);
++        try std.testing.expectEqual(@as(usize, 1), probe.target.lanes.get(&stream).?.held.items.len);
++    }
++    while (engine.activeCount() > 0) {
++        try engine.step();
++        if (cap) |limit| if (!stream.finished) {
++            try std.testing.expect(stream.next != null);
++            try std.testing.expect(stream.next.?.count <= limit);
++            try std.testing.expect(stream.held_levels <= limit);
++            try std.testing.expect(probe.target.lanes.get(&stream).?.held.items.len <= limit);
++        };
++    }
++    if (cap == 0) {
++        try std.testing.expectEqual(@as(u64, 0), stream.drafted);
++        try std.testing.expectEqual(@as(u64, 0), stream.accepted);
++        try std.testing.expectEqual(@as(u64, @intCast(stream.emitted().len - 1)), stream.rounds);
++    }
++}
++
++test "zero depth holds no initial drafts and verifies one token per round" {
++    try checkInitialDepth(0);
++}
++
++test "fixed one depth caps initial and subsequent held drafts" {
++    try checkInitialDepth(1);
++}
++
++test "adaptive depth selects once for the initial and next draft" {
++    try checkInitialDepth(null);
++}
++
+ const GuardCase = struct {
+     prompt: []const u32,
+     max_new: u32 = 400,

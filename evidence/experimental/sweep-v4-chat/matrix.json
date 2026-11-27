@@ -1,0 +1,276 @@
+{
+  "schema": "dfly2-lab-matrix-public-v1",
+  "purpose": "benchmark",
+  "repeats": 1,
+  "complete": true,
+  "variants": [
+    {
+      "name": "serial",
+      "mode": "serial",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": false,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": false,
+          "rdma_best": false,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "depth0",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 0,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "depth1",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 1,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "depth2",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 2,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "depth3",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 3,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "depth4",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 4,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "depth5",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 5,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "adaptive",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": true,
+          "reference_norms": false,
+          "copies": false
+        }
+      }
+    },
+    {
+      "name": "norms",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": true,
+          "copies": false
+        }
+      }
+    }
+  ],
+  "runs": [
+    {
+      "order": 1,
+      "variant": "serial",
+      "repeat": 1,
+      "file": "run-001-serial-r1.json"
+    },
+    {
+      "order": 2,
+      "variant": "depth0",
+      "repeat": 1,
+      "file": "run-002-depth0-r1.json"
+    },
+    {
+      "order": 3,
+      "variant": "depth1",
+      "repeat": 1,
+      "file": "run-003-depth1-r1.json"
+    },
+    {
+      "order": 4,
+      "variant": "depth2",
+      "repeat": 1,
+      "file": "run-004-depth2-r1.json"
+    },
+    {
+      "order": 5,
+      "variant": "depth3",
+      "repeat": 1,
+      "file": "run-005-depth3-r1.json"
+    },
+    {
+      "order": 6,
+      "variant": "depth4",
+      "repeat": 1,
+      "file": "run-006-depth4-r1.json"
+    },
+    {
+      "order": 7,
+      "variant": "depth5",
+      "repeat": 1,
+      "file": "run-007-depth5-r1.json"
+    },
+    {
+      "order": 8,
+      "variant": "adaptive",
+      "repeat": 1,
+      "file": "run-008-adaptive-r1.json"
+    },
+    {
+      "order": 9,
+      "variant": "norms",
+      "repeat": 1,
+      "file": "run-009-norms-r1.json"
+    }
+  ],
+  "known_issues": [
+    {
+      "schema": "dfly2-known-issue-v1",
+      "code": "initial_draft_depth_bypass",
+      "affected_variants": [
+        "depth0",
+        "depth1",
+        "depth2",
+        "depth3",
+        "depth4",
+        "adaptive"
+      ]
+    }
+  ]
+}

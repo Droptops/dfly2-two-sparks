@@ -1,0 +1,1803 @@
+{
+  "schema": "dfly2-correction-tp-public-summary-v1",
+  "version": 1,
+  "classification": "diagnostic-not-original-reference-parity",
+  "complete": true,
+  "device_kind": "cuda",
+  "torch_versions": [
+    "2.13.0a0+9186a08b2c.nv26.07"
+  ],
+  "scope": "Correction only, conditioned on captured native normalized hidden, native predecessor embeddings, positions and last context; every projection variant is paired against its unchanged original baseline on the same case.",
+  "provenance": {
+    "upstream_commit": "e02ea36e65d44e6e165c4ba73c139d500e12f2d9",
+    "diagnostic_script_sha256": "8f23fa573634ad2960bad46f5da0c5303ddae8ca4eb5acb635791996c991f40e",
+    "reference_loader_sha256": "260309eec1630b46a9d0905d8731b7eb91bb54ae2e3c94dba44813770f89369e",
+    "packer_sha256": "d9d545f55a88397620e565b052d39df54b4ce00a339f676111f4f8ef2961a911",
+    "checkpoint_config_sha256": "0d53324203ab18c69927da96aa27566195602b9ab0aac4867b2819d6a46a051e",
+    "checkpoint_shards": [
+      {
+        "shard": 1,
+        "sha256": "3a8d253390daebb7f4279ad4edd0eb0a89561cf0bae610931fbc4c47a497345a"
+      },
+      {
+        "shard": 2,
+        "sha256": "95da61fce834e4f2d1f3cc5a80656bd91ce624164cbc7f8d16726cab3e9f8701"
+      },
+      {
+        "shard": 3,
+        "sha256": "a2a1480dedc6bbcc9f8f54c928ca6ae11eaf27a979b8de90beb8bdb8bd540e2e"
+      },
+      {
+        "shard": 4,
+        "sha256": "0e42e694d739a7a4c07eb6c93be86a55b180f077273f11b129206d126a489a1d"
+      }
+    ],
+    "native_binary_sha256": [
+      "e2c21438211e2693c23550eeaab798f0101ac110be689c75833f2d1e720c5937"
+    ],
+    "native_checkpoint_manifest_sha256": [
+      "cdb1a38bb46af18fee74357562f4b855f67f5d70897f1ef9dd8976dbaf269ac4"
+    ],
+    "raw_aggregate_report_sha256": "5ece7335693df7f2e9aafc43ef6405001a0a236d5a6fcff37633fc740e9c6dc3"
+  },
+  "thresholds": {
+    "rtol": 0.02,
+    "atol": 0.02,
+    "max_relative_rms": 0.01
+  },
+  "counts": {
+    "cases": 24,
+    "unique_correction_input_states": 24,
+    "variants_per_case": 4,
+    "finite_variant_comparisons": 96,
+    "modified_variant_comparisons_paired_to_original": 72,
+    "vectors_per_case": 5,
+    "elements_per_case": 25600,
+    "weights_load_count": 1
+  },
+  "partitions": {
+    "down_proj": {
+      "axis": 1,
+      "rank_k_ranges": [
+        [
+          0,
+          2560
+        ],
+        [
+          2560,
+          5120
+        ]
+      ]
+    },
+    "attention.wo_b": {
+      "axis": 1,
+      "rank_k_ranges": [
+        [
+          0,
+          4096
+        ],
+        [
+          4096,
+          8192
+        ]
+      ]
+    }
+  },
+  "aggregates": {
+    "all": {
+      "case_count": 24,
+      "elements_compared_per_variant": 614400,
+      "variants": {
+        "original": {
+          "rms_abs": {
+            "min": 0.0025394416879862547,
+            "median": 0.0027716258773580194,
+            "max": 0.003255150280892849
+          },
+          "relative_rms": {
+            "min": 0.00602635967822952,
+            "median": 0.009562681754815854,
+            "max": 0.012191041679491693
+          },
+          "within_recorded_thresholds_cases": 12,
+          "within_relative_rms_threshold_cases": 15,
+          "within_pointwise_tolerance_cases": 18,
+          "outside_tolerance_elements": 6,
+          "different_elements": 271702,
+          "paired_abs_rms_reduction_percent": {
+            "min": 0.0,
+            "median": 0.0,
+            "max": 0.0
+          },
+          "abs_rms_improved_cases": 0,
+          "abs_rms_worsened_cases": 0,
+          "abs_rms_tied_cases": 24,
+          "threshold_fail_to_pass_cases": 0,
+          "threshold_pass_to_fail_cases": 0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": {
+            "min": 0.0023127831518650055,
+            "median": 0.0026868594577535987,
+            "max": 0.0032451306469738483
+          },
+          "relative_rms": {
+            "min": 0.005751248393342627,
+            "median": 0.009031426211105541,
+            "max": 0.01212162725716153
+          },
+          "within_recorded_thresholds_cases": 13,
+          "within_relative_rms_threshold_cases": 17,
+          "within_pointwise_tolerance_cases": 18,
+          "outside_tolerance_elements": 7,
+          "different_elements": 260382,
+          "paired_abs_rms_reduction_percent": {
+            "min": -0.26410687342737216,
+            "median": 3.1326838960945347,
+            "max": 9.216866187081651
+          },
+          "abs_rms_improved_cases": 22,
+          "abs_rms_worsened_cases": 2,
+          "abs_rms_tied_cases": 0,
+          "threshold_fail_to_pass_cases": 2,
+          "threshold_pass_to_fail_cases": 1
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": {
+            "min": 0.002392035676166415,
+            "median": 0.002702345955185592,
+            "max": 0.003304208628833294
+          },
+          "relative_rms": {
+            "min": 0.005915109554846463,
+            "median": 0.009111582331783642,
+            "max": 0.011879454217817371
+          },
+          "within_recorded_thresholds_cases": 10,
+          "within_relative_rms_threshold_cases": 15,
+          "within_pointwise_tolerance_cases": 15,
+          "outside_tolerance_elements": 13,
+          "different_elements": 264735,
+          "paired_abs_rms_reduction_percent": {
+            "min": -1.5070993259023613,
+            "median": 2.7687597625702995,
+            "max": 5.954548150623196
+          },
+          "abs_rms_improved_cases": 22,
+          "abs_rms_worsened_cases": 2,
+          "abs_rms_tied_cases": 0,
+          "threshold_fail_to_pass_cases": 0,
+          "threshold_pass_to_fail_cases": 2
+        },
+        "bf16_half_k_both": {
+          "rms_abs": {
+            "min": 0.0021229677367955446,
+            "median": 0.002630758914165199,
+            "max": 0.003291318891569972
+          },
+          "relative_rms": {
+            "min": 0.00564403462361256,
+            "median": 0.00873646522812278,
+            "max": 0.011876100350417806
+          },
+          "within_recorded_thresholds_cases": 11,
+          "within_relative_rms_threshold_cases": 18,
+          "within_pointwise_tolerance_cases": 14,
+          "outside_tolerance_elements": 16,
+          "different_elements": 252678,
+          "paired_abs_rms_reduction_percent": {
+            "min": -1.111119535384475,
+            "median": 5.359359176523743,
+            "max": 16.667646089256994
+          },
+          "abs_rms_improved_cases": 22,
+          "abs_rms_worsened_cases": 2,
+          "abs_rms_tied_cases": 0,
+          "threshold_fail_to_pass_cases": 2,
+          "threshold_pass_to_fail_cases": 3
+        }
+      }
+    },
+    "fused": {
+      "case_count": 12,
+      "elements_compared_per_variant": 307200,
+      "variants": {
+        "original": {
+          "rms_abs": {
+            "min": 0.002757976297289133,
+            "median": 0.0029384689405560493,
+            "max": 0.003255150280892849
+          },
+          "relative_rms": {
+            "min": 0.006878554880079068,
+            "median": 0.01016506021709098,
+            "max": 0.012191041679491693
+          },
+          "within_recorded_thresholds_cases": 4,
+          "within_relative_rms_threshold_cases": 6,
+          "within_pointwise_tolerance_cases": 9,
+          "outside_tolerance_elements": 3,
+          "different_elements": 147307,
+          "paired_abs_rms_reduction_percent": {
+            "min": 0.0,
+            "median": 0.0,
+            "max": 0.0
+          },
+          "abs_rms_improved_cases": 0,
+          "abs_rms_worsened_cases": 0,
+          "abs_rms_tied_cases": 12,
+          "threshold_fail_to_pass_cases": 0,
+          "threshold_pass_to_fail_cases": 0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": {
+            "min": 0.0027110527735203505,
+            "median": 0.002928443602286279,
+            "max": 0.0032451306469738483
+          },
+          "relative_rms": {
+            "min": 0.006863801445134047,
+            "median": 0.010062276636521015,
+            "max": 0.01212162725716153
+          },
+          "within_recorded_thresholds_cases": 3,
+          "within_relative_rms_threshold_cases": 6,
+          "within_pointwise_tolerance_cases": 8,
+          "outside_tolerance_elements": 5,
+          "different_elements": 146112,
+          "paired_abs_rms_reduction_percent": {
+            "min": -0.26410687342737216,
+            "median": 0.6241887529661205,
+            "max": 1.7013751646417163
+          },
+          "abs_rms_improved_cases": 10,
+          "abs_rms_worsened_cases": 2,
+          "abs_rms_tied_cases": 0,
+          "threshold_fail_to_pass_cases": 0,
+          "threshold_pass_to_fail_cases": 1
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": {
+            "min": 0.0026751565746963024,
+            "median": 0.0028941482305526733,
+            "max": 0.003304208628833294
+          },
+          "relative_rms": {
+            "min": 0.006934260568120067,
+            "median": 0.009993667753269144,
+            "max": 0.011879454217817371
+          },
+          "within_recorded_thresholds_cases": 3,
+          "within_relative_rms_threshold_cases": 6,
+          "within_pointwise_tolerance_cases": 6,
+          "outside_tolerance_elements": 8,
+          "different_elements": 144699,
+          "paired_abs_rms_reduction_percent": {
+            "min": -1.5070993259023613,
+            "median": 1.590675160880678,
+            "max": 3.245889611362307
+          },
+          "abs_rms_improved_cases": 10,
+          "abs_rms_worsened_cases": 2,
+          "abs_rms_tied_cases": 0,
+          "threshold_fail_to_pass_cases": 0,
+          "threshold_pass_to_fail_cases": 1
+        },
+        "bf16_half_k_both": {
+          "rms_abs": {
+            "min": 0.002625057939440012,
+            "median": 0.002889905357733369,
+            "max": 0.003291318891569972
+          },
+          "relative_rms": {
+            "min": 0.006920806825225687,
+            "median": 0.009844091066305247,
+            "max": 0.011876100350417806
+          },
+          "within_recorded_thresholds_cases": 3,
+          "within_relative_rms_threshold_cases": 6,
+          "within_pointwise_tolerance_cases": 6,
+          "outside_tolerance_elements": 11,
+          "different_elements": 143476,
+          "paired_abs_rms_reduction_percent": {
+            "min": -1.111119535384475,
+            "median": 2.224689397016766,
+            "max": 5.125829907923496
+          },
+          "abs_rms_improved_cases": 10,
+          "abs_rms_worsened_cases": 2,
+          "abs_rms_tied_cases": 0,
+          "threshold_fail_to_pass_cases": 0,
+          "threshold_pass_to_fail_cases": 1
+        }
+      }
+    },
+    "double": {
+      "case_count": 12,
+      "elements_compared_per_variant": 307200,
+      "variants": {
+        "original": {
+          "rms_abs": {
+            "min": 0.0025394416879862547,
+            "median": 0.002607882721349597,
+            "max": 0.002792649669572711
+          },
+          "relative_rms": {
+            "min": 0.00602635967822952,
+            "median": 0.009251836502449418,
+            "max": 0.011329799859748834
+          },
+          "within_recorded_thresholds_cases": 8,
+          "within_relative_rms_threshold_cases": 9,
+          "within_pointwise_tolerance_cases": 9,
+          "outside_tolerance_elements": 3,
+          "different_elements": 124395,
+          "paired_abs_rms_reduction_percent": {
+            "min": 0.0,
+            "median": 0.0,
+            "max": 0.0
+          },
+          "abs_rms_improved_cases": 0,
+          "abs_rms_worsened_cases": 0,
+          "abs_rms_tied_cases": 12,
+          "threshold_fail_to_pass_cases": 0,
+          "threshold_pass_to_fail_cases": 0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": {
+            "min": 0.0023127831518650055,
+            "median": 0.0024253794690594077,
+            "max": 0.002662666141986847
+          },
+          "relative_rms": {
+            "min": 0.005751248393342627,
+            "median": 0.00861831571281073,
+            "max": 0.010338236902736905
+          },
+          "within_recorded_thresholds_cases": 10,
+          "within_relative_rms_threshold_cases": 11,
+          "within_pointwise_tolerance_cases": 10,
+          "outside_tolerance_elements": 2,
+          "different_elements": 114270,
+          "paired_abs_rms_reduction_percent": {
+            "min": 4.5639926275473535,
+            "median": 7.370776847425903,
+            "max": 9.216866187081651
+          },
+          "abs_rms_improved_cases": 12,
+          "abs_rms_worsened_cases": 0,
+          "abs_rms_tied_cases": 0,
+          "threshold_fail_to_pass_cases": 2,
+          "threshold_pass_to_fail_cases": 0
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": {
+            "min": 0.002392035676166415,
+            "median": 0.002510516904294491,
+            "max": 0.002770137507468462
+          },
+          "relative_rms": {
+            "min": 0.005915109554846463,
+            "median": 0.008952002464526673,
+            "max": 0.010666502367976014
+          },
+          "within_recorded_thresholds_cases": 7,
+          "within_relative_rms_threshold_cases": 9,
+          "within_pointwise_tolerance_cases": 9,
+          "outside_tolerance_elements": 5,
+          "different_elements": 120036,
+          "paired_abs_rms_reduction_percent": {
+            "min": 0.8061219546987908,
+            "median": 4.219013578228726,
+            "max": 5.954548150623196
+          },
+          "abs_rms_improved_cases": 12,
+          "abs_rms_worsened_cases": 0,
+          "abs_rms_tied_cases": 0,
+          "threshold_fail_to_pass_cases": 0,
+          "threshold_pass_to_fail_cases": 1
+        },
+        "bf16_half_k_both": {
+          "rms_abs": {
+            "min": 0.0021229677367955446,
+            "median": 0.0023174036759883165,
+            "max": 0.0026364598888903856
+          },
+          "relative_rms": {
+            "min": 0.00564403462361256,
+            "median": 0.008180576476827243,
+            "max": 0.009501584088248872
+          },
+          "within_recorded_thresholds_cases": 8,
+          "within_relative_rms_threshold_cases": 12,
+          "within_pointwise_tolerance_cases": 8,
+          "outside_tolerance_elements": 5,
+          "different_elements": 109202,
+          "paired_abs_rms_reduction_percent": {
+            "min": 5.5928884451239895,
+            "median": 11.948043963827631,
+            "max": 16.667646089256994
+          },
+          "abs_rms_improved_cases": 12,
+          "abs_rms_worsened_cases": 0,
+          "abs_rms_tied_cases": 0,
+          "threshold_fail_to_pass_cases": 2,
+          "threshold_pass_to_fail_cases": 2
+        }
+      }
+    }
+  },
+  "regressions_against_original": {
+    "bf16_half_k_down_proj": [
+      {
+        "case_id": "fused-chat-000150",
+        "abs_rms_worse": true,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": false,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-chat-000200",
+        "abs_rms_worse": true,
+        "outside_tolerance_count_worse": false,
+        "max_abs_worse": false,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-long-000150",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": true,
+        "lost_threshold_pass": true
+      }
+    ],
+    "bf16_half_k_wo_b": [
+      {
+        "case_id": "double-chat-000150",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": true,
+        "lost_threshold_pass": true
+      },
+      {
+        "case_id": "double-chat-000200",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": false,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-chat-000050",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": true,
+        "lost_threshold_pass": true
+      },
+      {
+        "case_id": "fused-chat-000200",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": false,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-long-000050",
+        "abs_rms_worse": true,
+        "outside_tolerance_count_worse": false,
+        "max_abs_worse": false,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-long-000100",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": true,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-long-000200",
+        "abs_rms_worse": true,
+        "outside_tolerance_count_worse": false,
+        "max_abs_worse": true,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-long-000250",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": true,
+        "lost_threshold_pass": false
+      }
+    ],
+    "bf16_half_k_both": [
+      {
+        "case_id": "double-chat-000150",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": true,
+        "lost_threshold_pass": true
+      },
+      {
+        "case_id": "double-chat-000200",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": false,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "double-long-000150",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": true,
+        "lost_threshold_pass": true
+      },
+      {
+        "case_id": "fused-chat-000050",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": true,
+        "lost_threshold_pass": true
+      },
+      {
+        "case_id": "fused-chat-000150",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": false,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-chat-000200",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": false,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-chat-000250",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": false,
+        "max_abs_worse": true,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-long-000050",
+        "abs_rms_worse": true,
+        "outside_tolerance_count_worse": false,
+        "max_abs_worse": false,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-long-000100",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": true,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-long-000200",
+        "abs_rms_worse": true,
+        "outside_tolerance_count_worse": false,
+        "max_abs_worse": true,
+        "lost_threshold_pass": false
+      },
+      {
+        "case_id": "fused-long-000250",
+        "abs_rms_worse": false,
+        "outside_tolerance_count_worse": true,
+        "max_abs_worse": true,
+        "lost_threshold_pass": false
+      }
+    ]
+  },
+  "case_metrics": [
+    {
+      "case_id": "double-chat-000000",
+      "native_norm_rounding": "double",
+      "fixture": "chat",
+      "capture_number": 0,
+      "anchor_position": 93,
+      "raw_case_report_sha256": "253ca8dd1ab29c5440a557417aa8bc9d7f9090610091fede55127d1f200d5b69",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0026101141702383757,
+          "reference_rms": 0.2824166715145111,
+          "relative_rms": 0.009242068310773443,
+          "max_abs": 0.015625,
+          "different_elements": 10341,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.00242932909168303,
+          "reference_rms": 0.28241685032844543,
+          "relative_rms": 0.008601926863987636,
+          "max_abs": 0.015625,
+          "different_elements": 9439,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9307367161878459
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002526241820305586,
+          "reference_rms": 0.2823971211910248,
+          "relative_rms": 0.008945706704271727,
+          "max_abs": 0.015625,
+          "different_elements": 10021,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9678664056579832
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0023124017752707005,
+          "reference_rms": 0.28239884972572327,
+          "relative_rms": 0.008188424908658782,
+          "max_abs": 0.015625,
+          "different_elements": 9055,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.8859389377053626
+        }
+      }
+    },
+    {
+      "case_id": "double-chat-000050",
+      "native_norm_rounding": "double",
+      "fixture": "chat",
+      "capture_number": 50,
+      "anchor_position": 146,
+      "raw_case_report_sha256": "c4676fa25af02f43106fbe2471c7d11ab1afbb7eb2eaf7f8b5241ddb0e999ba4",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0026996780652552843,
+          "reference_rms": 0.3258582651615143,
+          "relative_rms": 0.008284823046968494,
+          "max_abs": 0.015625,
+          "different_elements": 10392,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.002510624937713146,
+          "reference_rms": 0.325849324464798,
+          "relative_rms": 0.007704864639007018,
+          "max_abs": 0.015625,
+          "different_elements": 9598,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9299719733344349
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002580778207629919,
+          "reference_rms": 0.32585757970809937,
+          "relative_rms": 0.007919957577607247,
+          "max_abs": 0.015625,
+          "different_elements": 10058,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9559577643143454
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.002362488768994808,
+          "reference_rms": 0.325859934091568,
+          "relative_rms": 0.007250013032688268,
+          "max_abs": 0.015625,
+          "different_elements": 9197,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.8751001830180848
+        }
+      }
+    },
+    {
+      "case_id": "double-chat-000100",
+      "native_norm_rounding": "double",
+      "fixture": "chat",
+      "capture_number": 100,
+      "anchor_position": 246,
+      "raw_case_report_sha256": "b1c6ac13b2d7e90f585700afef075dd0e6226da8909327797248dc2532c76efa",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.002588791772723198,
+          "reference_rms": 0.27508634328842163,
+          "relative_rms": 0.009410833492409726,
+          "max_abs": 0.015625,
+          "different_elements": 10346,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.002383366459980607,
+          "reference_rms": 0.27509352564811707,
+          "relative_rms": 0.008663840613352946,
+          "max_abs": 0.015625,
+          "different_elements": 9499,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9206481900525741
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.0024642881471663713,
+          "reference_rms": 0.27508440613746643,
+          "relative_rms": 0.008958298224781619,
+          "max_abs": 0.015625,
+          "different_elements": 10022,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9519066667050402
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0022482338827103376,
+          "reference_rms": 0.2750897705554962,
+          "relative_rms": 0.008172728044995706,
+          "max_abs": 0.015625,
+          "different_elements": 9112,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.8684490990734951
+        }
+      }
+    },
+    {
+      "case_id": "double-chat-000150",
+      "native_norm_rounding": "double",
+      "fixture": "chat",
+      "capture_number": 150,
+      "anchor_position": 143,
+      "raw_case_report_sha256": "d4f89825a4cc563c590870ac588e1029bc4193fcddb10d8f0b91c546fd4395c8",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0025996570475399494,
+          "reference_rms": 0.3463869094848633,
+          "relative_rms": 0.0075050672423102975,
+          "max_abs": 0.015625,
+          "different_elements": 10473,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0024640406481921673,
+          "reference_rms": 0.3463745713233948,
+          "relative_rms": 0.007113803530027614,
+          "max_abs": 0.015625,
+          "different_elements": 9664,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9478329653228238
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.0024947919882833958,
+          "reference_rms": 0.34639593958854675,
+          "relative_rms": 0.0072021398150530856,
+          "max_abs": 0.03125,
+          "different_elements": 10114,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9596619641210801
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0023224055767059326,
+          "reference_rms": 0.3463742733001709,
+          "relative_rms": 0.006704902054585665,
+          "max_abs": 0.03125,
+          "different_elements": 9232,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.8933507513630002
+        }
+      }
+    },
+    {
+      "case_id": "double-chat-000200",
+      "native_norm_rounding": "double",
+      "fixture": "chat",
+      "capture_number": 200,
+      "anchor_position": 157,
+      "raw_case_report_sha256": "56dc0b4aa2ef2dec24c1110e42344e3604e1daa653dc83b1595dd05a56c64644",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0026056512724608183,
+          "reference_rms": 0.2420426309108734,
+          "relative_rms": 0.010765257602163021,
+          "max_abs": 0.03125,
+          "different_elements": 10049,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0023976729717105627,
+          "reference_rms": 0.242033451795578,
+          "relative_rms": 0.00990637018942176,
+          "max_abs": 0.03125,
+          "different_elements": 9134,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9201818359392976
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002455531619489193,
+          "reference_rms": 0.24204331636428833,
+          "relative_rms": 0.01014500898588534,
+          "max_abs": 0.03125,
+          "different_elements": 9525,
+          "outside_tolerance": 3,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9423868978330896
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0022018353920429945,
+          "reference_rms": 0.24202708899974823,
+          "relative_rms": 0.009097475002251856,
+          "max_abs": 0.03125,
+          "different_elements": 8579,
+          "outside_tolerance": 2,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.8450230525144473
+        }
+      }
+    },
+    {
+      "case_id": "double-chat-000250",
+      "native_norm_rounding": "double",
+      "fixture": "chat",
+      "capture_number": 250,
+      "anchor_position": 276,
+      "raw_case_report_sha256": "760ef93c0aefa07d702626a6949f89e69a1f554a5223b1db6f8ba452032915ec",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0025394416879862547,
+          "reference_rms": 0.2614065408706665,
+          "relative_rms": 0.009714530017221982,
+          "max_abs": 0.03125,
+          "different_elements": 9691,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0023290254175662994,
+          "reference_rms": 0.2614084482192993,
+          "relative_rms": 0.00890952619715047,
+          "max_abs": 0.015625,
+          "different_elements": 8703,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9171407355343478
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002392035676166415,
+          "reference_rms": 0.2613949477672577,
+          "relative_rms": 0.009151040204098548,
+          "max_abs": 0.03125,
+          "different_elements": 9272,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9419533779739079
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0021573908161371946,
+          "reference_rms": 0.2613995671272278,
+          "relative_rms": 0.008253230255301664,
+          "max_abs": 0.03125,
+          "different_elements": 8214,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.8495532015338294
+        }
+      }
+    },
+    {
+      "case_id": "double-long-000000",
+      "native_norm_rounding": "double",
+      "fixture": "long",
+      "capture_number": 0,
+      "anchor_position": 1210,
+      "raw_case_report_sha256": "563eb1c38c8c2d377d5445f1df3f2d20a48a2722f7d90a6c22ec48bfd59174b1",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0026262400206178427,
+          "reference_rms": 0.2835620939731598,
+          "relative_rms": 0.009261604694125394,
+          "max_abs": 0.015625,
+          "different_elements": 10747,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.002448673825711012,
+          "reference_rms": 0.2835851311683655,
+          "relative_rms": 0.008634704561633825,
+          "max_abs": 0.015625,
+          "different_elements": 9918,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9323876745793185
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002544618444517255,
+          "reference_rms": 0.2835844159126282,
+          "relative_rms": 0.008973054588800983,
+          "max_abs": 0.015625,
+          "different_elements": 10423,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9689207477382872
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0023334615398198366,
+          "reference_rms": 0.28360429406166077,
+          "relative_rms": 0.008227878028223718,
+          "max_abs": 0.015625,
+          "different_elements": 9561,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.8885180034956867
+        }
+      }
+    },
+    {
+      "case_id": "double-long-000050",
+      "native_norm_rounding": "double",
+      "fixture": "long",
+      "capture_number": 50,
+      "anchor_position": 2778,
+      "raw_case_report_sha256": "f0eb0ba67cc48336704ac77d9691eacec6534cad36dc2ee3aa53f9bef8b3f047",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0027073901146650314,
+          "reference_rms": 0.4492579698562622,
+          "relative_rms": 0.00602635967822952,
+          "max_abs": 0.03125,
+          "different_elements": 11011,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0025838250294327736,
+          "reference_rms": 0.449263334274292,
+          "relative_rms": 0.005751248393342627,
+          "max_abs": 0.03125,
+          "different_elements": 10440,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9543600737245265
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002657422097399831,
+          "reference_rms": 0.44925999641418457,
+          "relative_rms": 0.005915109554846463,
+          "max_abs": 0.03125,
+          "different_elements": 10681,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9815438429081422
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.002535661682486534,
+          "reference_rms": 0.4492640197277069,
+          "relative_rms": 0.00564403462361256,
+          "max_abs": 0.03125,
+          "different_elements": 10068,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9365704885866645
+        }
+      }
+    },
+    {
+      "case_id": "double-long-000100",
+      "native_norm_rounding": "double",
+      "fixture": "long",
+      "capture_number": 100,
+      "anchor_position": 3945,
+      "raw_case_report_sha256": "e7c52f61be57ff644777dd4aa85dd0b3a5eaf462712842817443f33a4faf86ee",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0025475912261754274,
+          "reference_rms": 0.23133665323257446,
+          "relative_rms": 0.011012484146272337,
+          "max_abs": 0.015625,
+          "different_elements": 9898,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0023127831518650055,
+          "reference_rms": 0.23133069276809692,
+          "relative_rms": 0.009997735813567598,
+          "max_abs": 0.015625,
+          "different_elements": 8923,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9078313381291835
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.00239589367993176,
+          "reference_rms": 0.23134618997573853,
+          "relative_rms": 0.010356313541117834,
+          "max_abs": 0.015625,
+          "different_elements": 9455,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.940454518493768
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0021229677367955446,
+          "reference_rms": 0.23135116696357727,
+          "relative_rms": 0.009176386549758678,
+          "max_abs": 0.015625,
+          "different_elements": 8378,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.8333235391074301
+        }
+      }
+    },
+    {
+      "case_id": "double-long-000150",
+      "native_norm_rounding": "double",
+      "fixture": "long",
+      "capture_number": 150,
+      "anchor_position": 1979,
+      "raw_case_report_sha256": "b9ea8226ebc1044e1ce769ce6a713bfe53ccf06cc8e0c0eebf41420500da446c",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0026245361659675837,
+          "reference_rms": 0.293381005525589,
+          "relative_rms": 0.008945828518331493,
+          "max_abs": 0.015625,
+          "different_elements": 10187,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0024214298464357853,
+          "reference_rms": 0.29335641860961914,
+          "relative_rms": 0.0082542248705936,
+          "max_abs": 0.015625,
+          "different_elements": 9283,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.922612489717047
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.0025327233597636223,
+          "reference_rms": 0.2933884561061859,
+          "relative_rms": 0.008632661943750626,
+          "max_abs": 0.015625,
+          "different_elements": 9826,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9650175115151775
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.002325776033103466,
+          "reference_rms": 0.29337072372436523,
+          "relative_rms": 0.007927771399877772,
+          "max_abs": 0.03125,
+          "different_elements": 8879,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.886166501823009
+        }
+      }
+    },
+    {
+      "case_id": "double-long-000200",
+      "native_norm_rounding": "double",
+      "fixture": "long",
+      "capture_number": 200,
+      "anchor_position": 4576,
+      "raw_case_report_sha256": "dff1649d9ee83fa9ca14d39c146f4231eb33ec97d02473608a6a4bf945faaa47",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.002792649669572711,
+          "reference_rms": 0.413034588098526,
+          "relative_rms": 0.0067612973587251905,
+          "max_abs": 0.015625,
+          "different_elements": 11310,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.002662666141986847,
+          "reference_rms": 0.41301873326301575,
+          "relative_rms": 0.006446841093503684,
+          "max_abs": 0.015625,
+          "different_elements": 10666,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9534551257889242
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002770137507468462,
+          "reference_rms": 0.41304585337638855,
+          "relative_rms": 0.0067066101374080875,
+          "max_abs": 0.015625,
+          "different_elements": 11071,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9919387804530121
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0026364598888903856,
+          "reference_rms": 0.4130452871322632,
+          "relative_rms": 0.006382980198600238,
+          "max_abs": 0.015625,
+          "different_elements": 10386,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9440711155487601
+        }
+      }
+    },
+    {
+      "case_id": "double-long-000250",
+      "native_norm_rounding": "double",
+      "fixture": "long",
+      "capture_number": 250,
+      "anchor_position": 7017,
+      "raw_case_report_sha256": "8761f47c146f6d75cc267ec3e76024a8761de7bb1b7c2346530d59f64e685a1c",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.002571207471191883,
+          "reference_rms": 0.2269420027732849,
+          "relative_rms": 0.011329799859748834,
+          "max_abs": 0.03125,
+          "different_elements": 9950,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.002346277702599764,
+          "reference_rms": 0.22695143520832062,
+          "relative_rms": 0.010338236902736905,
+          "max_abs": 0.03125,
+          "different_elements": 9003,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9125197903660986
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.0024206875823438168,
+          "reference_rms": 0.22694295644760132,
+          "relative_rms": 0.010666502367976014,
+          "max_abs": 0.015625,
+          "different_elements": 9568,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.941459454153541
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0021563752088695765,
+          "reference_rms": 0.22694902122020721,
+          "relative_rms": 0.009501584088248872,
+          "max_abs": 0.015625,
+          "different_elements": 8541,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.8386624700767491
+        }
+      }
+    },
+    {
+      "case_id": "fused-chat-000000",
+      "native_norm_rounding": "fused",
+      "fixture": "chat",
+      "capture_number": 0,
+      "anchor_position": 93,
+      "raw_case_report_sha256": "3c07f3de515e05be77597e5cd803198b40b316006c7d204489cfc3f497b3487f",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0027852754574269056,
+          "reference_rms": 0.2820514142513275,
+          "relative_rms": 0.009875062902343863,
+          "max_abs": 0.015625,
+          "different_elements": 11569,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0027472293004393578,
+          "reference_rms": 0.2820674479007721,
+          "relative_rms": 0.009739618381649625,
+          "max_abs": 0.015625,
+          "different_elements": 11486,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.986340253389984
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.0027300610672682524,
+          "reference_rms": 0.2820652425289154,
+          "relative_rms": 0.009678828354714371,
+          "max_abs": 0.015625,
+          "different_elements": 11321,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9801763269010163
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.002673720708116889,
+          "reference_rms": 0.2820753753185272,
+          "relative_rms": 0.009478745548411131,
+          "max_abs": 0.015625,
+          "different_elements": 11221,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9599483961227041
+        }
+      }
+    },
+    {
+      "case_id": "fused-chat-000050",
+      "native_norm_rounding": "fused",
+      "fixture": "chat",
+      "capture_number": 50,
+      "anchor_position": 146,
+      "raw_case_report_sha256": "7dddf0133b9470a0a8937691c8022a0fc87689fc6678049b3d0d3aa7d76f37bb",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.002982373582199216,
+          "reference_rms": 0.3256661295890808,
+          "relative_rms": 0.009157764075626523,
+          "max_abs": 0.015625,
+          "different_elements": 12293,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0029809558764100075,
+          "reference_rms": 0.32566913962364197,
+          "relative_rms": 0.00915332622506061,
+          "max_abs": 0.015625,
+          "different_elements": 12229,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9995246384297157
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002954269526526332,
+          "reference_rms": 0.32564252614974976,
+          "relative_rms": 0.009072124459468735,
+          "max_abs": 0.03125,
+          "different_elements": 11989,
+          "outside_tolerance": 2,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9905766145996505
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.002945799147710204,
+          "reference_rms": 0.3256542682647705,
+          "relative_rms": 0.009045787004133925,
+          "max_abs": 0.03125,
+          "different_elements": 11969,
+          "outside_tolerance": 2,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.987736467789511
+        }
+      }
+    },
+    {
+      "case_id": "fused-chat-000100",
+      "native_norm_rounding": "fused",
+      "fixture": "chat",
+      "capture_number": 100,
+      "anchor_position": 246,
+      "raw_case_report_sha256": "4246e01e54ab5e14b708cebffd6b87c7d2bc6bace7fd6bf886c88f568399433a",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.002872361335903406,
+          "reference_rms": 0.2751280963420868,
+          "relative_rms": 0.010440087268775307,
+          "max_abs": 0.015625,
+          "different_elements": 12106,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.002839770633727312,
+          "reference_rms": 0.27513372898101807,
+          "relative_rms": 0.010321419493875404,
+          "max_abs": 0.015625,
+          "different_elements": 11971,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.988653689990628
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002831187564879656,
+          "reference_rms": 0.2751510441303253,
+          "relative_rms": 0.010289575944835098,
+          "max_abs": 0.015625,
+          "different_elements": 11851,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9856655322193993
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0027940855361521244,
+          "reference_rms": 0.27515271306037903,
+          "relative_rms": 0.010154671945898622,
+          "max_abs": 0.015625,
+          "different_elements": 11724,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9727486236592644
+        }
+      }
+    },
+    {
+      "case_id": "fused-chat-000150",
+      "native_norm_rounding": "fused",
+      "fixture": "chat",
+      "capture_number": 150,
+      "anchor_position": 149,
+      "raw_case_report_sha256": "36779b53c7b1fd812c766c83b83455233566f0a7b98c3bc1b03d7bbe4f2d38ac",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0030774720944464207,
+          "reference_rms": 0.3624109923839569,
+          "relative_rms": 0.008491663219712684,
+          "max_abs": 0.03125,
+          "different_elements": 12694,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0030794732738286257,
+          "reference_rms": 0.36241355538368225,
+          "relative_rms": 0.008497124978033533,
+          "max_abs": 0.03125,
+          "different_elements": 12637,
+          "outside_tolerance": 2,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0006502672715754
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.0030621467158198357,
+          "reference_rms": 0.3624085783958435,
+          "relative_rms": 0.008449432210942819,
+          "max_abs": 0.03125,
+          "different_elements": 12457,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9950201405061508
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.00305404094979167,
+          "reference_rms": 0.3624052405357361,
+          "relative_rms": 0.008427143452111633,
+          "max_abs": 0.03125,
+          "different_elements": 12393,
+          "outside_tolerance": 2,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9923862365163166
+        }
+      }
+    },
+    {
+      "case_id": "fused-chat-000200",
+      "native_norm_rounding": "fused",
+      "fixture": "chat",
+      "capture_number": 200,
+      "anchor_position": 157,
+      "raw_case_report_sha256": "ba17f4fae3da8be482d760c8d2ea4f064dca160bbd4a6e9d63292c3fbadc7f3b",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0029241039883345366,
+          "reference_rms": 0.2418522983789444,
+          "relative_rms": 0.012090453586481642,
+          "max_abs": 0.03125,
+          "different_elements": 12090,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0029318267479538918,
+          "reference_rms": 0.24186742305755615,
+          "relative_rms": 0.01212162725716153,
+          "max_abs": 0.03125,
+          "different_elements": 12011,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0026410687342737
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.0028729934711009264,
+          "reference_rms": 0.24184557795524597,
+          "relative_rms": 0.011879454217817371,
+          "max_abs": 0.03125,
+          "different_elements": 11887,
+          "outside_tolerance": 2,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9825209645629871
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.002872296143323183,
+          "reference_rms": 0.24185515940189362,
+          "relative_rms": 0.011876100350417806,
+          "max_abs": 0.03125,
+          "different_elements": 11765,
+          "outside_tolerance": 4,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9822824888519572
+        }
+      }
+    },
+    {
+      "case_id": "fused-chat-000250",
+      "native_norm_rounding": "fused",
+      "fixture": "chat",
+      "capture_number": 250,
+      "anchor_position": 276,
+      "raw_case_report_sha256": "0711526b0528c4a6f396f65d412f16310432b1ea89f1aac7fb8c1b0ab86f425a",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0029911159072071314,
+          "reference_rms": 0.2609715163707733,
+          "relative_rms": 0.011461465024242438,
+          "max_abs": 0.015625,
+          "different_elements": 12224,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0029829114209860563,
+          "reference_rms": 0.2609752416610718,
+          "relative_rms": 0.01142986362231234,
+          "max_abs": 0.015625,
+          "different_elements": 12100,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9972570483807377
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.0029153029900044203,
+          "reference_rms": 0.2609325349330902,
+          "relative_rms": 0.011172631234935799,
+          "max_abs": 0.015625,
+          "different_elements": 11988,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9746539687679642
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.002911024959757924,
+          "reference_rms": 0.26092976331710815,
+          "relative_rms": 0.011156354578914606,
+          "max_abs": 0.03125,
+          "different_elements": 11863,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9732237232077074
+        }
+      }
+    },
+    {
+      "case_id": "fused-long-000000",
+      "native_norm_rounding": "fused",
+      "fixture": "long",
+      "capture_number": 0,
+      "anchor_position": 1210,
+      "raw_case_report_sha256": "efe8cadf7eaaa59fbf2232da40bb672d8a9c06bbf041170f4db04e87f5ef0f73",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.002952833892777562,
+          "reference_rms": 0.28350937366485596,
+          "relative_rms": 0.01041529546133521,
+          "max_abs": 0.015625,
+          "different_elements": 12719,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0029250604566186666,
+          "reference_rms": 0.2835164964199066,
+          "relative_rms": 0.01031707323402607,
+          "max_abs": 0.015625,
+          "different_elements": 12650,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9905943113742945
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002930658170953393,
+          "reference_rms": 0.28351935744285583,
+          "relative_rms": 0.010336712799386461,
+          "max_abs": 0.015625,
+          "different_elements": 12568,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9924900205601103
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0029075145721435547,
+          "reference_rms": 0.2835250198841095,
+          "relative_rms": 0.010254878293746343,
+          "max_abs": 0.015625,
+          "different_elements": 12443,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9846522621049374
+        }
+      }
+    },
+    {
+      "case_id": "fused-long-000050",
+      "native_norm_rounding": "fused",
+      "fixture": "long",
+      "capture_number": 50,
+      "anchor_position": 2778,
+      "raw_case_report_sha256": "05772747e4fac47e972b47297310891a359efccc788fabae12ee2e09c81a22e5",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.003090032609179616,
+          "reference_rms": 0.4492270052433014,
+          "relative_rms": 0.006878554880079068,
+          "max_abs": 0.03125,
+          "different_elements": 12844,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0030832760967314243,
+          "reference_rms": 0.44920822978019714,
+          "relative_rms": 0.006863801445134047,
+          "max_abs": 0.03125,
+          "different_elements": 12744,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9978134494671286
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.0031149806454777718,
+          "reference_rms": 0.44921597838401794,
+          "relative_rms": 0.006934260568120067,
+          "max_abs": 0.03125,
+          "different_elements": 12761,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0080737129517798
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.0031088462565094233,
+          "reference_rms": 0.44920286536216736,
+          "relative_rms": 0.006920806825225687,
+          "max_abs": 0.03125,
+          "different_elements": 12688,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0060884947537179
+        }
+      }
+    },
+    {
+      "case_id": "fused-long-000100",
+      "native_norm_rounding": "fused",
+      "fixture": "long",
+      "capture_number": 100,
+      "anchor_position": 3945,
+      "raw_case_report_sha256": "0d707f430cc554df579aa19a2e640fb21b5dd2df6f87409f38edc86addf219f0",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.0028211052995175123,
+          "reference_rms": 0.23140805959701538,
+          "relative_rms": 0.012191041679491693,
+          "max_abs": 0.015625,
+          "different_elements": 11567,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0027776057831943035,
+          "reference_rms": 0.23141968250274658,
+          "relative_rms": 0.01200246129955406,
+          "max_abs": 0.015625,
+          "different_elements": 11396,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9845806832057462
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002729535335674882,
+          "reference_rms": 0.23139344155788422,
+          "relative_rms": 0.01179607908200836,
+          "max_abs": 0.03125,
+          "different_elements": 11298,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9675411038863769
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.002676500240340829,
+          "reference_rms": 0.23140154778957367,
+          "relative_rms": 0.011566475098838664,
+          "max_abs": 0.03125,
+          "different_elements": 11158,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.948741700920765
+        }
+      }
+    },
+    {
+      "case_id": "fused-long-000150",
+      "native_norm_rounding": "fused",
+      "fixture": "long",
+      "capture_number": 150,
+      "anchor_position": 1979,
+      "raw_case_report_sha256": "42388554610543db75bc477bc539c3dd5e93e96b3d1e201c85970ad5c148f654",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.00290416507050395,
+          "reference_rms": 0.2929113805294037,
+          "relative_rms": 0.009914824972846754,
+          "max_abs": 0.015625,
+          "different_elements": 11985,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0028728172183036804,
+          "reference_rms": 0.2929210364818573,
+          "relative_rms": 0.009807480039015957,
+          "max_abs": 0.03125,
+          "different_elements": 11875,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.98920589861828
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.002840683562681079,
+          "reference_rms": 0.29292163252830505,
+          "relative_rms": 0.009697759561703191,
+          "max_abs": 0.015625,
+          "different_elements": 11739,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9781412191518937
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.002792575629428029,
+          "reference_rms": 0.29292207956314087,
+          "relative_rms": 0.009533510186711872,
+          "max_abs": 0.015625,
+          "different_elements": 11611,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.9615760680378415
+        }
+      }
+    },
+    {
+      "case_id": "fused-long-000200",
+      "native_norm_rounding": "fused",
+      "fixture": "long",
+      "capture_number": 200,
+      "anchor_position": 4582,
+      "raw_case_report_sha256": "0fc5b3fe4069f059a1152ebfcda0e93990bfa2d3465e02e706ab3571b59843f7",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.003255150280892849,
+          "reference_rms": 0.45090943574905396,
+          "relative_rms": 0.007219077763332609,
+          "max_abs": 0.015625,
+          "different_elements": 13716,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0032451306469738483,
+          "reference_rms": 0.45090529322624207,
+          "relative_rms": 0.0071969229364216,
+          "max_abs": 0.015625,
+          "different_elements": 13613,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 0.996921913566383
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.003304208628833294,
+          "reference_rms": 0.45091381669044495,
+          "relative_rms": 0.007327805240223218,
+          "max_abs": 0.0234375,
+          "different_elements": 13629,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0150709932590236
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.003291318891569972,
+          "reference_rms": 0.4509117603302002,
+          "relative_rms": 0.007299252716672897,
+          "max_abs": 0.0234375,
+          "different_elements": 13548,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": true,
+          "rms_error_ratio_to_original": 1.0111111953538447
+        }
+      }
+    },
+    {
+      "case_id": "fused-long-000250",
+      "native_norm_rounding": "fused",
+      "fixture": "long",
+      "capture_number": 250,
+      "anchor_position": 7018,
+      "raw_case_report_sha256": "f231d7a0215d27d432f4b186ce25a1401aed8e6a422abb4436fc523e7e08dc43",
+      "metrics": {
+        "original": {
+          "rms_abs": 0.002757976297289133,
+          "reference_rms": 0.24384823441505432,
+          "relative_rms": 0.011310216388914995,
+          "max_abs": 0.015625,
+          "different_elements": 11500,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 1.0
+        },
+        "bf16_half_k_down_proj": {
+          "rms_abs": 0.0027110527735203505,
+          "reference_rms": 0.24385124444961548,
+          "relative_rms": 0.0111176499412145,
+          "max_abs": 0.015625,
+          "different_elements": 11400,
+          "outside_tolerance": 0,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9829862483535828
+        },
+        "bf16_half_k_wo_b": {
+          "rms_abs": 0.0026751565746963024,
+          "reference_rms": 0.24384212493896484,
+          "relative_rms": 0.010970854914284848,
+          "max_abs": 0.03125,
+          "different_elements": 11211,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9699708359806298
+        },
+        "bf16_half_k_both": {
+          "rms_abs": 0.002625057939440012,
+          "reference_rms": 0.24383455514907837,
+          "relative_rms": 0.010765733912632169,
+          "max_abs": 0.03125,
+          "different_elements": 11093,
+          "outside_tolerance": 1,
+          "within_recorded_thresholds": false,
+          "rms_error_ratio_to_original": 0.9518058374976721
+        }
+      }
+    }
+  ],
+  "limits": [
+    "These substitutions intentionally depart from the original forward and cannot be counted as original-reference parity passes.",
+    "Only correction is evaluated; the backbone, target head, free-running proposals, target verification and serving speed are not measured here.",
+    "The original six-slot PyTorch batching is retained; native one-row GEMM algorithm choices are not reproduced.",
+    "All 24 correction input states are distinct. Fused/double group summaries are descriptive, not a matched normalization-only comparison.",
+    "These are captured draft passes from the chat and long tuning fixtures, not 24 independent model-quality samples or a held-out performance evaluation.",
+    "Reduction percentages are median per-case absolute-RMS error reductions, not explained-variance percentages or a guarantee of improved threshold pass counts.",
+    "Private paths, raw vectors, token IDs, capture/output tensor hashes and model-weight contents are excluded; report hashes retain an audit link to private evidence."
+  ]
+}

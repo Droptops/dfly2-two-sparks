@@ -1,0 +1,3465 @@
+{
+  "schema": "dfly2-lab-analysis-v1",
+  "purpose": "benchmark",
+  "complete": true,
+  "benchmark_eligible": true,
+  "attempted_runs": 9,
+  "successful_runs": 9,
+  "requests_sha256": "5243088b517b75309cb57a5d72a379a468339ed2aad98b2e58b533f0b6cd6f23",
+  "all_successful_token_arrays_and_finish_reasons_equal": true,
+  "failure_retained": false,
+  "measurement_scope": "One-stream eager, 8192-token pool. Exact target outputs do not establish Tencent drafter parity.",
+  "variants": [
+    {
+      "variant": "serial",
+      "mode": "serial",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": false,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": false,
+          "rdma_best": false,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      },
+      "runs": 1,
+      "estimated_decode_tokens_per_second": {
+        "median": 38.47,
+        "min": 38.47,
+        "max": 38.47
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 35.37,
+        "min": 35.37,
+        "max": 35.37
+      },
+      "estimated_decode_seconds": {
+        "median": 24.77,
+        "min": 24.77,
+        "max": 24.77
+      },
+      "total_seconds_including_prefill": {
+        "median": 27.11,
+        "min": 27.11,
+        "max": 27.11
+      },
+      "tokens_per_round": {
+        "median": 1.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "draft_pass_ms": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "draft_ms_per_round": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.58,
+            "min": 38.58,
+            "max": 38.58
+          },
+          "estimated_decode_seconds": {
+            "median": 5.08,
+            "min": 5.08,
+            "max": 5.08
+          },
+          "prefill_seconds": {
+            "median": 0.49,
+            "min": 0.49,
+            "max": 0.49
+          },
+          "total_seconds": {
+            "median": 5.57,
+            "min": 5.57,
+            "max": 5.57
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 35.37,
+            "min": 35.37,
+            "max": 35.37
+          }
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.48,
+            "min": 38.48,
+            "max": 38.48
+          },
+          "estimated_decode_seconds": {
+            "median": 3.43,
+            "min": 3.43,
+            "max": 3.43
+          },
+          "prefill_seconds": {
+            "median": 0.33,
+            "min": 0.33,
+            "max": 0.33
+          },
+          "total_seconds": {
+            "median": 3.76,
+            "min": 3.76,
+            "max": 3.76
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 35.37,
+            "min": 35.37,
+            "max": 35.37
+          }
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "estimated_decode_tokens_per_second": {
+            "median": 37.38,
+            "min": 37.38,
+            "max": 37.38
+          },
+          "estimated_decode_seconds": {
+            "median": 1.07,
+            "min": 1.07,
+            "max": 1.07
+          },
+          "prefill_seconds": {
+            "median": 0.38,
+            "min": 0.38,
+            "max": 0.38
+          },
+          "total_seconds": {
+            "median": 1.45,
+            "min": 1.45,
+            "max": 1.45
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 28.28,
+            "min": 28.28,
+            "max": 28.28
+          }
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.58,
+            "min": 38.58,
+            "max": 38.58
+          },
+          "estimated_decode_seconds": {
+            "median": 6.61,
+            "min": 6.61,
+            "max": 6.61
+          },
+          "prefill_seconds": {
+            "median": 0.44,
+            "min": 0.44,
+            "max": 0.44
+          },
+          "total_seconds": {
+            "median": 7.05,
+            "min": 7.05,
+            "max": 7.05
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 36.31,
+            "min": 36.31,
+            "max": 36.31
+          }
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "estimated_decode_tokens_per_second": {
+            "median": 39.09,
+            "min": 39.09,
+            "max": 39.09
+          },
+          "estimated_decode_seconds": {
+            "median": 2.43,
+            "min": 2.43,
+            "max": 2.43
+          },
+          "prefill_seconds": {
+            "median": 0.39,
+            "min": 0.39,
+            "max": 0.39
+          },
+          "total_seconds": {
+            "median": 2.82,
+            "min": 2.82,
+            "max": 2.82
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 34.04,
+            "min": 34.04,
+            "max": 34.04
+          }
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.21,
+            "min": 38.21,
+            "max": 38.21
+          },
+          "estimated_decode_seconds": {
+            "median": 6.15,
+            "min": 6.15,
+            "max": 6.15
+          },
+          "prefill_seconds": {
+            "median": 0.31,
+            "min": 0.31,
+            "max": 0.31
+          },
+          "total_seconds": {
+            "median": 6.46,
+            "min": 6.46,
+            "max": 6.46
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 36.53,
+            "min": 36.53,
+            "max": 36.53
+          }
+        }
+      ]
+    },
+    {
+      "variant": "depth0",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 0,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      },
+      "runs": 1,
+      "estimated_decode_tokens_per_second": {
+        "median": 38.01,
+        "min": 38.01,
+        "max": 38.01
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 34.61,
+        "min": 34.61,
+        "max": 34.61
+      },
+      "estimated_decode_seconds": {
+        "median": 25.07,
+        "min": 25.07,
+        "max": 25.07
+      },
+      "total_seconds_including_prefill": {
+        "median": 27.71,
+        "min": 27.71,
+        "max": 27.71
+      },
+      "tokens_per_round": {
+        "median": 1.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "draft_pass_ms": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "draft_ms_per_round": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "estimated_decode_tokens_per_second": {
+            "median": 35.77,
+            "min": 35.77,
+            "max": 35.77
+          },
+          "estimated_decode_seconds": {
+            "median": 5.48,
+            "min": 5.48,
+            "max": 5.48
+          },
+          "prefill_seconds": {
+            "median": 0.77,
+            "min": 0.77,
+            "max": 0.77
+          },
+          "total_seconds": {
+            "median": 6.25,
+            "min": 6.25,
+            "max": 6.25
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 31.52,
+            "min": 31.52,
+            "max": 31.52
+          }
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.37,
+            "min": 38.37,
+            "max": 38.37
+          },
+          "estimated_decode_seconds": {
+            "median": 3.44,
+            "min": 3.44,
+            "max": 3.44
+          },
+          "prefill_seconds": {
+            "median": 0.34,
+            "min": 0.34,
+            "max": 0.34
+          },
+          "total_seconds": {
+            "median": 3.78,
+            "min": 3.78,
+            "max": 3.78
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 35.19,
+            "min": 35.19,
+            "max": 35.19
+          }
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.1,
+            "min": 38.1,
+            "max": 38.1
+          },
+          "estimated_decode_seconds": {
+            "median": 1.05,
+            "min": 1.05,
+            "max": 1.05
+          },
+          "prefill_seconds": {
+            "median": 0.39,
+            "min": 0.39,
+            "max": 0.39
+          },
+          "total_seconds": {
+            "median": 1.44,
+            "min": 1.44,
+            "max": 1.44
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 28.47,
+            "min": 28.47,
+            "max": 28.47
+          }
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.87,
+            "min": 38.87,
+            "max": 38.87
+          },
+          "estimated_decode_seconds": {
+            "median": 6.56,
+            "min": 6.56,
+            "max": 6.56
+          },
+          "prefill_seconds": {
+            "median": 0.43,
+            "min": 0.43,
+            "max": 0.43
+          },
+          "total_seconds": {
+            "median": 6.99,
+            "min": 6.99,
+            "max": 6.99
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 36.62,
+            "min": 36.62,
+            "max": 36.62
+          }
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "estimated_decode_tokens_per_second": {
+            "median": 39.26,
+            "min": 39.26,
+            "max": 39.26
+          },
+          "estimated_decode_seconds": {
+            "median": 2.42,
+            "min": 2.42,
+            "max": 2.42
+          },
+          "prefill_seconds": {
+            "median": 0.4,
+            "min": 0.4,
+            "max": 0.4
+          },
+          "total_seconds": {
+            "median": 2.82,
+            "min": 2.82,
+            "max": 2.82
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 34.04,
+            "min": 34.04,
+            "max": 34.04
+          }
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "estimated_decode_tokens_per_second": {
+            "median": 38.4,
+            "min": 38.4,
+            "max": 38.4
+          },
+          "estimated_decode_seconds": {
+            "median": 6.12,
+            "min": 6.12,
+            "max": 6.12
+          },
+          "prefill_seconds": {
+            "median": 0.31,
+            "min": 0.31,
+            "max": 0.31
+          },
+          "total_seconds": {
+            "median": 6.43,
+            "min": 6.43,
+            "max": 6.43
+          },
+          "tokens_per_round": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 36.7,
+            "min": 36.7,
+            "max": 36.7
+          }
+        }
+      ]
+    },
+    {
+      "variant": "depth1",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 1,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      },
+      "runs": 1,
+      "estimated_decode_tokens_per_second": {
+        "median": 41.11,
+        "min": 41.11,
+        "max": 41.11
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 36.96,
+        "min": 36.96,
+        "max": 36.96
+      },
+      "estimated_decode_seconds": {
+        "median": 23.18,
+        "min": 23.18,
+        "max": 23.18
+      },
+      "total_seconds_including_prefill": {
+        "median": 25.95,
+        "min": 25.95,
+        "max": 25.95
+      },
+      "tokens_per_round": {
+        "median": 1.83,
+        "min": 1.83,
+        "max": 1.83
+      },
+      "draft_pass_ms": {
+        "median": 13.23,
+        "min": 13.23,
+        "max": 13.23
+      },
+      "draft_ms_per_round": {
+        "median": 13.23,
+        "min": 13.23,
+        "max": 13.23
+      },
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "estimated_decode_tokens_per_second": {
+            "median": 43.27,
+            "min": 43.27,
+            "max": 43.27
+          },
+          "estimated_decode_seconds": {
+            "median": 4.53,
+            "min": 4.53,
+            "max": 4.53
+          },
+          "prefill_seconds": {
+            "median": 0.82,
+            "min": 0.82,
+            "max": 0.82
+          },
+          "total_seconds": {
+            "median": 5.35,
+            "min": 5.35,
+            "max": 5.35
+          },
+          "tokens_per_round": {
+            "median": 1.94,
+            "min": 1.94,
+            "max": 1.94
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 36.82,
+            "min": 36.82,
+            "max": 36.82
+          }
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "estimated_decode_tokens_per_second": {
+            "median": 43.14,
+            "min": 43.14,
+            "max": 43.14
+          },
+          "estimated_decode_seconds": {
+            "median": 3.06,
+            "min": 3.06,
+            "max": 3.06
+          },
+          "prefill_seconds": {
+            "median": 0.35,
+            "min": 0.35,
+            "max": 0.35
+          },
+          "total_seconds": {
+            "median": 3.41,
+            "min": 3.41,
+            "max": 3.41
+          },
+          "tokens_per_round": {
+            "median": 1.91,
+            "min": 1.91,
+            "max": 1.91
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 39.0,
+            "min": 39.0,
+            "max": 39.0
+          }
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "estimated_decode_tokens_per_second": {
+            "median": 42.11,
+            "min": 42.11,
+            "max": 42.11
+          },
+          "estimated_decode_seconds": {
+            "median": 0.95,
+            "min": 0.95,
+            "max": 0.95
+          },
+          "prefill_seconds": {
+            "median": 0.41,
+            "min": 0.41,
+            "max": 0.41
+          },
+          "total_seconds": {
+            "median": 1.36,
+            "min": 1.36,
+            "max": 1.36
+          },
+          "tokens_per_round": {
+            "median": 1.9,
+            "min": 1.9,
+            "max": 1.9
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 30.15,
+            "min": 30.15,
+            "max": 30.15
+          }
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "estimated_decode_tokens_per_second": {
+            "median": 41.73,
+            "min": 41.73,
+            "max": 41.73
+          },
+          "estimated_decode_seconds": {
+            "median": 6.11,
+            "min": 6.11,
+            "max": 6.11
+          },
+          "prefill_seconds": {
+            "median": 0.45,
+            "min": 0.45,
+            "max": 0.45
+          },
+          "total_seconds": {
+            "median": 6.56,
+            "min": 6.56,
+            "max": 6.56
+          },
+          "tokens_per_round": {
+            "median": 1.83,
+            "min": 1.83,
+            "max": 1.83
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 39.02,
+            "min": 39.02,
+            "max": 39.02
+          }
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "estimated_decode_tokens_per_second": {
+            "median": 44.6,
+            "min": 44.6,
+            "max": 44.6
+          },
+          "estimated_decode_seconds": {
+            "median": 2.13,
+            "min": 2.13,
+            "max": 2.13
+          },
+          "prefill_seconds": {
+            "median": 0.42,
+            "min": 0.42,
+            "max": 0.42
+          },
+          "total_seconds": {
+            "median": 2.55,
+            "min": 2.55,
+            "max": 2.55
+          },
+          "tokens_per_round": {
+            "median": 1.98,
+            "min": 1.98,
+            "max": 1.98
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 37.65,
+            "min": 37.65,
+            "max": 37.65
+          }
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "estimated_decode_tokens_per_second": {
+            "median": 36.72,
+            "min": 36.72,
+            "max": 36.72
+          },
+          "estimated_decode_seconds": {
+            "median": 6.4,
+            "min": 6.4,
+            "max": 6.4
+          },
+          "prefill_seconds": {
+            "median": 0.32,
+            "min": 0.32,
+            "max": 0.32
+          },
+          "total_seconds": {
+            "median": 6.72,
+            "min": 6.72,
+            "max": 6.72
+          },
+          "tokens_per_round": {
+            "median": 1.64,
+            "min": 1.64,
+            "max": 1.64
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 35.12,
+            "min": 35.12,
+            "max": 35.12
+          }
+        }
+      ]
+    },
+    {
+      "variant": "depth2",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 2,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      },
+      "runs": 1,
+      "estimated_decode_tokens_per_second": {
+        "median": 46.44,
+        "min": 46.44,
+        "max": 46.44
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 41.23,
+        "min": 41.23,
+        "max": 41.23
+      },
+      "estimated_decode_seconds": {
+        "median": 20.52,
+        "min": 20.52,
+        "max": 20.52
+      },
+      "total_seconds_including_prefill": {
+        "median": 23.26,
+        "min": 23.26,
+        "max": 23.26
+      },
+      "tokens_per_round": {
+        "median": 2.47,
+        "min": 2.47,
+        "max": 2.47
+      },
+      "draft_pass_ms": {
+        "median": 16.82,
+        "min": 16.82,
+        "max": 16.82
+      },
+      "draft_ms_per_round": {
+        "median": 16.82,
+        "min": 16.82,
+        "max": 16.82
+      },
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "estimated_decode_tokens_per_second": {
+            "median": 53.7,
+            "min": 53.7,
+            "max": 53.7
+          },
+          "estimated_decode_seconds": {
+            "median": 3.65,
+            "min": 3.65,
+            "max": 3.65
+          },
+          "prefill_seconds": {
+            "median": 0.79,
+            "min": 0.79,
+            "max": 0.79
+          },
+          "total_seconds": {
+            "median": 4.44,
+            "min": 4.44,
+            "max": 4.44
+          },
+          "tokens_per_round": {
+            "median": 2.84,
+            "min": 2.84,
+            "max": 2.84
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 44.37,
+            "min": 44.37,
+            "max": 44.37
+          }
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "estimated_decode_tokens_per_second": {
+            "median": 47.83,
+            "min": 47.83,
+            "max": 47.83
+          },
+          "estimated_decode_seconds": {
+            "median": 2.76,
+            "min": 2.76,
+            "max": 2.76
+          },
+          "prefill_seconds": {
+            "median": 0.36,
+            "min": 0.36,
+            "max": 0.36
+          },
+          "total_seconds": {
+            "median": 3.12,
+            "min": 3.12,
+            "max": 3.12
+          },
+          "tokens_per_round": {
+            "median": 2.54,
+            "min": 2.54,
+            "max": 2.54
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 42.63,
+            "min": 42.63,
+            "max": 42.63
+          }
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "estimated_decode_tokens_per_second": {
+            "median": 52.63,
+            "min": 52.63,
+            "max": 52.63
+          },
+          "estimated_decode_seconds": {
+            "median": 0.76,
+            "min": 0.76,
+            "max": 0.76
+          },
+          "prefill_seconds": {
+            "median": 0.41,
+            "min": 0.41,
+            "max": 0.41
+          },
+          "total_seconds": {
+            "median": 1.17,
+            "min": 1.17,
+            "max": 1.17
+          },
+          "tokens_per_round": {
+            "median": 2.86,
+            "min": 2.86,
+            "max": 2.86
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 35.04,
+            "min": 35.04,
+            "max": 35.04
+          }
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "estimated_decode_tokens_per_second": {
+            "median": 50.1,
+            "min": 50.1,
+            "max": 50.1
+          },
+          "estimated_decode_seconds": {
+            "median": 5.09,
+            "min": 5.09,
+            "max": 5.09
+          },
+          "prefill_seconds": {
+            "median": 0.45,
+            "min": 0.45,
+            "max": 0.45
+          },
+          "total_seconds": {
+            "median": 5.54,
+            "min": 5.54,
+            "max": 5.54
+          },
+          "tokens_per_round": {
+            "median": 2.63,
+            "min": 2.63,
+            "max": 2.63
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 46.21,
+            "min": 46.21,
+            "max": 46.21
+          }
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "estimated_decode_tokens_per_second": {
+            "median": 55.88,
+            "min": 55.88,
+            "max": 55.88
+          },
+          "estimated_decode_seconds": {
+            "median": 1.7,
+            "min": 1.7,
+            "max": 1.7
+          },
+          "prefill_seconds": {
+            "median": 0.41,
+            "min": 0.41,
+            "max": 0.41
+          },
+          "total_seconds": {
+            "median": 2.11,
+            "min": 2.11,
+            "max": 2.11
+          },
+          "tokens_per_round": {
+            "median": 2.97,
+            "min": 2.97,
+            "max": 2.97
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 45.5,
+            "min": 45.5,
+            "max": 45.5
+          }
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "estimated_decode_tokens_per_second": {
+            "median": 35.77,
+            "min": 35.77,
+            "max": 35.77
+          },
+          "estimated_decode_seconds": {
+            "median": 6.57,
+            "min": 6.57,
+            "max": 6.57
+          },
+          "prefill_seconds": {
+            "median": 0.32,
+            "min": 0.32,
+            "max": 0.32
+          },
+          "total_seconds": {
+            "median": 6.89,
+            "min": 6.89,
+            "max": 6.89
+          },
+          "tokens_per_round": {
+            "median": 1.93,
+            "min": 1.93,
+            "max": 1.93
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 34.25,
+            "min": 34.25,
+            "max": 34.25
+          }
+        }
+      ]
+    },
+    {
+      "variant": "depth3",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 3,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      },
+      "runs": 1,
+      "estimated_decode_tokens_per_second": {
+        "median": 46.72,
+        "min": 46.72,
+        "max": 46.72
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 41.02,
+        "min": 41.02,
+        "max": 41.02
+      },
+      "estimated_decode_seconds": {
+        "median": 20.4,
+        "min": 20.4,
+        "max": 20.4
+      },
+      "total_seconds_including_prefill": {
+        "median": 23.38,
+        "min": 23.38,
+        "max": 23.38
+      },
+      "tokens_per_round": {
+        "median": 2.89,
+        "min": 2.89,
+        "max": 2.89
+      },
+      "draft_pass_ms": {
+        "median": 20.71,
+        "min": 20.71,
+        "max": 20.71
+      },
+      "draft_ms_per_round": {
+        "median": 20.71,
+        "min": 20.71,
+        "max": 20.71
+      },
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "estimated_decode_tokens_per_second": {
+            "median": 56.0,
+            "min": 56.0,
+            "max": 56.0
+          },
+          "estimated_decode_seconds": {
+            "median": 3.5,
+            "min": 3.5,
+            "max": 3.5
+          },
+          "prefill_seconds": {
+            "median": 1.0,
+            "min": 1.0,
+            "max": 1.0
+          },
+          "total_seconds": {
+            "median": 4.5,
+            "min": 4.5,
+            "max": 4.5
+          },
+          "tokens_per_round": {
+            "median": 3.5,
+            "min": 3.5,
+            "max": 3.5
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 43.78,
+            "min": 43.78,
+            "max": 43.78
+          }
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "estimated_decode_tokens_per_second": {
+            "median": 53.23,
+            "min": 53.23,
+            "max": 53.23
+          },
+          "estimated_decode_seconds": {
+            "median": 2.48,
+            "min": 2.48,
+            "max": 2.48
+          },
+          "prefill_seconds": {
+            "median": 0.36,
+            "min": 0.36,
+            "max": 0.36
+          },
+          "total_seconds": {
+            "median": 2.84,
+            "min": 2.84,
+            "max": 2.84
+          },
+          "tokens_per_round": {
+            "median": 3.3,
+            "min": 3.3,
+            "max": 3.3
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 46.83,
+            "min": 46.83,
+            "max": 46.83
+          }
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "estimated_decode_tokens_per_second": {
+            "median": 59.7,
+            "min": 59.7,
+            "max": 59.7
+          },
+          "estimated_decode_seconds": {
+            "median": 0.67,
+            "min": 0.67,
+            "max": 0.67
+          },
+          "prefill_seconds": {
+            "median": 0.42,
+            "min": 0.42,
+            "max": 0.42
+          },
+          "total_seconds": {
+            "median": 1.09,
+            "min": 1.09,
+            "max": 1.09
+          },
+          "tokens_per_round": {
+            "median": 3.64,
+            "min": 3.64,
+            "max": 3.64
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 37.61,
+            "min": 37.61,
+            "max": 37.61
+          }
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "estimated_decode_tokens_per_second": {
+            "median": 49.13,
+            "min": 49.13,
+            "max": 49.13
+          },
+          "estimated_decode_seconds": {
+            "median": 5.19,
+            "min": 5.19,
+            "max": 5.19
+          },
+          "prefill_seconds": {
+            "median": 0.46,
+            "min": 0.46,
+            "max": 0.46
+          },
+          "total_seconds": {
+            "median": 5.65,
+            "min": 5.65,
+            "max": 5.65
+          },
+          "tokens_per_round": {
+            "median": 3.0,
+            "min": 3.0,
+            "max": 3.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 45.31,
+            "min": 45.31,
+            "max": 45.31
+          }
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "estimated_decode_tokens_per_second": {
+            "median": 64.63,
+            "min": 64.63,
+            "max": 64.63
+          },
+          "estimated_decode_seconds": {
+            "median": 1.47,
+            "min": 1.47,
+            "max": 1.47
+          },
+          "prefill_seconds": {
+            "median": 0.41,
+            "min": 0.41,
+            "max": 0.41
+          },
+          "total_seconds": {
+            "median": 1.88,
+            "min": 1.88,
+            "max": 1.88
+          },
+          "tokens_per_round": {
+            "median": 3.96,
+            "min": 3.96,
+            "max": 3.96
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 51.06,
+            "min": 51.06,
+            "max": 51.06
+          }
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "estimated_decode_tokens_per_second": {
+            "median": 33.15,
+            "min": 33.15,
+            "max": 33.15
+          },
+          "estimated_decode_seconds": {
+            "median": 7.09,
+            "min": 7.09,
+            "max": 7.09
+          },
+          "prefill_seconds": {
+            "median": 0.33,
+            "min": 0.33,
+            "max": 0.33
+          },
+          "total_seconds": {
+            "median": 7.42,
+            "min": 7.42,
+            "max": 7.42
+          },
+          "tokens_per_round": {
+            "median": 2.06,
+            "min": 2.06,
+            "max": 2.06
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 31.81,
+            "min": 31.81,
+            "max": 31.81
+          }
+        }
+      ]
+    },
+    {
+      "variant": "depth4",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 4,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      },
+      "runs": 1,
+      "estimated_decode_tokens_per_second": {
+        "median": 46.24,
+        "min": 46.24,
+        "max": 46.24
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 40.76,
+        "min": 40.76,
+        "max": 40.76
+      },
+      "estimated_decode_seconds": {
+        "median": 20.61,
+        "min": 20.61,
+        "max": 20.61
+      },
+      "total_seconds_including_prefill": {
+        "median": 23.53,
+        "min": 23.53,
+        "max": 23.53
+      },
+      "tokens_per_round": {
+        "median": 3.26,
+        "min": 3.26,
+        "max": 3.26
+      },
+      "draft_pass_ms": {
+        "median": 24.36,
+        "min": 24.36,
+        "max": 24.36
+      },
+      "draft_ms_per_round": {
+        "median": 24.36,
+        "min": 24.36,
+        "max": 24.36
+      },
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "estimated_decode_tokens_per_second": {
+            "median": 61.06,
+            "min": 61.06,
+            "max": 61.06
+          },
+          "estimated_decode_seconds": {
+            "median": 3.21,
+            "min": 3.21,
+            "max": 3.21
+          },
+          "prefill_seconds": {
+            "median": 0.9,
+            "min": 0.9,
+            "max": 0.9
+          },
+          "total_seconds": {
+            "median": 4.11,
+            "min": 4.11,
+            "max": 4.11
+          },
+          "tokens_per_round": {
+            "median": 4.36,
+            "min": 4.36,
+            "max": 4.36
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 47.93,
+            "min": 47.93,
+            "max": 47.93
+          }
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "estimated_decode_tokens_per_second": {
+            "median": 53.88,
+            "min": 53.88,
+            "max": 53.88
+          },
+          "estimated_decode_seconds": {
+            "median": 2.45,
+            "min": 2.45,
+            "max": 2.45
+          },
+          "prefill_seconds": {
+            "median": 0.39,
+            "min": 0.39,
+            "max": 0.39
+          },
+          "total_seconds": {
+            "median": 2.84,
+            "min": 2.84,
+            "max": 2.84
+          },
+          "tokens_per_round": {
+            "median": 3.77,
+            "min": 3.77,
+            "max": 3.77
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 46.83,
+            "min": 46.83,
+            "max": 46.83
+          }
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "estimated_decode_tokens_per_second": {
+            "median": 62.5,
+            "min": 62.5,
+            "max": 62.5
+          },
+          "estimated_decode_seconds": {
+            "median": 0.64,
+            "min": 0.64,
+            "max": 0.64
+          },
+          "prefill_seconds": {
+            "median": 0.42,
+            "min": 0.42,
+            "max": 0.42
+          },
+          "total_seconds": {
+            "median": 1.06,
+            "min": 1.06,
+            "max": 1.06
+          },
+          "tokens_per_round": {
+            "median": 4.44,
+            "min": 4.44,
+            "max": 4.44
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 38.68,
+            "min": 38.68,
+            "max": 38.68
+          }
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "estimated_decode_tokens_per_second": {
+            "median": 50.8,
+            "min": 50.8,
+            "max": 50.8
+          },
+          "estimated_decode_seconds": {
+            "median": 5.02,
+            "min": 5.02,
+            "max": 5.02
+          },
+          "prefill_seconds": {
+            "median": 0.46,
+            "min": 0.46,
+            "max": 0.46
+          },
+          "total_seconds": {
+            "median": 5.48,
+            "min": 5.48,
+            "max": 5.48
+          },
+          "tokens_per_round": {
+            "median": 3.49,
+            "min": 3.49,
+            "max": 3.49
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 46.72,
+            "min": 46.72,
+            "max": 46.72
+          }
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "estimated_decode_tokens_per_second": {
+            "median": 68.35,
+            "min": 68.35,
+            "max": 68.35
+          },
+          "estimated_decode_seconds": {
+            "median": 1.39,
+            "min": 1.39,
+            "max": 1.39
+          },
+          "prefill_seconds": {
+            "median": 0.42,
+            "min": 0.42,
+            "max": 0.42
+          },
+          "total_seconds": {
+            "median": 1.81,
+            "min": 1.81,
+            "max": 1.81
+          },
+          "tokens_per_round": {
+            "median": 4.75,
+            "min": 4.75,
+            "max": 4.75
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 53.04,
+            "min": 53.04,
+            "max": 53.04
+          }
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "estimated_decode_tokens_per_second": {
+            "median": 29.71,
+            "min": 29.71,
+            "max": 29.71
+          },
+          "estimated_decode_seconds": {
+            "median": 7.91,
+            "min": 7.91,
+            "max": 7.91
+          },
+          "prefill_seconds": {
+            "median": 0.33,
+            "min": 0.33,
+            "max": 0.33
+          },
+          "total_seconds": {
+            "median": 8.24,
+            "min": 8.24,
+            "max": 8.24
+          },
+          "tokens_per_round": {
+            "median": 2.14,
+            "min": 2.14,
+            "max": 2.14
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 28.64,
+            "min": 28.64,
+            "max": 28.64
+          }
+        }
+      ]
+    },
+    {
+      "variant": "depth5",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": 5,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": false,
+          "copies": false
+        }
+      },
+      "runs": 1,
+      "estimated_decode_tokens_per_second": {
+        "median": 45.19,
+        "min": 45.19,
+        "max": 45.19
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 40.06,
+        "min": 40.06,
+        "max": 40.06
+      },
+      "estimated_decode_seconds": {
+        "median": 21.09,
+        "min": 21.09,
+        "max": 21.09
+      },
+      "total_seconds_including_prefill": {
+        "median": 23.94,
+        "min": 23.94,
+        "max": 23.94
+      },
+      "tokens_per_round": {
+        "median": 3.52,
+        "min": 3.52,
+        "max": 3.52
+      },
+      "draft_pass_ms": {
+        "median": 27.43,
+        "min": 27.43,
+        "max": 27.43
+      },
+      "draft_ms_per_round": {
+        "median": 27.43,
+        "min": 27.43,
+        "max": 27.43
+      },
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "estimated_decode_tokens_per_second": {
+            "median": 64.47,
+            "min": 64.47,
+            "max": 64.47
+          },
+          "estimated_decode_seconds": {
+            "median": 3.04,
+            "min": 3.04,
+            "max": 3.04
+          },
+          "prefill_seconds": {
+            "median": 0.83,
+            "min": 0.83,
+            "max": 0.83
+          },
+          "total_seconds": {
+            "median": 3.87,
+            "min": 3.87,
+            "max": 3.87
+          },
+          "tokens_per_round": {
+            "median": 5.03,
+            "min": 5.03,
+            "max": 5.03
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 50.9,
+            "min": 50.9,
+            "max": 50.9
+          }
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "estimated_decode_tokens_per_second": {
+            "median": 53.44,
+            "min": 53.44,
+            "max": 53.44
+          },
+          "estimated_decode_seconds": {
+            "median": 2.47,
+            "min": 2.47,
+            "max": 2.47
+          },
+          "prefill_seconds": {
+            "median": 0.37,
+            "min": 0.37,
+            "max": 0.37
+          },
+          "total_seconds": {
+            "median": 2.84,
+            "min": 2.84,
+            "max": 2.84
+          },
+          "tokens_per_round": {
+            "median": 4.12,
+            "min": 4.12,
+            "max": 4.12
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 46.83,
+            "min": 46.83,
+            "max": 46.83
+          }
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "estimated_decode_tokens_per_second": {
+            "median": 64.52,
+            "min": 64.52,
+            "max": 64.52
+          },
+          "estimated_decode_seconds": {
+            "median": 0.62,
+            "min": 0.62,
+            "max": 0.62
+          },
+          "prefill_seconds": {
+            "median": 0.41,
+            "min": 0.41,
+            "max": 0.41
+          },
+          "total_seconds": {
+            "median": 1.03,
+            "min": 1.03,
+            "max": 1.03
+          },
+          "tokens_per_round": {
+            "median": 5.0,
+            "min": 5.0,
+            "max": 5.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 39.81,
+            "min": 39.81,
+            "max": 39.81
+          }
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "estimated_decode_tokens_per_second": {
+            "median": 49.9,
+            "min": 49.9,
+            "max": 49.9
+          },
+          "estimated_decode_seconds": {
+            "median": 5.11,
+            "min": 5.11,
+            "max": 5.11
+          },
+          "prefill_seconds": {
+            "median": 0.47,
+            "min": 0.47,
+            "max": 0.47
+          },
+          "total_seconds": {
+            "median": 5.58,
+            "min": 5.58,
+            "max": 5.58
+          },
+          "tokens_per_round": {
+            "median": 3.81,
+            "min": 3.81,
+            "max": 3.81
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 45.88,
+            "min": 45.88,
+            "max": 45.88
+          }
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "estimated_decode_tokens_per_second": {
+            "median": 77.24,
+            "min": 77.24,
+            "max": 77.24
+          },
+          "estimated_decode_seconds": {
+            "median": 1.23,
+            "min": 1.23,
+            "max": 1.23
+          },
+          "prefill_seconds": {
+            "median": 0.43,
+            "min": 0.43,
+            "max": 0.43
+          },
+          "total_seconds": {
+            "median": 1.66,
+            "min": 1.66,
+            "max": 1.66
+          },
+          "tokens_per_round": {
+            "median": 5.94,
+            "min": 5.94,
+            "max": 5.94
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 57.83,
+            "min": 57.83,
+            "max": 57.83
+          }
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "estimated_decode_tokens_per_second": {
+            "median": 27.26,
+            "min": 27.26,
+            "max": 27.26
+          },
+          "estimated_decode_seconds": {
+            "median": 8.62,
+            "min": 8.62,
+            "max": 8.62
+          },
+          "prefill_seconds": {
+            "median": 0.34,
+            "min": 0.34,
+            "max": 0.34
+          },
+          "total_seconds": {
+            "median": 8.96,
+            "min": 8.96,
+            "max": 8.96
+          },
+          "tokens_per_round": {
+            "median": 2.16,
+            "min": 2.16,
+            "max": 2.16
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 26.34,
+            "min": 26.34,
+            "max": 26.34
+          }
+        }
+      ]
+    },
+    {
+      "variant": "adaptive",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": true,
+          "reference_norms": false,
+          "copies": false
+        }
+      },
+      "runs": 1,
+      "estimated_decode_tokens_per_second": {
+        "median": 48.72,
+        "min": 48.72,
+        "max": 48.72
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 43.77,
+        "min": 43.77,
+        "max": 43.77
+      },
+      "estimated_decode_seconds": {
+        "median": 19.56,
+        "min": 19.56,
+        "max": 19.56
+      },
+      "total_seconds_including_prefill": {
+        "median": 21.91,
+        "min": 21.91,
+        "max": 21.91
+      },
+      "tokens_per_round": {
+        "median": 2.34,
+        "min": 2.34,
+        "max": 2.34
+      },
+      "draft_pass_ms": {
+        "median": 21.82,
+        "min": 21.82,
+        "max": 21.82
+      },
+      "draft_ms_per_round": {
+        "median": 12.22,
+        "min": 12.22,
+        "max": 12.22
+      },
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "estimated_decode_tokens_per_second": {
+            "median": 53.99,
+            "min": 53.99,
+            "max": 53.99
+          },
+          "estimated_decode_seconds": {
+            "median": 3.63,
+            "min": 3.63,
+            "max": 3.63
+          },
+          "prefill_seconds": {
+            "median": 0.48,
+            "min": 0.48,
+            "max": 0.48
+          },
+          "total_seconds": {
+            "median": 4.11,
+            "min": 4.11,
+            "max": 4.11
+          },
+          "tokens_per_round": {
+            "median": 3.92,
+            "min": 3.92,
+            "max": 3.92
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 47.93,
+            "min": 47.93,
+            "max": 47.93
+          }
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "estimated_decode_tokens_per_second": {
+            "median": 55.46,
+            "min": 55.46,
+            "max": 55.46
+          },
+          "estimated_decode_seconds": {
+            "median": 2.38,
+            "min": 2.38,
+            "max": 2.38
+          },
+          "prefill_seconds": {
+            "median": 0.34,
+            "min": 0.34,
+            "max": 0.34
+          },
+          "total_seconds": {
+            "median": 2.72,
+            "min": 2.72,
+            "max": 2.72
+          },
+          "tokens_per_round": {
+            "median": 3.57,
+            "min": 3.57,
+            "max": 3.57
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 48.9,
+            "min": 48.9,
+            "max": 48.9
+          }
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "estimated_decode_tokens_per_second": {
+            "median": 50.63,
+            "min": 50.63,
+            "max": 50.63
+          },
+          "estimated_decode_seconds": {
+            "median": 0.79,
+            "min": 0.79,
+            "max": 0.79
+          },
+          "prefill_seconds": {
+            "median": 0.39,
+            "min": 0.39,
+            "max": 0.39
+          },
+          "total_seconds": {
+            "median": 1.18,
+            "min": 1.18,
+            "max": 1.18
+          },
+          "tokens_per_round": {
+            "median": 3.33,
+            "min": 3.33,
+            "max": 3.33
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 34.75,
+            "min": 34.75,
+            "max": 34.75
+          }
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "estimated_decode_tokens_per_second": {
+            "median": 50.6,
+            "min": 50.6,
+            "max": 50.6
+          },
+          "estimated_decode_seconds": {
+            "median": 5.04,
+            "min": 5.04,
+            "max": 5.04
+          },
+          "prefill_seconds": {
+            "median": 0.43,
+            "min": 0.43,
+            "max": 0.43
+          },
+          "total_seconds": {
+            "median": 5.47,
+            "min": 5.47,
+            "max": 5.47
+          },
+          "tokens_per_round": {
+            "median": 3.11,
+            "min": 3.11,
+            "max": 3.11
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 46.8,
+            "min": 46.8,
+            "max": 46.8
+          }
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "estimated_decode_tokens_per_second": {
+            "median": 70.9,
+            "min": 70.9,
+            "max": 70.9
+          },
+          "estimated_decode_seconds": {
+            "median": 1.34,
+            "min": 1.34,
+            "max": 1.34
+          },
+          "prefill_seconds": {
+            "median": 0.4,
+            "min": 0.4,
+            "max": 0.4
+          },
+          "total_seconds": {
+            "median": 1.74,
+            "min": 1.74,
+            "max": 1.74
+          },
+          "tokens_per_round": {
+            "median": 5.0,
+            "min": 5.0,
+            "max": 5.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 55.17,
+            "min": 55.17,
+            "max": 55.17
+          }
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "estimated_decode_tokens_per_second": {
+            "median": 36.78,
+            "min": 36.78,
+            "max": 36.78
+          },
+          "estimated_decode_seconds": {
+            "median": 6.39,
+            "min": 6.39,
+            "max": 6.39
+          },
+          "prefill_seconds": {
+            "median": 0.31,
+            "min": 0.31,
+            "max": 0.31
+          },
+          "total_seconds": {
+            "median": 6.7,
+            "min": 6.7,
+            "max": 6.7
+          },
+          "tokens_per_round": {
+            "median": 1.14,
+            "min": 1.14,
+            "max": 1.14
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 35.22,
+            "min": 35.22,
+            "max": 35.22
+          }
+        }
+      ]
+    },
+    {
+      "variant": "norms",
+      "mode": "dfly2",
+      "execution": {
+        "world_size": 2,
+        "streams": 1,
+        "parallel": 1,
+        "pool_tokens": 8192,
+        "cuda_graphs": false,
+        "profiling": true,
+        "drafting": true,
+        "fixed_draft_depth": null,
+        "experimental": {
+          "device_feedback": true,
+          "rdma_best": true,
+          "detailed_profile": false,
+          "adaptive": false,
+          "reference_norms": true,
+          "copies": false
+        }
+      },
+      "runs": 1,
+      "estimated_decode_tokens_per_second": {
+        "median": 45.14,
+        "min": 45.14,
+        "max": 45.14
+      },
+      "end_to_end_tokens_per_second": {
+        "median": 39.86,
+        "min": 39.86,
+        "max": 39.86
+      },
+      "estimated_decode_seconds": {
+        "median": 21.11,
+        "min": 21.11,
+        "max": 21.11
+      },
+      "total_seconds_including_prefill": {
+        "median": 24.06,
+        "min": 24.06,
+        "max": 24.06
+      },
+      "tokens_per_round": {
+        "median": 3.52,
+        "min": 3.52,
+        "max": 3.52
+      },
+      "draft_pass_ms": {
+        "median": 27.95,
+        "min": 27.95,
+        "max": 27.95
+      },
+      "draft_ms_per_round": {
+        "median": 27.95,
+        "min": 27.95,
+        "max": 27.95
+      },
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "estimated_decode_tokens_per_second": {
+            "median": 63.23,
+            "min": 63.23,
+            "max": 63.23
+          },
+          "estimated_decode_seconds": {
+            "median": 3.1,
+            "min": 3.1,
+            "max": 3.1
+          },
+          "prefill_seconds": {
+            "median": 0.91,
+            "min": 0.91,
+            "max": 0.91
+          },
+          "total_seconds": {
+            "median": 4.01,
+            "min": 4.01,
+            "max": 4.01
+          },
+          "tokens_per_round": {
+            "median": 5.03,
+            "min": 5.03,
+            "max": 5.03
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 49.13,
+            "min": 49.13,
+            "max": 49.13
+          }
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "estimated_decode_tokens_per_second": {
+            "median": 53.01,
+            "min": 53.01,
+            "max": 53.01
+          },
+          "estimated_decode_seconds": {
+            "median": 2.49,
+            "min": 2.49,
+            "max": 2.49
+          },
+          "prefill_seconds": {
+            "median": 0.37,
+            "min": 0.37,
+            "max": 0.37
+          },
+          "total_seconds": {
+            "median": 2.86,
+            "min": 2.86,
+            "max": 2.86
+          },
+          "tokens_per_round": {
+            "median": 4.12,
+            "min": 4.12,
+            "max": 4.12
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 46.5,
+            "min": 46.5,
+            "max": 46.5
+          }
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "estimated_decode_tokens_per_second": {
+            "median": 64.52,
+            "min": 64.52,
+            "max": 64.52
+          },
+          "estimated_decode_seconds": {
+            "median": 0.62,
+            "min": 0.62,
+            "max": 0.62
+          },
+          "prefill_seconds": {
+            "median": 0.43,
+            "min": 0.43,
+            "max": 0.43
+          },
+          "total_seconds": {
+            "median": 1.05,
+            "min": 1.05,
+            "max": 1.05
+          },
+          "tokens_per_round": {
+            "median": 5.0,
+            "min": 5.0,
+            "max": 5.0
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 39.05,
+            "min": 39.05,
+            "max": 39.05
+          }
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "estimated_decode_tokens_per_second": {
+            "median": 48.94,
+            "min": 48.94,
+            "max": 48.94
+          },
+          "estimated_decode_seconds": {
+            "median": 5.21,
+            "min": 5.21,
+            "max": 5.21
+          },
+          "prefill_seconds": {
+            "median": 0.47,
+            "min": 0.47,
+            "max": 0.47
+          },
+          "total_seconds": {
+            "median": 5.68,
+            "min": 5.68,
+            "max": 5.68
+          },
+          "tokens_per_round": {
+            "median": 3.75,
+            "min": 3.75,
+            "max": 3.75
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 45.07,
+            "min": 45.07,
+            "max": 45.07
+          }
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "estimated_decode_tokens_per_second": {
+            "median": 77.24,
+            "min": 77.24,
+            "max": 77.24
+          },
+          "estimated_decode_seconds": {
+            "median": 1.23,
+            "min": 1.23,
+            "max": 1.23
+          },
+          "prefill_seconds": {
+            "median": 0.43,
+            "min": 0.43,
+            "max": 0.43
+          },
+          "total_seconds": {
+            "median": 1.66,
+            "min": 1.66,
+            "max": 1.66
+          },
+          "tokens_per_round": {
+            "median": 5.94,
+            "min": 5.94,
+            "max": 5.94
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 57.83,
+            "min": 57.83,
+            "max": 57.83
+          }
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "estimated_decode_tokens_per_second": {
+            "median": 27.78,
+            "min": 27.78,
+            "max": 27.78
+          },
+          "estimated_decode_seconds": {
+            "median": 8.46,
+            "min": 8.46,
+            "max": 8.46
+          },
+          "prefill_seconds": {
+            "median": 0.34,
+            "min": 0.34,
+            "max": 0.34
+          },
+          "total_seconds": {
+            "median": 8.8,
+            "min": 8.8,
+            "max": 8.8
+          },
+          "tokens_per_round": {
+            "median": 2.18,
+            "min": 2.18,
+            "max": 2.18
+          },
+          "end_to_end_tokens_per_second": {
+            "median": 26.82,
+            "min": 26.82,
+            "max": 26.82
+          }
+        }
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "mode": "serial",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 953,
+      "drafted": 0,
+      "accepted": 0,
+      "total_seconds_including_prefill": 27.11,
+      "summed_reported_prefill_seconds": 2.34,
+      "estimated_decode_seconds": 24.77,
+      "estimated_decode_tokens_per_second": 38.47,
+      "end_to_end_tokens_per_second": 35.37,
+      "tokens_per_round": 1.0,
+      "proposed_per_round": 0.0,
+      "accepted_per_round": 0.0,
+      "acceptance_rate": null,
+      "native_profile": {
+        "step_ms": 25.98,
+        "forward_ms": 25.88,
+        "pass_ms": 0.0,
+        "rows_per_round": 1.0,
+        "step_seconds": 24.76,
+        "passes": 0,
+        "draft_ms_per_round": 0.0
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": null,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 196,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.49,
+          "total_seconds": 5.57,
+          "estimated_decode_seconds": 5.08,
+          "estimated_decode_tokens_per_second": 38.58,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 132,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.33,
+          "total_seconds": 3.76,
+          "estimated_decode_seconds": 3.43,
+          "estimated_decode_tokens_per_second": 38.48,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 40,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.38,
+          "total_seconds": 1.45,
+          "estimated_decode_seconds": 1.07,
+          "estimated_decode_tokens_per_second": 37.38,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 255,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.44,
+          "total_seconds": 7.05,
+          "estimated_decode_seconds": 6.61,
+          "estimated_decode_tokens_per_second": 38.58,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 95,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.39,
+          "total_seconds": 2.82,
+          "estimated_decode_seconds": 2.43,
+          "estimated_decode_tokens_per_second": 39.09,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 235,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.31,
+          "total_seconds": 6.46,
+          "estimated_decode_seconds": 6.15,
+          "estimated_decode_tokens_per_second": 38.21,
+          "tokens_per_round": 1.0
+        }
+      ],
+      "variant": "serial",
+      "repeat": 1,
+      "order": 1,
+      "receipt": "run-001-serial-r1.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 953,
+      "drafted": 0,
+      "accepted": 0,
+      "total_seconds_including_prefill": 27.71,
+      "summed_reported_prefill_seconds": 2.64,
+      "estimated_decode_seconds": 25.07,
+      "estimated_decode_tokens_per_second": 38.01,
+      "end_to_end_tokens_per_second": 34.61,
+      "tokens_per_round": 1.0,
+      "proposed_per_round": 0.0,
+      "accepted_per_round": 0.0,
+      "acceptance_rate": null,
+      "native_profile": {
+        "step_ms": 26.31,
+        "forward_ms": 26.23,
+        "pass_ms": 0.0,
+        "rows_per_round": 1.0,
+        "step_seconds": 25.07,
+        "passes": 0,
+        "draft_ms_per_round": 0.0
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": null,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 196,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.77,
+          "total_seconds": 6.25,
+          "estimated_decode_seconds": 5.48,
+          "estimated_decode_tokens_per_second": 35.77,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 132,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.34,
+          "total_seconds": 3.78,
+          "estimated_decode_seconds": 3.44,
+          "estimated_decode_tokens_per_second": 38.37,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 40,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.39,
+          "total_seconds": 1.44,
+          "estimated_decode_seconds": 1.05,
+          "estimated_decode_tokens_per_second": 38.1,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 255,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.43,
+          "total_seconds": 6.99,
+          "estimated_decode_seconds": 6.56,
+          "estimated_decode_tokens_per_second": 38.87,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 95,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.4,
+          "total_seconds": 2.82,
+          "estimated_decode_seconds": 2.42,
+          "estimated_decode_tokens_per_second": 39.26,
+          "tokens_per_round": 1.0
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 235,
+          "drafted": 0,
+          "accepted": 0,
+          "prefill_seconds": 0.31,
+          "total_seconds": 6.43,
+          "estimated_decode_seconds": 6.12,
+          "estimated_decode_tokens_per_second": 38.4,
+          "tokens_per_round": 1.0
+        }
+      ],
+      "variant": "depth0",
+      "repeat": 1,
+      "order": 2,
+      "receipt": "run-002-depth0-r1.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 521,
+      "drafted": 521,
+      "accepted": 434,
+      "total_seconds_including_prefill": 25.95,
+      "summed_reported_prefill_seconds": 2.77,
+      "estimated_decode_seconds": 23.18,
+      "estimated_decode_tokens_per_second": 41.11,
+      "end_to_end_tokens_per_second": 36.96,
+      "tokens_per_round": 1.83,
+      "proposed_per_round": 1.0,
+      "accepted_per_round": 0.83,
+      "acceptance_rate": 0.833,
+      "native_profile": {
+        "step_ms": 44.48,
+        "forward_ms": 31.87,
+        "pass_ms": 13.23,
+        "rows_per_round": 2.0,
+        "step_seconds": 23.17,
+        "passes": 521,
+        "draft_ms_per_round": 13.23
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 58.53,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 101,
+          "drafted": 101,
+          "accepted": 95,
+          "prefill_seconds": 0.82,
+          "total_seconds": 5.35,
+          "estimated_decode_seconds": 4.53,
+          "estimated_decode_tokens_per_second": 43.27,
+          "tokens_per_round": 1.94
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 69,
+          "drafted": 69,
+          "accepted": 63,
+          "prefill_seconds": 0.35,
+          "total_seconds": 3.41,
+          "estimated_decode_seconds": 3.06,
+          "estimated_decode_tokens_per_second": 43.14,
+          "tokens_per_round": 1.91
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 21,
+          "drafted": 21,
+          "accepted": 20,
+          "prefill_seconds": 0.41,
+          "total_seconds": 1.36,
+          "estimated_decode_seconds": 0.95,
+          "estimated_decode_tokens_per_second": 42.11,
+          "tokens_per_round": 1.9
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 139,
+          "drafted": 139,
+          "accepted": 116,
+          "prefill_seconds": 0.45,
+          "total_seconds": 6.56,
+          "estimated_decode_seconds": 6.11,
+          "estimated_decode_tokens_per_second": 41.73,
+          "tokens_per_round": 1.83
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 48,
+          "drafted": 48,
+          "accepted": 48,
+          "prefill_seconds": 0.42,
+          "total_seconds": 2.55,
+          "estimated_decode_seconds": 2.13,
+          "estimated_decode_tokens_per_second": 44.6,
+          "tokens_per_round": 1.98
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 143,
+          "drafted": 143,
+          "accepted": 92,
+          "prefill_seconds": 0.32,
+          "total_seconds": 6.72,
+          "estimated_decode_seconds": 6.4,
+          "estimated_decode_tokens_per_second": 36.72,
+          "tokens_per_round": 1.64
+        }
+      ],
+      "variant": "depth1",
+      "repeat": 1,
+      "order": 3,
+      "receipt": "run-003-depth1-r1.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 386,
+      "drafted": 771,
+      "accepted": 571,
+      "total_seconds_including_prefill": 23.26,
+      "summed_reported_prefill_seconds": 2.74,
+      "estimated_decode_seconds": 20.52,
+      "estimated_decode_tokens_per_second": 46.44,
+      "end_to_end_tokens_per_second": 41.23,
+      "tokens_per_round": 2.47,
+      "proposed_per_round": 2.0,
+      "accepted_per_round": 1.48,
+      "acceptance_rate": 0.741,
+      "native_profile": {
+        "step_ms": 53.15,
+        "forward_ms": 37.14,
+        "pass_ms": 16.82,
+        "rows_per_round": 3.0,
+        "step_seconds": 20.52,
+        "passes": 386,
+        "draft_ms_per_round": 16.82
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 67.96,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 69,
+          "drafted": 138,
+          "accepted": 128,
+          "prefill_seconds": 0.79,
+          "total_seconds": 4.44,
+          "estimated_decode_seconds": 3.65,
+          "estimated_decode_tokens_per_second": 53.7,
+          "tokens_per_round": 2.84
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 52,
+          "drafted": 104,
+          "accepted": 81,
+          "prefill_seconds": 0.36,
+          "total_seconds": 3.12,
+          "estimated_decode_seconds": 2.76,
+          "estimated_decode_tokens_per_second": 47.83,
+          "tokens_per_round": 2.54
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 14,
+          "drafted": 28,
+          "accepted": 27,
+          "prefill_seconds": 0.41,
+          "total_seconds": 1.17,
+          "estimated_decode_seconds": 0.76,
+          "estimated_decode_tokens_per_second": 52.63,
+          "tokens_per_round": 2.86
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 97,
+          "drafted": 193,
+          "accepted": 158,
+          "prefill_seconds": 0.45,
+          "total_seconds": 5.54,
+          "estimated_decode_seconds": 5.09,
+          "estimated_decode_tokens_per_second": 50.1,
+          "tokens_per_round": 2.63
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 32,
+          "drafted": 64,
+          "accepted": 63,
+          "prefill_seconds": 0.41,
+          "total_seconds": 2.11,
+          "estimated_decode_seconds": 1.7,
+          "estimated_decode_tokens_per_second": 55.88,
+          "tokens_per_round": 2.97
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 122,
+          "drafted": 244,
+          "accepted": 114,
+          "prefill_seconds": 0.32,
+          "total_seconds": 6.89,
+          "estimated_decode_seconds": 6.57,
+          "estimated_decode_tokens_per_second": 35.77,
+          "tokens_per_round": 1.93
+        }
+      ],
+      "variant": "depth2",
+      "repeat": 1,
+      "order": 4,
+      "receipt": "run-004-depth2-r1.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 330,
+      "drafted": 990,
+      "accepted": 626,
+      "total_seconds_including_prefill": 23.38,
+      "summed_reported_prefill_seconds": 2.98,
+      "estimated_decode_seconds": 20.4,
+      "estimated_decode_tokens_per_second": 46.72,
+      "end_to_end_tokens_per_second": 41.02,
+      "tokens_per_round": 2.89,
+      "proposed_per_round": 3.0,
+      "accepted_per_round": 1.9,
+      "acceptance_rate": 0.632,
+      "native_profile": {
+        "step_ms": 61.83,
+        "forward_ms": 42.23,
+        "pass_ms": 20.71,
+        "rows_per_round": 4.0,
+        "step_seconds": 20.4,
+        "passes": 330,
+        "draft_ms_per_round": 20.71
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 70.23,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 56,
+          "drafted": 168,
+          "accepted": 141,
+          "prefill_seconds": 1.0,
+          "total_seconds": 4.5,
+          "estimated_decode_seconds": 3.5,
+          "estimated_decode_tokens_per_second": 56.0,
+          "tokens_per_round": 3.5
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 40,
+          "drafted": 120,
+          "accepted": 92,
+          "prefill_seconds": 0.36,
+          "total_seconds": 2.84,
+          "estimated_decode_seconds": 2.48,
+          "estimated_decode_tokens_per_second": 53.23,
+          "tokens_per_round": 3.3
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 11,
+          "drafted": 33,
+          "accepted": 30,
+          "prefill_seconds": 0.42,
+          "total_seconds": 1.09,
+          "estimated_decode_seconds": 0.67,
+          "estimated_decode_tokens_per_second": 59.7,
+          "tokens_per_round": 3.64
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 85,
+          "drafted": 255,
+          "accepted": 170,
+          "prefill_seconds": 0.46,
+          "total_seconds": 5.65,
+          "estimated_decode_seconds": 5.19,
+          "estimated_decode_tokens_per_second": 49.13,
+          "tokens_per_round": 3.0
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 24,
+          "drafted": 72,
+          "accepted": 71,
+          "prefill_seconds": 0.41,
+          "total_seconds": 1.88,
+          "estimated_decode_seconds": 1.47,
+          "estimated_decode_tokens_per_second": 64.63,
+          "tokens_per_round": 3.96
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 114,
+          "drafted": 342,
+          "accepted": 122,
+          "prefill_seconds": 0.33,
+          "total_seconds": 7.42,
+          "estimated_decode_seconds": 7.09,
+          "estimated_decode_tokens_per_second": 33.15,
+          "tokens_per_round": 2.06
+        }
+      ],
+      "variant": "depth3",
+      "repeat": 1,
+      "order": 5,
+      "receipt": "run-005-depth3-r1.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 292,
+      "drafted": 1166,
+      "accepted": 666,
+      "total_seconds_including_prefill": 23.53,
+      "summed_reported_prefill_seconds": 2.92,
+      "estimated_decode_seconds": 20.61,
+      "estimated_decode_tokens_per_second": 46.24,
+      "end_to_end_tokens_per_second": 40.76,
+      "tokens_per_round": 3.26,
+      "proposed_per_round": 3.99,
+      "accepted_per_round": 2.28,
+      "acceptance_rate": 0.571,
+      "native_profile": {
+        "step_ms": 70.59,
+        "forward_ms": 47.6,
+        "pass_ms": 24.36,
+        "rows_per_round": 4.99,
+        "step_seconds": 20.61,
+        "passes": 292,
+        "draft_ms_per_round": 24.36
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 70.6,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 45,
+          "drafted": 180,
+          "accepted": 152,
+          "prefill_seconds": 0.9,
+          "total_seconds": 4.11,
+          "estimated_decode_seconds": 3.21,
+          "estimated_decode_tokens_per_second": 61.06,
+          "tokens_per_round": 4.36
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 35,
+          "drafted": 140,
+          "accepted": 98,
+          "prefill_seconds": 0.39,
+          "total_seconds": 2.84,
+          "estimated_decode_seconds": 2.45,
+          "estimated_decode_tokens_per_second": 53.88,
+          "tokens_per_round": 3.77
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 9,
+          "drafted": 36,
+          "accepted": 32,
+          "prefill_seconds": 0.42,
+          "total_seconds": 1.06,
+          "estimated_decode_seconds": 0.64,
+          "estimated_decode_tokens_per_second": 62.5,
+          "tokens_per_round": 4.44
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 73,
+          "drafted": 290,
+          "accepted": 182,
+          "prefill_seconds": 0.46,
+          "total_seconds": 5.48,
+          "estimated_decode_seconds": 5.02,
+          "estimated_decode_tokens_per_second": 50.8,
+          "tokens_per_round": 3.49
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 20,
+          "drafted": 80,
+          "accepted": 76,
+          "prefill_seconds": 0.42,
+          "total_seconds": 1.81,
+          "estimated_decode_seconds": 1.39,
+          "estimated_decode_tokens_per_second": 68.35,
+          "tokens_per_round": 4.75
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 110,
+          "drafted": 440,
+          "accepted": 126,
+          "prefill_seconds": 0.33,
+          "total_seconds": 8.24,
+          "estimated_decode_seconds": 7.91,
+          "estimated_decode_tokens_per_second": 29.71,
+          "tokens_per_round": 2.14
+        }
+      ],
+      "variant": "depth4",
+      "repeat": 1,
+      "order": 6,
+      "receipt": "run-006-depth4-r1.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 271,
+      "drafted": 1351,
+      "accepted": 685,
+      "total_seconds_including_prefill": 23.94,
+      "summed_reported_prefill_seconds": 2.85,
+      "estimated_decode_seconds": 21.09,
+      "estimated_decode_tokens_per_second": 45.19,
+      "end_to_end_tokens_per_second": 40.06,
+      "tokens_per_round": 3.52,
+      "proposed_per_round": 4.99,
+      "accepted_per_round": 2.53,
+      "acceptance_rate": 0.507,
+      "native_profile": {
+        "step_ms": 77.78,
+        "forward_ms": 51.64,
+        "pass_ms": 27.43,
+        "rows_per_round": 5.99,
+        "step_seconds": 21.08,
+        "passes": 271,
+        "draft_ms_per_round": 27.43
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 69.84,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 39,
+          "drafted": 195,
+          "accepted": 158,
+          "prefill_seconds": 0.83,
+          "total_seconds": 3.87,
+          "estimated_decode_seconds": 3.04,
+          "estimated_decode_tokens_per_second": 64.47,
+          "tokens_per_round": 5.03
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 32,
+          "drafted": 160,
+          "accepted": 101,
+          "prefill_seconds": 0.37,
+          "total_seconds": 2.84,
+          "estimated_decode_seconds": 2.47,
+          "estimated_decode_tokens_per_second": 53.44,
+          "tokens_per_round": 4.12
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 8,
+          "drafted": 40,
+          "accepted": 32,
+          "prefill_seconds": 0.41,
+          "total_seconds": 1.03,
+          "estimated_decode_seconds": 0.62,
+          "estimated_decode_tokens_per_second": 64.52,
+          "tokens_per_round": 5.0
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 67,
+          "drafted": 331,
+          "accepted": 188,
+          "prefill_seconds": 0.47,
+          "total_seconds": 5.58,
+          "estimated_decode_seconds": 5.11,
+          "estimated_decode_tokens_per_second": 49.9,
+          "tokens_per_round": 3.81
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 16,
+          "drafted": 80,
+          "accepted": 79,
+          "prefill_seconds": 0.43,
+          "total_seconds": 1.66,
+          "estimated_decode_seconds": 1.23,
+          "estimated_decode_tokens_per_second": 77.24,
+          "tokens_per_round": 5.94
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 109,
+          "drafted": 545,
+          "accepted": 127,
+          "prefill_seconds": 0.34,
+          "total_seconds": 8.96,
+          "estimated_decode_seconds": 8.62,
+          "estimated_decode_tokens_per_second": 27.26,
+          "tokens_per_round": 2.16
+        }
+      ],
+      "variant": "depth5",
+      "repeat": 1,
+      "order": 7,
+      "receipt": "run-007-depth5-r1.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 407,
+      "drafted": 743,
+      "accepted": 549,
+      "total_seconds_including_prefill": 21.91,
+      "summed_reported_prefill_seconds": 2.35,
+      "estimated_decode_seconds": 19.56,
+      "estimated_decode_tokens_per_second": 48.72,
+      "end_to_end_tokens_per_second": 43.77,
+      "tokens_per_round": 2.34,
+      "proposed_per_round": 1.83,
+      "accepted_per_round": 1.35,
+      "acceptance_rate": 0.739,
+      "native_profile": {
+        "step_ms": 48.09,
+        "forward_ms": 35.64,
+        "pass_ms": 21.82,
+        "rows_per_round": 2.83,
+        "step_seconds": 19.57,
+        "passes": 228,
+        "draft_ms_per_round": 12.223488943488944
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 65.28,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 50,
+          "drafted": 171,
+          "accepted": 147,
+          "prefill_seconds": 0.48,
+          "total_seconds": 4.11,
+          "estimated_decode_seconds": 3.63,
+          "estimated_decode_tokens_per_second": 53.99,
+          "tokens_per_round": 3.92
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 37,
+          "drafted": 124,
+          "accepted": 95,
+          "prefill_seconds": 0.34,
+          "total_seconds": 2.72,
+          "estimated_decode_seconds": 2.38,
+          "estimated_decode_tokens_per_second": 55.46,
+          "tokens_per_round": 3.57
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 12,
+          "drafted": 39,
+          "accepted": 29,
+          "prefill_seconds": 0.39,
+          "total_seconds": 1.18,
+          "estimated_decode_seconds": 0.79,
+          "estimated_decode_tokens_per_second": 50.63,
+          "tokens_per_round": 3.33
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 82,
+          "drafted": 254,
+          "accepted": 173,
+          "prefill_seconds": 0.43,
+          "total_seconds": 5.47,
+          "estimated_decode_seconds": 5.04,
+          "estimated_decode_tokens_per_second": 50.6,
+          "tokens_per_round": 3.11
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 19,
+          "drafted": 78,
+          "accepted": 77,
+          "prefill_seconds": 0.4,
+          "total_seconds": 1.74,
+          "estimated_decode_seconds": 1.34,
+          "estimated_decode_tokens_per_second": 70.9,
+          "tokens_per_round": 5.0
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 207,
+          "drafted": 77,
+          "accepted": 28,
+          "prefill_seconds": 0.31,
+          "total_seconds": 6.7,
+          "estimated_decode_seconds": 6.39,
+          "estimated_decode_tokens_per_second": 36.78,
+          "tokens_per_round": 1.14
+        }
+      ],
+      "variant": "adaptive",
+      "repeat": 1,
+      "order": 8,
+      "receipt": "run-008-adaptive-r1.json"
+    },
+    {
+      "mode": "dfly2",
+      "binary_sha256": "9469e5b23e08237caad1477b6fb3250bc2a65b8025b4c52fcca06a9cf45c0f0e",
+      "exact_reference_tokens_and_finish_reasons": true,
+      "output_tokens": 959,
+      "decode_tokens": 953,
+      "rounds": 271,
+      "drafted": 1351,
+      "accepted": 685,
+      "total_seconds_including_prefill": 24.06,
+      "summed_reported_prefill_seconds": 2.95,
+      "estimated_decode_seconds": 21.11,
+      "estimated_decode_tokens_per_second": 45.14,
+      "end_to_end_tokens_per_second": 39.86,
+      "tokens_per_round": 3.52,
+      "proposed_per_round": 4.99,
+      "accepted_per_round": 2.53,
+      "acceptance_rate": 0.507,
+      "native_profile": {
+        "step_ms": 77.89,
+        "forward_ms": 51.66,
+        "pass_ms": 27.95,
+        "rows_per_round": 5.99,
+        "step_seconds": 21.11,
+        "passes": 271,
+        "draft_ms_per_round": 27.95
+      },
+      "decode_tokens_per_second_if_draft_pass_were_free": 70.42,
+      "requests": [
+        {
+          "name": "chat_greedy_merge_intervals",
+          "prompt_tokens": 93,
+          "output_tokens": 197,
+          "rounds": 39,
+          "drafted": 195,
+          "accepted": 158,
+          "prefill_seconds": 0.91,
+          "total_seconds": 4.01,
+          "estimated_decode_seconds": 3.1,
+          "estimated_decode_tokens_per_second": 63.23,
+          "tokens_per_round": 5.03
+        },
+        {
+          "name": "chat_greedy_latest_sql",
+          "prompt_tokens": 96,
+          "output_tokens": 133,
+          "rounds": 32,
+          "drafted": 160,
+          "accepted": 101,
+          "prefill_seconds": 0.37,
+          "total_seconds": 2.86,
+          "estimated_decode_seconds": 2.49,
+          "estimated_decode_tokens_per_second": 53.01,
+          "tokens_per_round": 4.12
+        },
+        {
+          "name": "chat_greedy_extract_json",
+          "prompt_tokens": 117,
+          "output_tokens": 41,
+          "rounds": 8,
+          "drafted": 40,
+          "accepted": 32,
+          "prefill_seconds": 0.43,
+          "total_seconds": 1.05,
+          "estimated_decode_seconds": 0.62,
+          "estimated_decode_tokens_per_second": 64.52,
+          "tokens_per_round": 5.0
+        },
+        {
+          "name": "chat_sampled_binary_search",
+          "prompt_tokens": 142,
+          "output_tokens": 256,
+          "rounds": 68,
+          "drafted": 336,
+          "accepted": 187,
+          "prefill_seconds": 0.47,
+          "total_seconds": 5.68,
+          "estimated_decode_seconds": 5.21,
+          "estimated_decode_tokens_per_second": 48.94,
+          "tokens_per_round": 3.75
+        },
+        {
+          "name": "chat_sampled_multiturn_edit",
+          "prompt_tokens": 125,
+          "output_tokens": 96,
+          "rounds": 16,
+          "drafted": 80,
+          "accepted": 79,
+          "prefill_seconds": 0.43,
+          "total_seconds": 1.66,
+          "estimated_decode_seconds": 1.23,
+          "estimated_decode_tokens_per_second": 77.24,
+          "tokens_per_round": 5.94
+        },
+        {
+          "name": "chat_sampled_explain_cache",
+          "prompt_tokens": 82,
+          "output_tokens": 236,
+          "rounds": 108,
+          "drafted": 540,
+          "accepted": 128,
+          "prefill_seconds": 0.34,
+          "total_seconds": 8.8,
+          "estimated_decode_seconds": 8.46,
+          "estimated_decode_tokens_per_second": 27.78,
+          "tokens_per_round": 2.18
+        }
+      ],
+      "variant": "norms",
+      "repeat": 1,
+      "order": 9,
+      "receipt": "run-009-norms-r1.json"
+    }
+  ],
+  "output_tokens_per_run": 959,
+  "timing_method": "Per run: output tokens after the first per request divided by total minus prefill; cross-checked against reply and native step clocks. Median/min/max across repeats; no confidence-interval claim."
+}

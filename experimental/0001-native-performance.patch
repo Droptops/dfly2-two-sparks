@@ -1,0 +1,1437 @@
+diff --git a/zig/build/cuda.zig b/zig/build/cuda.zig
+index 1eca7b2..5799554 100644
+--- a/zig/build/cuda.zig
++++ b/zig/build/cuda.zig
+@@ -131,6 +131,12 @@ pub fn targets(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bu
+     dfly_load.addImport("dsv41", ds_check.import_table.get("dsv41").?);
+     dfly_load.addImport("cuda", cuda);
+     b.installArtifact(b.addExecutable(.{ .name = "tf-dsv41-dfly-weights", .root_module = dfly_load }));
++    const dfly_head = b.createModule(.{ .root_source_file = b.path("zig/src/families/dsv41/dfly_head_main.zig"), .target = target, .optimize = optimize, .link_libc = true });
++    dfly_head.addImport("dsv41", ds_check.import_table.get("dsv41").?);
++    dfly_head.addImport("cuda", cuda);
++    const dfly_head_exe = b.addExecutable(.{ .name = "tf-dsv41-dfly-head", .root_module = dfly_head });
++    b.installArtifact(dfly_head_exe);
++    b.step("tf-dsv41-dfly-head", "Diagnostic shared EXL3 head over captured BF16 rows, retaining TP2 plans").dependOn(&b.addInstallArtifact(dfly_head_exe, .{}).step);
+     const ds_comm = b.createModule(.{ .root_source_file = b.path("zig/src/families/dsv41/comm_main.zig"), .target = target, .optimize = optimize, .link_libc = true });
+     ds_comm.addImport("dsv41", ds_check.import_table.get("dsv41").?);
+     ds_comm.addImport("cuda", cuda);
+diff --git a/zig/kernels/cuda/dsv41_dfly2.cu b/zig/kernels/cuda/dsv41_dfly2.cu
+index ee253ac..d9ab669 100644
+--- a/zig/kernels/cuda/dsv41_dfly2.cu
++++ b/zig/kernels/cuda/dsv41_dfly2.cu
+@@ -189,3 +189,61 @@ extern "C" __global__ void tf_dfly_best(const float* logits,float* best,int n,in
+         __syncthreads();}
+     if(!threadIdx.x){best[0]=scores[0];best[1]=float(ids[0]+offset);}
+ }
++
++// Device-feedback variants preserve the original BF16 math and selection order.
++// A corrupt/invalid proposal is retained as -1 in ids and checked on the host
++// at the end of the pass. Its embedding read is clamped solely to avoid OOB.
++extern "C" __global__ void tf_dfly_norm_concat_indexed(const B* x,const B* embed,
++    const int64_t* ids,const B* wx,const B* wy,B* out,int d,int at,int vocab,float eps) {
++    int64_t token=ids[at];
++    const B* y=embed+(token>=0 && token<vocab ? token:0)*int64_t(d);
++    float sx=0,sy=0;
++    for(int i=threadIdx.x;i<d;i+=blockDim.x) { float a=bf(x[i]),b=bf(y[i]);sx+=a*a;sy+=b*b; }
++    sx=rsqrtf(block_sum(sx)/d+eps);sy=rsqrtf(block_sum(sy)/d+eps);
++    for(int i=threadIdx.x;i<d;i+=blockDim.x) {out[i]=rb(bf(x[i])*sx*bf(wx[i]));out[d+i]=rb(bf(y[i])*sy*bf(wy[i]));}
++}
++
++extern "C" __global__ void tf_dfly_pad_best(float* best) {
++    if(!threadIdx.x) {best[2]=0.f;best[3]=0.f;}
++}
++
++extern "C" __global__ void tf_dfly_select_best(const float* best,int64_t* ids,
++                                              int slot,int vocab,int stride) {
++    if(threadIdx.x) return;
++    bool second=best[stride]>best[0] || (best[stride]==best[0] && best[stride+1]<best[1]);
++    float token=best[second ? stride+1:1];
++    ids[slot]=isfinite(token) && token>=0 && token<vocab && token==floorf(token) ? int64_t(token):-1;
++}
++
++// Opt-in DFlashRMSNorm materialization. Keep the original fused kernels and
++// their argument ABI unchanged for control runs and existing primitive tests.
++extern "C" __global__ void tf_dfly_norm_concat_reference(const B* x,const B* y,
++    const B* wx,const B* wy,B* out,int d,float eps) {
++    float sx=0,sy=0;
++    for(int i=threadIdx.x;i<d;i+=blockDim.x) {float a=bf(x[i]),b=bf(y[i]);sx+=a*a;sy+=b*b;}
++    sx=rsqrtf(block_sum(sx)/d+eps);sy=rsqrtf(block_sum(sy)/d+eps);
++    for(int i=threadIdx.x;i<d;i+=blockDim.x) {
++        out[i]=rb(bf(rb(bf(x[i])*sx))*bf(wx[i]));
++        out[d+i]=rb(bf(rb(bf(y[i])*sy))*bf(wy[i]));
++    }
++}
++
++extern "C" __global__ void tf_dfly_norm_concat_indexed_reference(const B* x,const B* embed,
++    const int64_t* ids,const B* wx,const B* wy,B* out,int d,int at,int vocab,float eps) {
++    int64_t token=ids[at];
++    const B* y=embed+(token>=0 && token<vocab ? token:0)*int64_t(d);
++    float sx=0,sy=0;
++    for(int i=threadIdx.x;i<d;i+=blockDim.x) {float a=bf(x[i]),b=bf(y[i]);sx+=a*a;sy+=b*b;}
++    sx=rsqrtf(block_sum(sx)/d+eps);sy=rsqrtf(block_sum(sy)/d+eps);
++    for(int i=threadIdx.x;i<d;i+=blockDim.x) {
++        out[i]=rb(bf(rb(bf(x[i])*sx))*bf(wx[i]));
++        out[d+i]=rb(bf(rb(bf(y[i])*sy))*bf(wy[i]));
++    }
++}
++
++// x already holds BF16(x * RMS scale) from a unit-weight existing norm.
++// Both operands are BF16, so the product materializes the second BF16 round.
++extern "C" __global__ void tf_dfly_norm_weight(B* x,const B* weight,int n,int d) {
++    for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=blockDim.x*gridDim.x)
++        x[i]=rb(bf(x[i])*bf(weight[i%d]));
++}
+diff --git a/zig/src/core/lanes/backend.zig b/zig/src/core/lanes/backend.zig
+index b7ef5b3..abf3966 100644
+--- a/zig/src/core/lanes/backend.zig
++++ b/zig/src/core/lanes/backend.zig
+@@ -63,6 +63,9 @@ pub const Backend = struct {
+         keep: *const fn (ptr: *anyopaque, windows: []const Window, paths: []const []const u32) anyerror!void,
+         /// Absorb kept rows and hold drafts for the next round (one batch for a shared round).
+         draft: *const fn (ptr: *anyopaque, requests: []const DraftRequest) anyerror!void,
++        /// Optional policy cap, applied before drafting and before recording held
++        /// depth. May choose plain (0), but never more than the core permits.
++        draft_depth: ?*const fn (ptr: *anyopaque, s: *Stream, allowed: u32) anyerror!u32 = null,
+         /// Undo an early speculation whose round was cut (the drafts come from a late request instead).
+         unspeculate: ?*const fn (ptr: *anyopaque, s: *Stream) anyerror!void = null,
+         /// Each held draft's chance of landing, for heads that give them; false when it has none.
+diff --git a/zig/src/core/lanes/engine.zig b/zig/src/core/lanes/engine.zig
+index 97e6e97..153d78c 100644
+--- a/zig/src/core/lanes/engine.zig
++++ b/zig/src/core/lanes/engine.zig
+@@ -546,6 +546,18 @@ pub const Engine = struct {
+             }
+             asked = &one;
+         } else if (requests.len == 1) requests[0].stream.held_levels = requests[0].depth;
++        if (e.backend.vtable.draft_depth) |select| {
++            const selected = try e.arena.allocator().dupe(be.DraftRequest, asked);
++            for (selected) |*r| {
++                if (r.lanes != null) return error.DraftPolicyCannotSelectTrees;
++                const allowed = r.depth;
++                if (allowed > 0) r.depth = try select(e.backend.ptr, r.stream, allowed);
++                if (r.depth > allowed) return error.DraftPolicyExceedsBudget;
++                r.stream.held_levels = r.depth;
++                try trail.event(e, &.{ f("ev", str("draft_depth")), f("stream", str(r.stream.id)), f("allowed", int(allowed)), f("selected", int(r.depth)) });
++            }
++            asked = selected;
++        }
+         try e.backend.draft(asked);
+         for (asked) |r| {
+             r.stream.dropHeld(e.gpa);
+diff --git a/zig/src/core/lanes/engine_test.zig b/zig/src/core/lanes/engine_test.zig
+index 6c33ca3..f1812fd 100644
+--- a/zig/src/core/lanes/engine_test.zig
++++ b/zig/src/core/lanes/engine_test.zig
+@@ -15,6 +15,7 @@ const Case = struct {
+     sampling: ?Sampling = null,
+     drafts: bool = true,
+     think_budget: u32 = 0,
++    depth_policy: enum { off, varied, invalid } = .off,
+ };
+ 
+ fn model() !Config {
+@@ -30,7 +31,15 @@ fn run(cases: []const Case) ![][]u32 {
+     var target: fake.Fake = .{ .gpa = gpa };
+     defer target.deinit();
+     var clock: fake.FixedClock = .{};
+-    var engine = Engine.init(gpa, &cfg, target.backend(), clock.clock());
++    var backend = target.backend();
++    var vtable = backend.vtable.*;
++    vtable.draft_depth = switch (cases[0].depth_policy) {
++        .off => null,
++        .varied => variedDepth,
++        .invalid => invalidDepth,
++    };
++    backend.vtable = &vtable;
++    var engine = Engine.init(gpa, &cfg, backend, clock.clock());
+     defer engine.deinit();
+     const streams = try gpa.alloc(sm.Stream, cases.len);
+     defer gpa.free(streams);
+@@ -56,6 +65,28 @@ fn free(runs: [][]u32) void {
+     gpa.free(runs);
+ }
+ 
++fn variedDepth(_: *anyopaque, s: *sm.Stream, allowed: u32) anyerror!u32 {
++    return switch (s.rounds % 3) { 0 => 0, 1 => @min(allowed, 1), else => allowed };
++}
++
++fn invalidDepth(_: *anyopaque, _: *sm.Stream, allowed: u32) anyerror!u32 {
++    return allowed + 1;
++}
++
++test "backend depth choices preserve sampled and greedy target output through zero-depth transitions" {
++    for ([_]?Sampling{ null, .{ .seed = 7, .temperature = 0.7, .top_k = 0, .top_p = 1 } }) |sampling| {
++        const adaptive = try run(&.{.{ .prompt = &p1, .sampling = sampling, .depth_policy = .varied, .max_new = 180 }});
++        defer free(adaptive);
++        const plain = try run(&.{.{ .prompt = &p1, .sampling = sampling, .drafts = false, .max_new = 180 }});
++        defer free(plain);
++        try std.testing.expectEqualSlices(u32, plain[0], adaptive[0]);
++    }
++}
++
++test "backend depth choices cannot increase the core budget" {
++    try std.testing.expectError(error.DraftPolicyExceedsBudget, run(&.{.{ .prompt = &p1, .depth_policy = .invalid }}));
++}
++
+ const GuardCase = struct {
+     prompt: []const u32,
+     max_new: u32 = 400,
+diff --git a/zig/src/families/dsv41/dfly.zig b/zig/src/families/dsv41/dfly.zig
+index e9cca06..7b220c1 100644
+--- a/zig/src/families/dsv41/dfly.zig
++++ b/zig/src/families/dsv41/dfly.zig
+@@ -12,6 +12,15 @@ const basic = @import("tri_basic.zig");
+ const hc = @import("tri_hc.zig");
+ const norm = @import("tri_norm.zig");
+ const Kernels = @import("dfly_kernels.zig").Kernels;
++const Profile = @import("dfly_profile.zig").Profile;
++const Capture = @import("dfly_capture.zig").Capture;
++
++fn flag(comptime name: [:0]const u8) !bool {
++    const value = std.mem.span(std.c.getenv(name) orelse return false);
++    if (std.mem.eql(u8, value, "0")) return false;
++    if (std.mem.eql(u8, value, "1")) return true;
++    return error.BadDFly2ExperimentFlag;
++}
+ const Engine = prompt.Engine;
+ const Chunk = prompt.Chunk;
+ const Linear = base_weights.Linear;
+@@ -89,6 +98,14 @@ pub const Drafter = struct {
+     logits: u64,
+     best: u64,
+     best_all: u64,
++    feedback_ids: u64,
++    // Independent opt-in ablations. The legacy path remains the default.
++    device_feedback: bool,
++    rdma_best: bool,
++    reference_norms: bool,
++    norm_ones: u64,
++    profile: Profile,
++    capture: ?Capture,
+     drafts: [max_streams][max_drafts]i64 = undefined,
+     streams: usize = 0,
+     steps: usize = 0,
+@@ -96,11 +113,22 @@ pub const Drafter = struct {
+     pub fn init(e: *const Engine, a: *prompt.Arena, w: *const weights.Weights) !Drafter {
+         if (e.world != 2 or e.two != null or e.kv != null) return error.DFly2RequiresReplicatedTP2;
+         if (e.c.hidden != D or e.c.head_dim != HD or e.c.hc != 4) return error.DFly2TargetShapeMismatch;
++        const device_feedback = try flag("TF_DFLY_DEVICE_FEEDBACK");
++        const rdma_best = try flag("TF_DFLY_RDMA_BEST");
++        const reference_norms = try flag("TF_DFLY_REFERENCE_NORMS");
++        const profile_enabled = try flag("TF_DFLY_PROFILE");
+         var k = try Kernels.load(e.d);
+         errdefer k.deinit();
+         var dr: Drafter = undefined;
+         dr.w = w;
+         dr.k = k;
++        dr.device_feedback = device_feedback;
++        dr.rdma_best = rdma_best;
++        dr.reference_norms = reference_norms;
++        dr.norm_ones = 0;
++        dr.profile = try Profile.init(e.d, profile_enabled);
++        dr.capture = null;
++        errdefer dr.profile.deinit();
+         dr.streams = 0;
+         dr.steps = 0;
+         dr.ids = try a.take(R * 8);
+@@ -162,8 +190,17 @@ pub const Drafter = struct {
+         dr.head_input = try a.take(head_rows * D * 2);
+         try prompt.fill(e, dr.head_input, 0, head_rows * D * 2);
+         dr.logits = try a.take(head_rows * e.w.head.n * 4);
+-        dr.best = try a.take(2 * 4);
+-        dr.best_all = try a.take(2 * 2 * 4);
++        dr.best = try a.take(4 * 4);
++        dr.best_all = try a.take(2 * 4 * 4);
++        dr.feedback_ids = try a.take(R * 8);
++        if (reference_norms) {
++            // Only DFlashRMSNorm sites use this vector. The first kernel
++            // materializes BF16(x * scale); norm_weight adds the second round.
++            dr.norm_ones = try a.take(D * 2);
++            const ones: [D]u16 = @splat(0x3f80);
++            try prompt.upload(e, dr.norm_ones, &ones, @sizeOf(@TypeOf(ones)));
++            try e.s.synchronize(); // keep the temporary upload source alive
++        }
+         var no: [R]i64 = @splat(-1);
+         try prompt.upload(e, dr.none, &no, no.len * 8);
+         try e.s.synchronize(); // upload source has automatic storage
+@@ -171,6 +208,7 @@ pub const Drafter = struct {
+     }
+ 
+     pub fn deinit(dr: *Drafter) void {
++        dr.profile.deinit();
+         dr.k.deinit();
+     }
+ 
+@@ -180,7 +218,15 @@ pub const Drafter = struct {
+     }
+ 
+     fn concatNorm(dr: *Drafter, e: *const Engine, x: u64, y: u64, wx: u64, wy: u64) !void {
+-        try dr.k.run(e.s, "norm_concat", .{ 1, 1, 1 }, 256, .{ x, y, wx, wy, dr.concat, ci(D), e.c.eps });
++        if (dr.reference_norms) {
++            try dr.k.run(e.s, "norm_concat_reference", .{ 1, 1, 1 }, 256, .{ x, y, wx, wy, dr.concat, ci(D), e.c.eps });
++        } else {
++            try dr.k.run(e.s, "norm_concat", .{ 1, 1, 1 }, 256, .{ x, y, wx, wy, dr.concat, ci(D), e.c.eps });
++        }
++    }
++
++    fn normWeight(dr: *Drafter, e: *const Engine, x: u64, weight: u64, rows: usize) !void {
++        try dr.k.run(e.s, "norm_weight", .{ blocks(rows * D), 1, 1 }, 256, .{ x, weight, ci(rows * D), ci(D) });
+     }
+ 
+     fn normQuery(dr: *Drafter, e: *const Engine, q_norm: u64, wq_b: Linear, rows: usize, positions: u64) !void {
+@@ -202,18 +248,23 @@ pub const Drafter = struct {
+     }
+ 
+     fn gatherPartial(dr: *Drafter, e: *const Engine, rows: usize) !void {
++        const stamp = try dr.profile.begin(e.s, .collective);
+         try e.gatherF32(dr.partial, dr.gathered, rows * D);
++        try dr.profile.end(e.s, stamp);
+     }
+ 
+     fn sumPartial(dr: *Drafter, e: *const Engine, out: u64, rows: usize) !void {
+         try dr.gatherPartial(e, rows);
++        const stamp = try dr.profile.begin(e.s, .correction_merge);
+         try e.ops.add2Bf16(e.s, dr.gathered, dr.gathered + rows * D * 4, out, rows * D);
++        try dr.profile.end(e.s, stamp);
+     }
+ 
+     fn mixes(dr: *Drafter, e: *const Engine, h: u64, spare: *u64, pending: *bool, params: [3]u64, pre_in: u64, norm_w: u64, pre_out: u64) !u64 {
+         // The installed kit has plain RB2 and posted RB3/4/8, but no posted
+         // RB2 specialization (our six-row block). Materialize the identical
+         // post separately, then use the recorded plain six-row mix.
++        const stamp = try dr.profile.begin(e.s, .mixing);
+         var src = h;
+         if (pending.*) {
+             src = spare.*;
+@@ -221,10 +272,14 @@ pub const Drafter = struct {
+             spare.* = h;
+             pending.* = false;
+         }
+-        return hc.hcPre2(e.t, src, params[0], params[1], params[2], pre_in, norm_w, e.c.eps, e.c.hc_eps, e.c.hc_iters, dr.x, pre_out, dr.post, dr.comb, dr.part, null, null, R, D);
++        const result = try hc.hcPre2(e.t, src, params[0], params[1], params[2], pre_in, if (dr.reference_norms) dr.norm_ones else norm_w, e.c.eps, e.c.hc_eps, e.c.hc_iters, dr.x, pre_out, dr.post, dr.comb, dr.part, null, null, R, D);
++        if (dr.reference_norms) try dr.normWeight(e, dr.x, norm_w, R);
++        try dr.profile.end(e.s, stamp);
++        return result;
+     }
+ 
+     fn attend(dr: *Drafter, e: *const Engine, layer: usize) !void {
++        const stamp = try dr.profile.begin(e.s, .attention);
+         const l = dr.w.layers[layer].attn;
+         try linear(e, l.wq_a, dr.x, dr.qa, R);
+         try dr.normQuery(e, l.q_norm, l.wq_b, R, dr.positions);
+@@ -234,6 +289,7 @@ pub const Drafter = struct {
+         try norm.ropeHeads(e.t, dr.kvb, e.compressed.cos, e.compressed.sin, dr.positions, 64, false, R, 1, HD);
+         try dr.k.run(e.s, "attention", .{ R * H, 1, 1 }, 256, .{ dr.q, dr.context[layer], dr.valid[layer], dr.kvb, l.sink, dr.o, ci(H), ci(R), ci(R) });
+         try dr.output(e, l.wo_a, l.wo_b, R, dr.positions);
++        try dr.profile.end(e.s, stamp);
+     }
+ 
+     fn fp4(dr: *Drafter, e: *const Engine, m: weights.Mxfp4Experts, x: u64, out: u64, expert_input: bool) !void {
+@@ -243,81 +299,150 @@ pub const Drafter = struct {
+ 
+     fn moe(dr: *Drafter, e: *const Engine, j: usize) !void {
+         const l = dr.w.layers[j];
++        var stamp = try dr.profile.begin(e.s, .route);
+         try dr.k.run(e.s, "route", .{ R, 1, 1 }, 256, .{ dr.x, l.attn.gate_w, l.attn.gate_b, dr.pick, dr.route_weights, ci(D) });
++        try dr.profile.end(e.s, stamp);
++        stamp = try dr.profile.begin(e.s, .routed_moe);
+         try dr.fp4(e, l.w1, dr.x, dr.mg, false);
+         try dr.fp4(e, l.w3, dr.x, dr.mu, false);
+         try dr.k.run(e.s, "silu", .{ blocks(R * 3 * I), 1, 1 }, 256, .{ dr.mg, dr.mu, dr.ma, ci(R * 3 * I), @as(f32, 10) });
+         try dr.fp4(e, l.w2, dr.ma, dr.md, true);
++        try dr.profile.end(e.s, stamp);
++        stamp = try dr.profile.begin(e.s, .shared_moe);
+         try linear(e, l.shared_w1, dr.x, dr.sg, R);
+         try linear(e, l.shared_w3, dr.x, dr.su, R);
+         try dr.k.run(e.s, "silu", .{ blocks(R * I), 1, 1 }, 256, .{ dr.sg, dr.su, dr.sa, ci(R * I), @as(f32, 10) });
+         try linear(e, l.shared_w2, dr.sa, dr.sd, R);
+         try dr.k.run(e.s, "mix_experts", .{ blocks(R * D), 1, 1 }, 256, .{ dr.md, dr.sd, dr.route_weights, dr.partial, ci(D), ci(R) });
++        try dr.profile.end(e.s, stamp);
+     }
+ 
+     fn correctionInput(dr: *Drafter, e: *const Engine, slot: usize, previous: i64) !void {
++        const stamp = try dr.profile.begin(e.s, .correction_input);
+         const c = dr.w.correction;
+         try e.ops.copyRows(e.s, dr.positions + slot * 8, 8, dr.single_position, 8, 8, 1);
+-        try dr.concatNorm(e, dr.normalized + slot * D * 2, e.w.embed + @as(u64, @intCast(previous)) * D * 2, c.hidden_norm, c.embed_norm);
++        if (dr.device_feedback) {
++            // ids[0] is the anchor; proposal slot n is stored at ids[n].
++            // This preserves the serial dependency of attentive correction.
++            if (dr.reference_norms) {
++                try dr.k.run(e.s, "norm_concat_indexed_reference", .{ 1, 1, 1 }, 256, .{ dr.normalized + slot * D * 2, e.w.embed, dr.feedback_ids, c.hidden_norm, c.embed_norm, dr.concat, ci(D), ci(if (slot == 0) 0 else slot - 1), ci(e.c.vocab), e.c.eps });
++            } else {
++                try dr.k.run(e.s, "norm_concat_indexed", .{ 1, 1, 1 }, 256, .{ dr.normalized + slot * D * 2, e.w.embed, dr.feedback_ids, c.hidden_norm, c.embed_norm, dr.concat, ci(D), ci(if (slot == 0) 0 else slot - 1), ci(e.c.vocab), e.c.eps });
++            }
++        } else {
++            try dr.concatNorm(e, dr.normalized + slot * D * 2, e.w.embed + @as(u64, @intCast(previous)) * D * 2, c.hidden_norm, c.embed_norm);
++        }
+         // Every previous token's embedding changes the correction key, so keys are
+         // appended as proposals become known. Slot0 uses the anchor and is unsampled.
+         try linear(e, c.attention.kv_in, dr.concat, dr.ykv, 1);
+         const key = dr.correction_keys + slot * HD * 2;
+         try basic.rmsnorm(e.t, dr.ykv, HD, c.attention.kv_norm, key, HD, e.c.eps, 1, HD);
+         try norm.ropeHeads(e.t, key, e.compressed.cos, e.compressed.sin, dr.single_position, 64, false, 1, 1, HD);
++        try dr.profile.end(e.s, stamp);
+     }
+ 
+     fn correct(dr: *Drafter, e: *const Engine, slot: usize) !void {
+         const c = dr.w.correction;
+         const at = c.attention;
+         const pos = dr.single_position;
++        var stamp = try dr.profile.begin(e.s, .correction_mlp);
+         try linear(e, c.gate_proj, dr.concat, dr.cg, 1);
+         try linear(e, c.up_proj, dr.concat, dr.cu, 1);
+         try dr.k.run(e.s, "silu", .{ blocks(c.gate_proj.n), 1, 1 }, 256, .{ dr.cg, dr.cu, dr.ca, @as(i32, @intCast(c.gate_proj.n)), @as(f32, 0) });
+         try linear(e, c.down_proj, dr.ca, dr.dense_out, 1);
+         try e.ops.toF32(e.s, dr.dense_out, dr.partial, D);
++        try dr.profile.end(e.s, stamp);
+         try dr.sumPartial(e, dr.delta, 1);
++        stamp = try dr.profile.begin(e.s, .correction_attention);
+         try linear(e, at.q_in, dr.concat, dr.qa, 1);
+         try dr.normQuery(e, at.q_norm, at.wq_b, 1, pos);
+         try dr.k.run(e.s, "attention", .{ H, 1, 1 }, 256, .{ dr.q, dr.context[2], dr.valid[2], dr.kvb, at.sink, dr.o, ci(H), @as(i32, 1), @as(i32, 0) });
+         try linear(e, at.block_gate, dr.concat, dr.block_gate, 1);
+         try dr.k.run(e.s, "block_attention", .{ H, 1, 1 }, 256, .{ dr.q, dr.correction_keys, dr.block_gate, at.block_sink, at.block_rel_bias, at.block_gate_bias, dr.o, ci(H), ci(slot) });
+         try dr.output(e, at.wo_a, at.wo_b, 1, pos);
++        try dr.profile.end(e.s, stamp);
+         try dr.sumPartial(e, dr.corrected, 1);
++        stamp = try dr.profile.begin(e.s, .correction_merge);
+         try dr.k.run(e.s, "add", .{ blocks(D), 1, 1 }, 256, .{ dr.delta, dr.corrected, dr.delta, ci(D) });
+         try dr.k.run(e.s, "add", .{ blocks(D), 1, 1 }, 256, .{ dr.normalized + slot * D * 2, dr.delta, dr.corrected, ci(D) });
++        try dr.profile.end(e.s, stamp);
+     }
+ 
+-    fn sample(dr: *Drafter, e: *const Engine, ch: *const Chunk) !i64 {
+-        // The shared target head can be EXL3; only it needs the target's grouped path.
++    fn sampleScores(dr: *Drafter, e: *const Engine, ch: *const Chunk) !void {
++        var stamp = try dr.profile.begin(e.s, .head);
++        // Keep each head evaluation sequential: correction slot n depends on
++        // token n-1. Device feedback removes host waits, not that dependency.
+         try e.ops.copyRows(e.s, dr.corrected, D * 2, dr.head_input, D * 2, D * 2, 1);
+         try prompt.grouped(e, ch, 1, &.{e.w.head}, &.{dr.head_input}, &.{D}, &.{dr.logits}, &.{e.w.head.n}, &.{.f32});
++        try dr.profile.end(e.s, stamp);
++        stamp = try dr.profile.begin(e.s, .argmax);
+         try dr.k.run(e.s, "best", .{ 1, 1, 1 }, 256, .{ dr.logits, dr.best, @as(i32, @intCast(e.w.head.n)), ci(e.w.vocab_lo) });
+-        try e.gatherF32(dr.best, dr.best_all, 2);
++        if (dr.rdma_best) try dr.k.run(e.s, "pad_best", .{ 1, 1, 1 }, 1, .{dr.best});
++        try dr.profile.end(e.s, stamp);
++        stamp = try dr.profile.begin(e.s, .collective);
++        // Two floats fall back to NCCL. Four initialized floats allow the
++        // engine's existing RDMA path; either transport preserves score/id.
++        try e.gatherF32(dr.best, dr.best_all, if (dr.rdma_best) 4 else 2);
++        try dr.profile.end(e.s, stamp);
++    }
++
++    fn sample(dr: *Drafter, e: *const Engine, ch: *const Chunk) !i64 {
++        try dr.sampleScores(e, ch);
++        const stamp = try dr.profile.begin(e.s, .feedback_gap);
+         try e.s.synchronize();
+-        var best: [4]f32 = undefined;
+-        try e.d.check(e.d.api.cuMemcpyDtoH_v2(&best, dr.best_all, @sizeOf(@TypeOf(best))), "cuMemcpyDtoH");
+-        const second = best[2] > best[0] or (best[2] == best[0] and best[3] < best[1]);
+-        const token = best[if (second) 3 else 1];
++        var best: [8]f32 = undefined;
++        const stride: usize = if (dr.rdma_best) 4 else 2;
++        try e.d.check(e.d.api.cuMemcpyDtoH_v2(&best, dr.best_all, 2 * stride * 4), "cuMemcpyDtoH");
++        if (dr.profile.enabled) dr.profile.host_readbacks += 1;
++        try dr.profile.end(e.s, stamp);
++        const second = best[stride] > best[0] or (best[stride] == best[0] and best[stride + 1] < best[1]);
++        const token = best[if (second) stride + 1 else 1];
+         if (!std.math.isFinite(token) or token < 0 or token >= @as(f32, @floatFromInt(e.c.vocab))) return error.DFly2InvalidProposal;
+         return @intFromFloat(token);
+     }
+ 
++    fn sampleDevice(dr: *Drafter, e: *const Engine, ch: *const Chunk, slot: usize) !void {
++        try dr.sampleScores(e, ch);
++        const stamp = try dr.profile.begin(e.s, .argmax);
++        try dr.k.run(e.s, "select_best", .{ 1, 1, 1 }, 1, .{ dr.best_all, dr.feedback_ids, ci(slot), ci(e.c.vocab), @as(i32, if (dr.rdma_best) 4 else 2) });
++        try dr.profile.end(e.s, stamp);
++    }
++
+     pub fn pass(dr: *Drafter, e: *const Engine, ch: *const Chunk, view: cache.View, token: i64, q0: i64, steps: usize) !void {
+         if (steps == 0 or steps > max_drafts or q0 < 1 or token < 0 or token >= e.c.vocab) return error.BadDraftPass;
+         if (view.position + 1 != @as(usize, @intCast(q0))) return error.DFly2StaleAnchor;
++        if (dr.capture) |*cap| {
++            try cap.begin(q0, token, steps);
++            try cap.device(e, "target_hidden", view.hidden, D * 2, 0);
++            try cap.device(e, "anchor_mask_embeddings", e.w.embed + @as(u64, @intCast(token)) * D * 2, D * 2, 0);
++            try cap.device(e, "anchor_mask_embeddings", e.w.embed + @as(u64, @intCast(mask_token)) * D * 2, D * 2, D * 2);
++        }
++        try dr.profile.startPass(e.s);
+         var ids: [R]i64 = @splat(mask_token);
+         ids[0] = token;
+         var positions: [R]i64 = undefined;
+         for (0..R) |i| positions[i] = q0 + @as(i64, @intCast(i));
+         try prompt.upload(e, dr.ids, &ids, @sizeOf(@TypeOf(ids)));
+         try prompt.upload(e, dr.positions, &positions, @sizeOf(@TypeOf(positions)));
++        if (dr.device_feedback) try prompt.upload(e, dr.feedback_ids, &ids, @sizeOf(@TypeOf(ids)));
++        var stamp = try dr.profile.begin(e.s, .context);
+         for (view.stages, 0..) |v, j| {
+             try dr.k.run(e.s, "gather_context", .{ 640, 1, 1 }, 256, .{ v.codes, v.scales, v.indices, v.ring, dr.context[j], dr.valid[j], @as(i64, @intCast(v.compressed_base)), @as(i64, @intCast(v.ring_base)), ci(v.ring_rows), @as(i64, @intCast(v.anchor_position)), @as(i64, @intCast(v.window_start)) });
++            if (dr.capture) |*cap| {
++                try cap.device(e, "context", dr.context[j], 640 * HD * 2, j * 640 * HD * 2);
++                try cap.device(e, "valid", dr.valid[j], 640 * 4, j * 640 * 4);
++            }
+         }
++        try dr.profile.end(e.s, stamp);
++        stamp = try dr.profile.begin(e.s, .fusion);
+         try dr.concatNorm(e, e.w.embed + @as(u64, @intCast(token)) * D * 2, view.hidden, dr.w.mtp.enorm, dr.w.mtp.hnorm);
+         try linear(e, dr.w.mtp.eh_proj, dr.concat, dr.fusion, 1);
+         try dr.k.run(e.s, "init_block", .{ R, 1, 1 }, 256, .{ e.w.embed, dr.ids, dr.fusion, dr.w.mtp.gate, dr.h, dr.pre, ci(D), ci(R) });
++        if (dr.capture) |*cap| {
++            try cap.device(e, "initial_block", dr.h, R * 4 * D * 2, 0);
++            try cap.device(e, "positions", dr.positions, R * 8, 0);
++        }
++        try dr.profile.end(e.s, stamp);
+         var h = dr.h;
+         var spare = dr.h_alt;
+         var pre = dr.pre;
+@@ -335,17 +460,42 @@ pub const Drafter = struct {
+             pending = true;
+             std.mem.swap(u64, &pre, &next_pre);
+         }
++        stamp = try dr.profile.begin(e.s, .mixing);
+         try basic.hcPost(e.t, dr.gathered, h, dr.post, dr.comb, h, 2, R, D);
+         try basic.collapse(e.t, h, pre, dr.collapsed, R, D);
+-        try basic.rmsnorm(e.t, dr.collapsed, D, dr.w.final_norm, dr.normalized, D, e.c.eps, R, D);
++        try basic.rmsnorm(e.t, dr.collapsed, D, if (dr.reference_norms) dr.norm_ones else dr.w.final_norm, dr.normalized, D, e.c.eps, R, D);
++        if (dr.reference_norms) try dr.normWeight(e, dr.normalized, dr.w.final_norm, R);
++        if (dr.capture) |*cap| try cap.device(e, "normalized", dr.normalized, R * D * 2, 0);
++        try dr.profile.end(e.s, stamp);
+         try dr.correctionInput(e, 0, token);
+         var previous = token;
+         for (1..steps + 1) |slot| {
+             try dr.correctionInput(e, slot, previous);
+             try dr.correct(e, slot);
+-            previous = try dr.sample(e, ch);
+-            dr.drafts[0][slot - 1] = previous;
++            if (dr.capture) |*cap| try cap.device(e, "corrected", dr.corrected, D * 2, (slot - 1) * D * 2);
++            if (dr.device_feedback) {
++                try dr.sampleDevice(e, ch, slot);
++            } else {
++                previous = try dr.sample(e, ch);
++                dr.drafts[0][slot - 1] = previous;
++            }
++        }
++        if (dr.device_feedback) {
++            stamp = try dr.profile.begin(e.s, .feedback_gap);
++            try e.s.synchronize();
++            var feedback: [R]i64 = undefined;
++            try e.d.check(e.d.api.cuMemcpyDtoH_v2(&feedback, dr.feedback_ids, (steps + 1) * 8), "cuMemcpyDtoH");
++            if (dr.profile.enabled) dr.profile.host_readbacks += 1;
++            try dr.profile.end(e.s, stamp);
++            // Invalid device winners use -1 and a safe embedding row until
++            // this check. No invalid token may reach target verification.
++            for (feedback[1 .. steps + 1], 0..) |value, i| {
++                if (value < 0 or value >= e.c.vocab) return error.DFly2InvalidProposal;
++                dr.drafts[0][i] = value;
++            }
+         }
++        try dr.profile.finish(e.s, steps);
++        if (dr.capture) |*cap| try cap.finish(e, &dr.w.identity, dr.drafts[0][0..steps], dr.reference_norms);
+         dr.streams = 1;
+         dr.steps = steps;
+     }
+diff --git a/zig/src/families/dsv41/dfly_kernels.zig b/zig/src/families/dsv41/dfly_kernels.zig
+index f799dfd..8eb019a 100644
+--- a/zig/src/families/dsv41/dfly_kernels.zig
++++ b/zig/src/families/dsv41/dfly_kernels.zig
+@@ -5,6 +5,10 @@ const cuda = @import("cuda");
+ pub const Kernels = struct {
+     module: cuda.Module,
+     norm_concat: cuda.Function,
++    norm_concat_indexed: cuda.Function,
++    norm_concat_reference: cuda.Function,
++    norm_concat_indexed_reference: cuda.Function,
++    norm_weight: cuda.Function,
+     init_block: cuda.Function,
+     add: cuda.Function,
+     silu: cuda.Function,
+@@ -15,6 +19,8 @@ pub const Kernels = struct {
+     attention: cuda.Function,
+     block_attention: cuda.Function,
+     best: cuda.Function,
++    pad_best: cuda.Function,
++    select_best: cuda.Function,
+ 
+     pub fn load(d: *const cuda.Driver) !Kernels {
+         var m = try cuda.Module.load(d, cuda.kernels.dsv41_dfly2);
+diff --git a/zig/src/families/dsv41/lanes.zig b/zig/src/families/dsv41/lanes.zig
+index 82b2f8d..4920d8c 100644
+--- a/zig/src/families/dsv41/lanes.zig
++++ b/zig/src/families/dsv41/lanes.zig
+@@ -18,6 +18,7 @@ const lanes = @import("lanes");
+ const model = @import("model.zig");
+ const round = @import("round.zig");
+ const draft = @import("draft.zig");
++const dfly_policy = @import("dfly_policy.zig");
+ const sampling = @import("sampling.zig");
+ const link = @import("link.zig");
+ const cuda = @import("cuda");
+@@ -405,6 +406,7 @@ const Lane = struct {
+     held: [draft.max_block]u32 = undefined,
+     confs: [draft.max_block]f32 = undefined,
+     nheld: usize = 0,
++    policy: dfly_policy.State = .{},
+ };
+ 
+ extern "c" fn exp(x: f64) f64;
+@@ -459,6 +461,8 @@ pub const Lanes = struct {
+     built: Built = .{},
+     prof: ?Profile = null,
+     fix_k: ?usize = null, // a measurement (tf-dsv41-lanes --fix-k): K drafts a stream, chances 1 to K and 0 past it
++    dfly_adaptive: bool = false, // experimental observed acceptance and separately measured costs; default off
++    last_dfly_policy: ?dfly_policy.State = null, // released single-stream request, printed before admitting the next
+     solo_overhead: bool = false, // TF_DS_SOLO_OVERHEAD=1: a lone drafted stream's head windows cost the fixed draft allowance
+     draft_cal: f64 = 0.0, // TF_DS_T25_DRAFT_CAL: the weight of a round in each stream's draft-survival calibration (0: off)
+     cal_log: u32 = 0, // TF_DS_T25_CAL_LOG: every n-th calibrated verify of a stream prints to stderr (0: off)
+@@ -502,8 +506,9 @@ pub const Lanes = struct {
+         self.wire.deinit(self.gpa);
+     }
+ 
+-    pub fn backend(self: *Lanes) be.Backend {
+-        return .{ .ptr = self, .vtable = &.{
++    // Both tables have static storage. A runtime field inside an anonymous
++    // address-of literal would leave backend() returning a stack pointer.
++    const backend_vtable: be.Backend.VTable = .{
+             .prefill = prefillFn,
+             .prefill_part = prefillPartFn,
+             .first = firstFn,
+@@ -514,7 +519,16 @@ pub const Lanes = struct {
+             .draft = draftFn,
+             .probabilities = probabilitiesFn,
+             .release = releaseFn,
+-        } };
++    };
++    const policy_vtable: be.Backend.VTable = blk: {
++        var table = backend_vtable;
++        table.draft_depth = selectDepthFn;
++        break :blk table;
++    };
++
++    pub fn backend(self: *Lanes) be.Backend {
++        const selected = (self.dfly_adaptive or self.fix_k != null) and self.m.dfly != null;
++        return .{ .ptr = self, .vtable = if (selected) &policy_vtable else &backend_vtable };
+     }
+ 
+     /// The facts the round loop reads: windows of the pending row and up to the drafter's block, several streams'
+@@ -533,7 +547,7 @@ pub const Lanes = struct {
+             .solo_head_overhead_ms = if (drafting and self.solo_overhead) draft.draft_ms else null, // opt-in: the Python engine's fixed draft allowance
+             .draft_cal = if (self.m.dfly != null) 0 else self.draft_cal,
+             .cal_log = self.cal_log,
+-            .copy_proposals = self.m.dfly == null and !(drafting and self.no_copies), // the DFly2 validation lane uses its draft head alone
++            .copy_proposals = self.m.dfly == null and !self.no_copies, // the DFly2 validation lane uses its draft head alone
+             .streams_exact = true,
+             .hidden_rows = true,
+             .batch_rows = @intCast(self.m.eng.round_rows),
+@@ -1112,6 +1126,12 @@ pub const Lanes = struct {
+             const l = self.streams.getPtr(w.stream).?;
+             @memcpy(o.drafts[0..w.held], l.held[0..w.held]);
+             @memcpy(o.drafts[w.held..][0..w.tokens.len], w.tokens);
++            if (self.dfly_adaptive and w.tokens.len == 0) {
++                if (windows.len != 1) return error.DFlyPolicyNeedsSingleStream;
++                var kept: usize = 0;
++                while (kept < w.held and o.sampled[kept] == o.drafts[kept]) : (kept += 1) {}
++                try l.policy.observeVerify(w.held, kept, @as(f64, @floatFromInt(m.now() - t0)) / 1e6);
++            }
+             l.nheld = 0;
+         }
+     }
+@@ -1144,6 +1164,22 @@ pub const Lanes = struct {
+         }
+     }
+ 
++    fn selectDepthFn(ptr: *anyopaque, s: *lanes.Stream, allowed: u32) anyerror!u32 {
++        const self = of(ptr);
++        if (self.m.dfly == null) return allowed;
++        if (self.fix_k) |k| return @intCast(@min(allowed, k));
++        if (!self.dfly_adaptive) return allowed;
++        const l = self.streams.getPtr(s) orelse return error.UnknownStream;
++        var costs: [dfly_policy.max_depth + 1]f64 = undefined;
++        for (&costs, 0..) |*c, i| c.* = self.wc[i].ms;
++        return @intCast(try l.policy.choose(allowed, costs));
++    }
++
++    pub fn policySummary(self: *const Lanes, s: *const lanes.Stream) ?dfly_policy.State {
++        if (self.streams.get(s)) |l| return l.policy;
++        return self.last_dfly_policy;
++    }
++
+     /// One drafter pass for every stream asked: its pending token at its new length, `depth` drafts held.
+     fn draftFn(ptr: *anyopaque, requests: []const be.DraftRequest) anyerror!void {
+         const self = of(ptr);
+@@ -1175,6 +1211,7 @@ pub const Lanes = struct {
+             n += 1;
+         }
+         if (n == 0) return;
++        const policy_t0 = if (self.dfly_adaptive) m.now() else 0;
+         if (try self.begin(.pass)) {
+             try self.wire.int(gpa, u32, @intCast(n));
+             try self.wire.int(gpa, u32, @intCast(steps));
+@@ -1187,6 +1224,10 @@ pub const Lanes = struct {
+         }
+         const t0 = m.now();
+         try m.pass(tokens[0..n], q0[0..n], slots[0..n], steps);
++        if (self.dfly_adaptive) {
++            if (n != 1) return error.DFlyPolicyNeedsSingleStream;
++            try asked[0].policy.observeDraft(steps, @as(f64, @floatFromInt(m.now() - policy_t0)) / 1e6);
++        }
+         if (self.prof) |*p| {
+             p.pass += m.now() - t0;
+             p.passes += 1;
+@@ -1480,6 +1521,7 @@ pub const Lanes = struct {
+             if (self.kv) |k| k.forgetKey(@intFromPtr(s)); // (a request that never placed: its refusal record goes)
+             return;
+         };
++        if (self.dfly_adaptive) self.last_dfly_policy = kv.value.policy;
+         self.used[kv.value.slot] = false;
+         if (self.kv) |k| k.release(kv.value.id) catch |err| std.log.err("dsv41: the parts' planner kept a released stream: {s}", .{@errorName(err)});
+     }
+diff --git a/zig/src/families/dsv41/lanes_main.zig b/zig/src/families/dsv41/lanes_main.zig
+index 00e73c4..2a78de2 100644
+--- a/zig/src/families/dsv41/lanes_main.zig
++++ b/zig/src/families/dsv41/lanes_main.zig
+@@ -22,7 +22,7 @@ const cuda = @import("cuda");
+ const dsv41 = @import("dsv41");
+ const lanes = @import("lanes");
+ 
+-const usage = "usage: tf-dsv41-lanes MODEL_DIR CACHE_DIR RANK WORLD MASTER_IP PORT KIT_DIR --requests FILE [--parallel N] [--pool P] [--drafts 0|1] [--arena-gib G] [--engram DIR --token-map FILE] [--rdma DEVICES --rdma-kernels FATBIN] [--graphs 0|1 [--graph-cap N]] [--fix-k K] [--round-rows R] [--streams S] [--spill-dir DIR --spill-gib G [--spill-min-free-gib F] [--spill-min-tokens T] [--spill-quota Q] [--spill-staging-mib M] [--prompt-cache-gib G]]\n";
++const usage = "usage: tf-dsv41-lanes MODEL_DIR CACHE_DIR RANK WORLD MASTER_IP PORT KIT_DIR --requests FILE [--parallel N] [--pool P] [--drafts 0|1] [--arena-gib G] [--engram DIR --token-map FILE] [--rdma DEVICES --rdma-kernels FATBIN] [--graphs 0|1 [--graph-cap N]] [--fix-k K] [--copies 0|1] [--dfly-adaptive 0|1] [--round-rows R] [--streams S] [--spill-dir DIR --spill-gib G [--spill-min-free-gib F] [--spill-min-tokens T] [--spill-quota Q] [--spill-staging-mib M] [--prompt-cache-gib G]]\n";
+ 
+ const pcache = dsv41.spill_tier.prompt_cache;
+ 
+@@ -126,6 +126,8 @@ pub fn main(init: std.process.Init) !u8 {
+     var phases = false; // --profile 2: also the rounds' GPU time by phase (eager rounds)
+     var serial = false; // --serial 1: every stream without drafts (one row a round)
+     var fix_k: ?usize = null; // --fix-k K: every drafted stream verifies K drafts a round (a cost measurement)
++    var copies: ?bool = null; // unset preserves DSpark on / DFly2 off
++    var dfly_adaptive = false;
+     var cache_gib: f64 = 4; // --prompt-cache-gib: rank 0's prompt cache with the spill tier
+     var ai: usize = 8;
+     while (ai + 1 < args.len) : (ai += 2) {
+@@ -163,6 +165,10 @@ pub fn main(init: std.process.Init) !u8 {
+             serial = !std.mem.eql(u8, val, "0");
+         } else if (std.mem.eql(u8, key, "--fix-k")) {
+             fix_k = try std.fmt.parseInt(usize, val, 10);
++        } else if (std.mem.eql(u8, key, "--copies")) {
++            copies = try parseBit(val);
++        } else if (std.mem.eql(u8, key, "--dfly-adaptive")) {
++            dfly_adaptive = try parseBit(val);
+         } else if (std.mem.eql(u8, key, "--rdma")) {
+             o.rdma_devices = val;
+         } else if (std.mem.eql(u8, key, "--profile")) {
+@@ -188,6 +194,10 @@ pub fn main(init: std.process.Init) !u8 {
+             return error.BadArgument;
+         }
+     }
++    const dfly_mode = o.drafts and (o.dfly2_dir orelse spillEnv("TF_DS_DFLY2_DIR")) != null;
++    if (dfly_adaptive and (!dfly_mode or serial or fix_k != null)) return error.BadDFlyAdaptiveMode;
++    if (dfly_mode and copies == true) return error.DFlyCopiesNotValidated;
++    if (fix_k) |k| if (k > 5) return error.BadFixK;
+     const spill = try dsv41.spill_tier.Settings.follower(spillFlag, spillEnv);
+     // the spill tier's refusals from the arguments and environment alone, before the weights load
+     if (spill != null) {
+@@ -220,6 +230,10 @@ pub fn main(init: std.process.Init) !u8 {
+     const t0 = std.Io.Timestamp.now(io, .awake);
+     const m = try dsv41.model.Model.open(gpa, io, &ctx, o);
+     defer m.close();
++    defer if (m.dfly) |*dr| {
++        dr.profile.writeSummary(w, o.rank) catch {};
++        w.flush() catch {};
++    };
+     try w.print("{{\"rank\": {d}, \"loaded_s\": {d:.1}, \"pool\": {d}, \"drafts\": {}, \"arena_used\": {d}, \"arena_reserved\": {d}}}\n", .{ o.rank, seconds(t0, io), o.pool, m.drafting(), m.arena.used, m.arena.reserved });
+     try w.flush();
+ 
+@@ -298,6 +312,8 @@ pub fn main(init: std.process.Init) !u8 {
+     };
+     try ln.startKv();
+     ln.fix_k = fix_k;
++    ln.no_copies = if (copies) |enabled| !enabled else false;
++    ln.dfly_adaptive = dfly_adaptive;
+     var snap_vt: pcache.Snapshots.VTable = undefined;
+     var store_v: pcache.Store = undefined;
+     var store: ?*pcache.Store = null;
+@@ -325,6 +341,10 @@ pub fn main(init: std.process.Init) !u8 {
+     const rows: u32 = @intCast(m.eng.round_rows);
+     var cfg = try lanes.Config.init(gpa, ln.facts(), rows, rows - 1);
+     defer cfg.deinit(gpa);
++    try w.print("{{\"rank\":0,\"draft_policy_options\":{{\"dfly_adaptive\":{},\"copy_proposals\":{},\"fixed_depth\":", .{ dfly_adaptive, cfg.copy_proposals });
++    if (fix_k) |k| try w.print("{d}", .{k}) else try w.print("null", .{});
++    try w.print("}}}}\n", .{});
++    try w.flush();
+     var clock: lanes.backend.WallClock = .{ .io = io };
+     var core = lanes.Engine.init(gpa, &cfg, ln.backend(), clock.clock());
+     defer core.deinit();
+@@ -404,6 +424,10 @@ pub fn main(init: std.process.Init) !u8 {
+             try w.print("{{\"rank\": 0, \"request\": {d}, \"name\": \"{s}\", \"tokens\": {d}, \"reason\": \"{s}\", \"token_sha\": \"{s}\", \"expect_sha\": \"{s}\", \"equal\": {}, \"rounds\": {d}, \"drafted\": {d}, \"accepted\": {d}, \"min_rows\": {d}, \"seconds\": {d:.2}, \"reply\": [", .{ j.index, j.req.name, reply.len, j.stream.reason.name(), sha, j.req.expect_sha orelse "", equal, j.stream.rounds, j.stream.drafted, j.stream.accepted, j.stream.min_rows, seconds(j.began, io) });
+             for (reply, 0..) |t, k| try w.print("{s}{d}", .{ if (k == 0) "" else ", ", t });
+             try w.print("]}}\n", .{});
++            if (dfly_adaptive) {
++                const policy = ln.policySummary(&j.stream) orelse return error.MissingDFlyPolicyEvidence;
++                try policy.writeSummary(w, j.index);
++            }
+             try w.flush();
+             j.stream.deinit(gpa);
+             j.proposer.deinit();
+@@ -452,6 +476,12 @@ pub fn main(init: std.process.Init) !u8 {
+     return if (all_equal) 0 else 1;
+ }
+ 
++fn parseBit(value: []const u8) !bool {
++    if (std.mem.eql(u8, value, "0")) return false;
++    if (std.mem.eql(u8, value, "1")) return true;
++    return error.BadArgument;
++}
++
+ fn seconds(t: std.Io.Timestamp, io: std.Io) f64 {
+     return @as(f64, @floatFromInt(t.durationTo(std.Io.Timestamp.now(io, .awake)).nanoseconds)) / 1e9;
+ }
+diff --git a/zig/src/families/dsv41/model.zig b/zig/src/families/dsv41/model.zig
+index 2d328f2..5e91d3d 100644
+--- a/zig/src/families/dsv41/model.zig
++++ b/zig/src/families/dsv41/model.zig
+@@ -398,6 +398,7 @@ pub const Model = struct {
+             m.eng.dfly = &m.dfly_capture.?;
+             try m.dfly_capture.?.checkTarget(&m.eng);
+             m.dfly = try dfly.Drafter.init(&m.eng, &m.arena, &m.dfly_w.?);
++            m.dfly.?.capture = try @import("dfly_capture.zig").Capture.init(a, io, o.rank);
+             std.log.info("dsv41: experimental DFly2, TP2, five proposals, target verification unchanged", .{});
+         } else if (o.drafts) {
+             m.dpool = try draft.Pool.init(&m.eng, &m.arena, m.streams);
+@@ -495,7 +496,7 @@ pub const Model = struct {
+     /// (the follower lane has no --context). Ranks on different prompt rows refuse too (PromptRowsMismatch): they would
+     /// launch different kernels for one chunk and sum wrong partials.
+     fn agree(m: *Model, o: Options, want_mode: anyerror!shard.Mode, want_pool: anyerror!usize, want_window: anyerror!?usize) !Agreed {
+-        const n: usize = 7;
++        const n: usize = 11;
+         const bad_setting: u64 = 0xff;
+         const mine = [n]u64{
+             if (want_mode) |x| @backingInt(x) else |_| bad_setting,
+@@ -505,6 +506,10 @@ pub const Model = struct {
+             o.window_rows,
+             o.gemm_rows,
+             if (!o.drafts) 0 else if ((o.dfly2_dir orelse envOf("TF_DS_DFLY2_DIR")) != null) 2 else 1,
++            experimentFlag("TF_DFLY_DEVICE_FEEDBACK"),
++            experimentFlag("TF_DFLY_RDMA_BEST"),
++            experimentFlag("TF_DFLY_PROFILE"),
++            experimentFlag("TF_DFLY_REFERENCE_NORMS"),
+         };
+         var dev = try cuda.DeviceBuffer.alloc(m.ctx.d, (1 + o.world) * n * 8);
+         defer dev.free();
+@@ -523,12 +528,20 @@ pub const Model = struct {
+             if (r[0] != all[0][0] or r[1] != all[0][1] or r[3] != all[0][3]) return error.KvShardMismatch;
+             if (r[4] != all[0][4] or r[5] != all[0][5]) return error.PromptRowsMismatch;
+             if (r[6] != all[0][6]) return error.DrafterMismatch;
++            for (7..n) |j| if (r[j] == bad_setting or r[j] != all[0][j]) return error.DFly2SettingsMismatch;
+             if (r[2] != 0 and all[0][2] != 0 and r[2] != all[0][2]) return error.KvShardMismatch;
+         }
+         const window = if (own_window) |w| w else if (all[0][2] != 0) all[0][2] else pool;
+         return .{ .mode = mode, .pool = pool, .window = window };
+     }
+ 
++    fn experimentFlag(name: [:0]const u8) u64 {
++        const value = envOf(name) orelse return 0;
++        if (std.mem.eql(u8, value, "0")) return 0;
++        if (std.mem.eql(u8, value, "1")) return 1;
++        return 0xff;
++    }
++
+     /// Both ranks must load the same converter manifest, including source revision, layout and rank checksums.
+     fn agreeDrafter(m: *Model, identity: [32]u8) !void {
+         var dev = try cuda.DeviceBuffer.alloc(m.ctx.d, 96);
+diff --git a/zig/src/families/dsv41/weights.zig b/zig/src/families/dsv41/weights.zig
+index 0ae9745..413f232 100644
+--- a/zig/src/families/dsv41/weights.zig
++++ b/zig/src/families/dsv41/weights.zig
+@@ -635,6 +635,30 @@ const Loader = struct {
+ };
+ 
+ /// Every tensor of rank `s` on device `d`, from `src` (weights.py _load, in its order).
++/// Diagnostic-only loader for a TP2 vocabulary half. Reuses the serving loader's
++/// trellis conversion and uploads, without reading target layers or embeddings.
++pub fn loadHead(gpa: std.mem.Allocator, d: *const cuda.Driver, src: Source, c: Config, s: plan.Split) !Weights {
++    if (s.world != 2 or s.rank > 1 or s.pair != null) return error.HeadProbeNeedsTP2;
++    if (src != .cache) return error.HeadProbeNeedsRankCache;
++    const vr = s.headCols(c);
++    var key: [256]u8 = undefined;
++    const tr = src.cache.index.get(try plan.partKey(&key, "head", vr, null, "tr")) orelse return error.MissingEntry;
++    if (tr.dtype != .i16 or tr.rank != 3 or tr.dim(0) * 16 != c.hidden or tr.dim(1) * 16 != vr[1] - vr[0]) return error.UnexpectedTensor;
++    if (tr.dim(2) == 0 or tr.dim(2) % 8 != 0 or tr.dim(2) / 8 > 16) return error.UnexpectedTensor;
++    for ([_][]const u8{ "suh", "svh" }, [_]usize{ c.hidden, vr[1] - vr[0] }) |part, width| {
++        const entry = src.cache.index.get(try plan.partKey(&key, "head", vr, null, part)) orelse return error.MissingEntry;
++        if (entry.dtype != .f16 or entry.rank != 1 or entry.dim(0) != width) return error.UnexpectedTensor;
++    }
++    var w: Weights = .{ .gpa = gpa };
++    errdefer w.deinit();
++    var loader: Loader = .{ .gpa = gpa, .d = d, .src = src, .w = &w };
++    defer loader.deinit();
++    w.head = try loader.linear("head", vr, null);
++    w.vocab_lo = vr[0];
++    w.vocab_hi = vr[1];
++    return w;
++}
++
+ pub fn load(gpa: std.mem.Allocator, d: *const cuda.Driver, src: Source, c: Config, s: plan.Split, dspark: bool) !Weights {
+     var w: Weights = .{ .gpa = gpa };
+     errdefer w.deinit();
+diff --git a/zig/src/families/dsv41/dfly_capture.zig b/zig/src/families/dsv41/dfly_capture.zig
+new file mode 100644
+index 0000000..2f2e3dc
+--- /dev/null
++++ b/zig/src/families/dsv41/dfly_capture.zig
+@@ -0,0 +1,99 @@
++//! Explicit, bounded diagnostic captures. Disabled unless a directory is supplied.
++//! Capturing synchronizes the stream; its timings must not be used as benchmarks.
++const std = @import("std");
++const prompt = @import("prompt.zig");
++const Engine = prompt.Engine;
++
++fn env(name: [:0]const u8) ?[]const u8 {
++    return if (std.c.getenv(name)) |s| std.mem.span(s) else null;
++}
++
++fn hashEnv(name: [:0]const u8) ![]const u8 {
++    const s = env(name) orelse return error.MissingCaptureProvenance;
++    if (s.len != 64) return error.BadCaptureProvenance;
++    for (s) |c| if (!((c >= '0' and c <= '9') or (c >= 'a' and c <= 'f'))) return error.BadCaptureProvenance;
++    return s;
++}
++
++pub const Capture = struct {
++    a: std.mem.Allocator,
++    io: std.Io,
++    root: []const u8,
++    binary_sha: []const u8,
++    requests_sha: []const u8,
++    limit: usize,
++    every: usize,
++    seen: usize = 0,
++    count: usize = 0,
++    active: ?[]const u8 = null,
++    q0: i64 = 0,
++    anchor: i64 = 0,
++
++    pub fn init(a: std.mem.Allocator, io: std.Io, rank: u32) !?Capture {
++        const root = env("TF_DFLY_CAPTURE_DIR") orelse return null;
++        if (rank != 0) return null;
++        if (!std.fs.path.isAbsolute(root)) return error.CaptureNeedsAbsolutePath;
++        const limit = try std.fmt.parseInt(usize, env("TF_DFLY_CAPTURE_LIMIT") orelse "4", 10);
++        const every = try std.fmt.parseInt(usize, env("TF_DFLY_CAPTURE_EVERY") orelse "1", 10);
++        if (limit == 0 or limit > 64 or every == 0 or every > 4096) return error.BadCaptureLimit;
++        return .{ .a = a, .io = io, .root = root, .limit = limit, .every = every,
++            .binary_sha = try hashEnv("TF_DFLY_CAPTURE_BINARY_SHA256"),
++            .requests_sha = try hashEnv("TF_DFLY_CAPTURE_REQUESTS_SHA256") };
++    }
++
++    pub fn begin(c: *Capture, q0: i64, anchor: i64, steps: usize) !void {
++        c.active = null;
++        const pass = c.seen;
++        c.seen += 1;
++        if (c.count >= c.limit or pass % c.every != 0) return;
++        if (steps != 5) return error.CaptureRequiresFiveDrafts;
++        const path = try std.fmt.allocPrint(c.a, "{s}/capture-{d:0>6}", .{ c.root, pass });
++        try std.Io.Dir.cwd().createDirPath(c.io, path);
++        const marker = try std.fs.path.join(c.a, &.{ path, "capture.started" });
++        var file = try std.Io.Dir.cwd().createFile(c.io, marker, .{ .exclusive = true });
++        file.close(c.io);
++        c.active = path;
++        c.q0 = q0;
++        c.anchor = anchor;
++        c.count += 1;
++    }
++
++    pub fn host(c: *Capture, name: []const u8, bytes: []const u8, offset: u64) !void {
++        const dir = c.active orelse return;
++        const path = try std.fmt.allocPrint(c.a, "{s}/{s}.bin", .{ dir, name });
++        var file = if (offset == 0)
++            try std.Io.Dir.cwd().createFile(c.io, path, .{ .exclusive = true })
++        else
++            try std.Io.Dir.cwd().openFile(c.io, path, .{ .mode = .read_write });
++        defer file.close(c.io);
++        try file.writePositionalAll(c.io, bytes, offset);
++    }
++
++    pub fn device(c: *Capture, e: *const Engine, name: []const u8, pointer: u64, bytes: usize, offset: u64) !void {
++        if (c.active == null) return;
++        try e.s.synchronize();
++        const host_bytes = try c.a.alloc(u8, bytes);
++        defer c.a.free(host_bytes);
++        try e.d.check(e.d.api.cuMemcpyDtoH_v2(host_bytes.ptr, pointer, bytes), "DFlyCaptureDtoH");
++        try c.host(name, host_bytes, offset);
++    }
++
++    pub fn finish(c: *Capture, e: *const Engine, identity: *const [32]u8, proposals: []const i64, reference_norms: bool) !void {
++        const dir = c.active orelse return;
++        if (proposals.len != 5) return error.CaptureRequiresFiveDrafts;
++        try c.host("proposals", std.mem.sliceAsBytes(proposals), 0);
++        for (0..6) |slot| {
++            const previous = if (slot < 2) c.anchor else proposals[slot - 2];
++            if (previous < 0 or previous >= e.c.vocab) return error.BadCaptureToken;
++            try c.device(e, "previous_embeddings", e.w.embed + @as(u64, @intCast(previous)) * 5120 * 2, 5120 * 2, slot * 5120 * 2);
++        }
++        const data = try std.fmt.allocPrint(c.a,
++            "{{\"schema\":\"dfly2-reference-capture-v1\",\"q0\":{d},\"anchor_token\":{d},\"steps\":5,\"world_size\":2,\"native\":{{\"binary_sha256\":\"{s}\",\"requests_sha256\":\"{s}\",\"checkpoint_manifest_sha256\":\"{x}\",\"rms_norm_eps\":{e},\"norm_rounding\":\"{s}\"}}}}\n",
++            .{ c.q0, c.anchor, c.binary_sha, c.requests_sha, identity, e.c.eps, if (reference_norms) "double" else "fused" });
++        const path = try std.fs.path.join(c.a, &.{ dir, "capture.json" });
++        var file = try std.Io.Dir.cwd().createFile(c.io, path, .{ .exclusive = true });
++        defer file.close(c.io);
++        try file.writePositionalAll(c.io, data, 0);
++        c.active = null;
++    }
++};
+diff --git a/zig/src/families/dsv41/dfly_head_main.zig b/zig/src/families/dsv41/dfly_head_main.zig
+new file mode 100644
+index 0000000..a852f4b
+--- /dev/null
++++ b/zig/src/families/dsv41/dfly_head_main.zig
+@@ -0,0 +1,148 @@
++//! Diagnostic shared target head. No target layers, NCCL, services, or generation.
++//! Both rank-cache halves must be accessible on this machine; one half is loaded
++//! at a time, retaining its original TP2 EXL3 plan. Every input is scored at m=1.
++const std = @import("std");
++const builtin = @import("builtin");
++const cuda = @import("cuda");
++const dsv41 = @import("dsv41");
++const linear = dsv41.exl3_linear;
++
++const hidden = 5120;
++const vocab = 129280;
++const half_vocab = vocab / 2;
++const max_rows = 128;
++
++const TopTwo = struct { token: usize, score: f32, runnerup_token: usize, runnerup_score: f32 };
++
++/// Ascending scan and strict comparison preserve the native lower-id tie break.
++fn topTwo(values: []const f32) !TopTwo {
++    if (values.len < 2) return error.TooFewLogits;
++    var best: usize = 0;
++    var next: usize = 1;
++    for (values) |value| if (!std.math.isFinite(value)) return error.NonfiniteLogits;
++    if (values[next] > values[best]) std.mem.swap(usize, &best, &next);
++    for (2..values.len) |i| {
++        if (values[i] > values[best]) {
++            next = best;
++            best = i;
++        } else if (values[i] > values[next]) {
++            next = i;
++        }
++    }
++    return .{ .token = best, .score = values[best], .runnerup_token = next, .runnerup_score = values[next] };
++}
++
++fn writeNew(io: std.Io, dir: std.Io.Dir, name: []const u8, bytes: []const u8) !void {
++    var file = try dir.createFile(io, name, .{ .exclusive = true });
++    defer file.close(io);
++    try file.writePositionalAll(io, bytes, 0);
++}
++
++pub fn main(init: std.process.Init) !u8 {
++    if (builtin.cpu.arch.endian() != .little) return error.RequiresLittleEndian;
++    const a = init.arena.allocator();
++    const io = init.io;
++    const args = try init.minimal.args.toSlice(a);
++    if (args.len != 7) {
++        std.debug.print("usage: tf-dsv41-dfly-head TARGET_MODEL_DIR RANK0_CACHE_FILE RANK1_CACHE_FILE GROUPED_CUBIN INPUT_BF16 OUTPUT_DIR\n", .{});
++        return 2;
++    }
++    const cfg = try dsv41.Config.read(a, io, args[1]);
++    if (cfg.hidden != hidden or cfg.vocab != vocab) return error.UnexpectedTargetShape;
++    const input = try std.Io.Dir.cwd().readFileAlloc(io, args[5], a, .limited(max_rows * hidden * 2));
++    if (input.len == 0 or input.len % (hidden * 2) != 0) return error.BadInputRows;
++    const rows = input.len / (hidden * 2);
++    for (0..input.len / 2) |i| {
++        const bf = std.mem.readInt(u16, input[2 * i ..][0..2], .little);
++        if ((bf & 0x7f80) == 0x7f80) return error.NonfiniteInput;
++    }
++    const cubin = try std.Io.Dir.cwd().readFileAllocOptions(io, args[4], a, .limited(1 << 28), .@"16", null);
++    // Refuse an existing output directory, preserving every earlier diagnostic.
++    try std.Io.Dir.cwd().createDir(io, args[6], .default_dir);
++    var out = try std.Io.Dir.cwd().openDir(io, args[6], .{});
++    defer out.close(io);
++    try writeNew(io, out, "head.started", "dfly2-head-probe-v1\n");
++    var driver = try cuda.Driver.open();
++    defer driver.close();
++    var context = try cuda.Context.init(&driver, 0);
++    defer context.deinit();
++    var stream = try cuda.Stream.init(&driver, true);
++    defer stream.deinit();
++    var kernels = try linear.Kernels.load(&driver, cubin);
++    defer kernels.unload();
++    var x = try cuda.DeviceBuffer.alloc(&driver, hidden * 2);
++    defer x.free();
++    var xh = try cuda.DeviceBuffer.alloc(&driver, hidden * 2);
++    defer xh.free();
++    var y = try cuda.DeviceBuffer.alloc(&driver, half_vocab * 4);
++    defer y.free();
++    var counters = try cuda.DeviceBuffer.alloc(&driver, 8 * (half_vocab / 128) * 4);
++    defer counters.free();
++    const logits = try a.alloc(f32, rows * vocab);
++    var halves: [2]struct { k2: u32, sk: u32, wk: u32, bytes: u64 } = undefined;
++    for (0..2) |rank| {
++        // The rank cache parser reads only its small trailing index. loadHead then
++        // reads the three head tensors, without prefetching unrelated target data.
++        const cache_path = args[2 + rank];
++        var ix = try dsv41.rank_cache.open(init.gpa, io, std.Io.Dir.cwd(), cache_path);
++        defer ix.deinit();
++        var file = try std.Io.Dir.cwd().openFile(io, cache_path, .{});
++        defer file.close(io);
++        var w = try dsv41.weights.loadHead(init.gpa, &driver, .{ .cache = .{ .file = file, .index = &ix, .io = io } }, cfg, .{ .rank = @intCast(rank), .world = 2 });
++        defer w.deinit();
++        // Loader uploads are synchronous pageable copies on the default stream;
++        // finish their DMA before the nonblocking diagnostic stream reads them.
++        try context.synchronize();
++        const p = linear.plan(w.head.k, w.head.n);
++        halves[rank] = .{ .k2 = w.head.k2, .sk = p.sk, .wk = p.wk, .bytes = w.bytes };
++        var z = try cuda.DeviceBuffer.alloc(&driver, linear.zFloats(&.{w.head}, 1) * 4);
++        defer z.free();
++        for (0..rows) |row| {
++            try x.uploadAsync(0, input[row * hidden * 2 ..][0 .. hidden * 2], stream.handle);
++            try xh.fill8(0, stream.handle);
++            try y.fill32(0x7fc00000, stream.handle); // detect unwritten output
++            try counters.fill32(0, stream.handle);
++            try z.fill32(0, stream.handle);
++            const calls = [_]linear.Call{.{ .layer = w.head, .x = x.ptr, .ldx = hidden, .x_dtype = .bf16,
++                .xh = xh.ptr, .y = y.ptr, .ldy = half_vocab, .y_dtype = .f32, .counters = counters.ptr }};
++            // Exact serving grouped path: BF16 input, FP16 rotation, F32 head,
++            // original half's split-K plan, PDL and L2 discard flags unchanged.
++            try linear.rotMany(&kernels, stream, &calls, 1, true);
++            try linear.glinear(&kernels, stream, &calls, 1, z.ptr, true, true);
++            try stream.synchronize();
++            const start = row * vocab + rank * half_vocab;
++            try y.download(0, std.mem.sliceAsBytes(logits[start..][0..half_vocab]));
++        }
++    }
++    try writeNew(io, out, "logits.bin", std.mem.sliceAsBytes(logits));
++    var input_sha: [32]u8 = undefined;
++    var cubin_sha: [32]u8 = undefined;
++    var logits_sha: [32]u8 = undefined;
++    std.crypto.hash.sha2.Sha256.hash(input, &input_sha, .{});
++    std.crypto.hash.sha2.Sha256.hash(cubin, &cubin_sha, .{});
++    std.crypto.hash.sha2.Sha256.hash(std.mem.sliceAsBytes(logits), &logits_sha, .{});
++    var json: std.ArrayList(u8) = .empty;
++    defer json.deinit(a);
++    try json.print(a, "{{\"schema\":\"dfly2-head-probe-v1\",\"rows\":{d},\"vocab\":{d},\"m_per_launch\":1,\"input_sha256\":\"{x}\",\"cubin_sha256\":\"{x}\",\"logits_sha256\":\"{x}\",\"sm\":{d},\"halves\":[", .{ rows, vocab, &input_sha, &cubin_sha, &logits_sha, try context.capability() });
++    for (halves, 0..) |h, rank| try json.print(a, "{s}{{\"rank\":{d},\"vocab_lo\":{d},\"vocab_hi\":{d},\"k2\":{d},\"sk\":{d},\"wk\":{d},\"device_weight_bytes\":{d}}}", .{ if (rank == 0) "" else ",", rank, rank * half_vocab, (rank + 1) * half_vocab, h.k2, h.sk, h.wk, h.bytes });
++    try json.appendSlice(a, "],\"results\":[");
++    for (0..rows) |row| {
++        const top = try topTwo(logits[row * vocab ..][0..vocab]);
++        try json.print(a, "{s}{{\"token\":{d},\"score\":{e},\"runnerup_token\":{d},\"runnerup_score\":{e},\"margin\":{e}}}", .{ if (row == 0) "" else ",", top.token, top.score, top.runnerup_token, top.runnerup_score, top.score - top.runnerup_score });
++    }
++    try json.appendSlice(a, "]}\n");
++    // Completion marker last, only after all logits are finite and top2 is valid.
++    try writeNew(io, out, "top1.json", json.items);
++    std.debug.print("head probe: {d} rows scored through both TP2 EXL3 halves\n", .{rows});
++    return 0;
++}
++
++test "head top two retain the lower token on ties and reject nonfinite logits" {
++    const t = try topTwo(&.{ 2, 5, 5, 1 });
++    try std.testing.expectEqual(@as(usize, 1), t.token);
++    try std.testing.expectEqual(@as(usize, 2), t.runnerup_token);
++    const u = try topTwo(&.{ 5, 5, 1, 5 });
++    try std.testing.expectEqual(@as(usize, 0), u.token);
++    try std.testing.expectEqual(@as(usize, 1), u.runnerup_token);
++    try std.testing.expectError(error.NonfiniteLogits, topTwo(&.{ 1, std.math.nan(f32) }));
++}
+diff --git a/zig/src/families/dsv41/dfly_policy.zig b/zig/src/families/dsv41/dfly_policy.zig
+new file mode 100644
+index 0000000..fc579b2
+--- /dev/null
++++ b/zig/src/families/dsv41/dfly_policy.zig
+@@ -0,0 +1,176 @@
++//! Opt-in, per-request DFly depth selection. Verification and drafting are timed
++//! separately so a change in the next depth cannot contaminate the previous cost.
++//! Six bounded calibration decisions measure depths 0..5, then a 5% margin
++//! protects plain decoding. Every 16 decisions a rotating depth is probed.
++//! No confidence-head probabilities are fabricated: survival is observed from
++//! exact accepted prefixes. This changes proposals only, never target sampling.
++const std = @import("std");
++
++pub const max_depth = 5;
++const calibration = [_]usize{ 0, 5, 1, 2, 3, 4 };
++pub const prior = [_]f64{ 0.85, 0.75, 0.70, 0.65, 0.60 };
++
++pub const Mean = struct {
++    value: f64 = 0,
++    count: u64 = 0,
++    pub fn add(m: *Mean, value: f64) !void {
++        if (!std.math.isFinite(value) or value <= 0) return error.BadPolicyTiming;
++        m.value = if (m.count == 0) value else m.value + 0.2 * (value - m.value);
++        m.count += 1;
++    }
++};
++
++pub const State = struct {
++    survival: [max_depth]f64 = prior,
++    tried: [max_depth]u64 = @splat(0),
++    accepted: [max_depth]u64 = @splat(0),
++    verify: [max_depth + 1]Mean = @splat(.{}),
++    draft: [max_depth + 1]Mean = @splat(.{}),
++    chosen: [max_depth + 1]u64 = @splat(0),
++    decisions: u64 = 0,
++    calibrations: u64 = 0,
++    probes: u64 = 0,
++    next_probe: usize = 0,
++
++    pub fn observeVerify(s: *State, proposed: usize, kept: usize, ms: f64) !void {
++        if (proposed > max_depth or kept > proposed) return error.BadPolicyObservation;
++        try s.verify[proposed].add(ms);
++        // A rejected prefix supplies no observation about its later positions.
++        for (0..@min(proposed, kept + 1)) |j| {
++            const hit: f64 = if (j < kept) 1 else 0;
++            s.tried[j] += 1;
++            s.accepted[j] += @intFromBool(j < kept);
++            s.survival[j] += 0.15 * (hit - s.survival[j]);
++        }
++    }
++
++    pub fn observeDraft(s: *State, depth: usize, ms: f64) !void {
++        if (depth == 0 or depth > max_depth) return error.BadPolicyObservation;
++        try s.draft[depth].add(ms);
++    }
++
++    pub fn expected(s: *const State, depth: usize) f64 {
++        var out: f64 = 1;
++        var p: f64 = 1;
++        for (s.survival[0..depth]) |x| {
++            p *= x;
++            out += p;
++        }
++        return out;
++    }
++
++    fn cost(s: *const State, depth: usize, forward_ms: [max_depth + 1]f64) f64 {
++        const target = if (s.verify[depth].count > 0) s.verify[depth].value else forward_ms[depth];
++        if (depth == 0) return target;
++        // Before a depth is measured, conservatively charge the largest observed
++        // pass, or the old integration's 28 ms seed. Calibration replaces this.
++        var fallback: f64 = 28;
++        var have = false;
++        for (s.draft[1..]) |m| if (m.count > 0) {
++            fallback = if (have) @max(fallback, m.value) else m.value;
++            have = true;
++        };
++        return target + if (s.draft[depth].count > 0) s.draft[depth].value else fallback;
++    }
++
++    pub fn choose(s: *State, allowed: usize, forward_ms: [max_depth + 1]f64) !usize {
++        if (allowed > max_depth) return error.BadPolicyDepth;
++        for (forward_ms) |ms| if (!std.math.isFinite(ms) or ms <= 0) return error.BadPolicyTiming;
++        var choice: usize = 0;
++        if (allowed > 0) {
++            if (s.decisions < calibration.len) {
++                choice = @min(allowed, calibration[@intCast(s.decisions)]);
++                s.calibrations += 1;
++            } else if ((s.decisions - calibration.len + 1) % 16 == 0) {
++                choice = @min(allowed, s.next_probe);
++                s.next_probe = (s.next_probe + 1) % (max_depth + 1);
++                s.probes += 1;
++            } else {
++                var best = 1.05 / s.cost(0, forward_ms);
++                for (1..allowed + 1) |depth| {
++                    const rate = s.expected(depth) / s.cost(depth, forward_ms);
++                    if (rate > best) {
++                        best = rate;
++                        choice = depth;
++                    }
++                }
++            }
++        }
++        s.decisions += 1;
++        s.chosen[choice] += 1;
++        return choice;
++    }
++
++    pub fn writeSummary(s: *const State, w: *std.Io.Writer, request: usize) !void {
++        try w.print("{{\"rank\":0,\"request\":{d},\"dfly_policy\":{{\"schema\":\"observed-depth-v1\",\"decisions\":{d},\"calibrations\":{d},\"probes\":{d},\"chosen_depth_counts\":[", .{ request, s.decisions, s.calibrations, s.probes });
++        for (s.chosen, 0..) |x, i| try w.print("{s}{d}", .{ if (i == 0) "" else ",", x });
++        try w.print("],\"conditional_survival\":[", .{});
++        for (s.survival, 0..) |x, i| try w.print("{s}{d:.6}", .{ if (i == 0) "" else ",", x });
++        try w.print("],\"tried\":[", .{});
++        for (s.tried, 0..) |x, i| try w.print("{s}{d}", .{ if (i == 0) "" else ",", x });
++        try w.print("],\"accepted\":[", .{});
++        for (s.accepted, 0..) |x, i| try w.print("{s}{d}", .{ if (i == 0) "" else ",", x });
++        try w.print("],\"verify_costs\":[", .{});
++        for (s.verify, 0..) |x, i| try w.print("{s}{{\"n\":{d},\"ewma_ms\":{d:.6}}}", .{ if (i == 0) "" else ",", x.count, x.value });
++        try w.print("],\"draft_costs\":[", .{});
++        for (s.draft, 0..) |x, i| try w.print("{s}{{\"n\":{d},\"ewma_ms\":{d:.6}}}", .{ if (i == 0) "" else ",", x.count, x.value });
++        try w.print("]}}}}\n", .{});
++    }
++};
++
++const forward = [_]f64{ 26, 31, 36, 41, 46, 51 };
++
++test "prefix rejection leaves unobserved later positions untouched" {
++    var s: State = .{};
++    try s.observeVerify(5, 1, 52);
++    try std.testing.expectEqualSlices(u64, &.{ 1, 1, 0, 0, 0 }, &s.tried);
++    try std.testing.expectEqualSlices(u64, &.{ 1, 0, 0, 0, 0 }, &s.accepted);
++    try std.testing.expect(s.survival[0] > prior[0]);
++    try std.testing.expect(s.survival[1] < prior[1]);
++    try std.testing.expectEqual(prior[2], s.survival[2]);
++}
++
++test "calibration measures plain and each draft depth once" {
++    var s: State = .{};
++    for (calibration) |d| try std.testing.expectEqual(d, try s.choose(5, forward));
++    try std.testing.expectEqualSlices(u64, &.{ 1, 1, 1, 1, 1, 1 }, &s.chosen);
++}
++
++test "low acceptance selects plain with bounded recurring probes" {
++    var s: State = .{ .survival = @splat(0.1), .decisions = calibration.len };
++    try std.testing.expectEqual(@as(usize, 0), try s.choose(5, forward));
++    for (0..96) |_| _ = try s.choose(5, forward);
++    try std.testing.expectEqual(@as(u64, 6), s.probes);
++    try std.testing.expect(s.chosen[5] > 0);
++    try std.testing.expect(s.chosen[0] > 80);
++}
++
++test "high acceptance and measured cheap drafting select deep drafting" {
++    var s: State = .{ .survival = @splat(0.99), .decisions = calibration.len };
++    for (1..6) |d| try s.observeDraft(d, 1);
++    try std.testing.expectEqual(@as(usize, 5), try s.choose(5, forward));
++}
++
++test "separate costs do not charge a following short pass to the prior deep verify" {
++    var s: State = .{};
++    try s.observeVerify(5, 3, 51);
++    try s.observeDraft(1, 12);
++    try std.testing.expectEqual(@as(f64, 51), s.verify[5].value);
++    try std.testing.expectEqual(@as(f64, 12), s.draft[1].value);
++    try std.testing.expectEqual(@as(u64, 0), s.draft[5].count);
++}
++
++test "policy never exceeds allowed depth including plain-only decisions" {
++    var s: State = .{};
++    for (0..100) |_| try std.testing.expect((try s.choose(2, forward)) <= 2);
++    try std.testing.expectEqual(@as(usize, 0), try s.choose(0, forward));
++}
++
++test "invalid observations fail before changing policy" {
++    var s: State = .{};
++    try std.testing.expectError(error.BadPolicyObservation, s.observeVerify(2, 3, 10));
++    try std.testing.expectError(error.BadPolicyTiming, s.observeVerify(2, 1, std.math.nan(f64)));
++    try std.testing.expectError(error.BadPolicyDepth, s.choose(6, forward));
++    try std.testing.expectEqual(@as(u64, 0), s.verify[2].count);
++    try std.testing.expectEqual(@as(u64, 0), s.decisions);
++}
+diff --git a/zig/src/families/dsv41/dfly_profile.zig b/zig/src/families/dsv41/dfly_profile.zig
+new file mode 100644
+index 0000000..7ffaef6
+--- /dev/null
++++ b/zig/src/families/dsv41/dfly_profile.zig
+@@ -0,0 +1,114 @@
++//! Optional stream-timeline diagnostics for DFly2. Disabled in speed benchmarks.
++//! Event gaps include GPU execution, collective waits and host enqueue gaps;
++//! they are NOT exclusive kernel execution times. Categories do not nest.
++const std = @import("std");
++const cuda = @import("cuda");
++
++pub const Category = enum {
++    context,
++    fusion,
++    mixing,
++    attention,
++    route,
++    routed_moe,
++    shared_moe,
++    correction_input,
++    correction_mlp,
++    correction_attention,
++    correction_merge,
++    head,
++    argmax,
++    collective,
++    feedback_gap,
++};
++const categories = @typeInfo(Category).@"enum".field_names.len;
++const max_intervals = 160;
++const Interval = struct { start: cuda.Event, end: cuda.Event, category: Category = .context };
++
++pub const Profile = struct {
++    enabled: bool = false,
++    events: [max_intervals]Interval = undefined,
++    made: usize = 0,
++    used: usize = 0,
++    passes: usize = 0,
++    pass_ms: f64 = 0,
++    depths: [6]usize = @splat(0),
++    ms: [categories]f64 = @splat(0),
++    calls: [categories]usize = @splat(0),
++    host_readbacks: usize = 0,
++
++    pub fn init(d: *const cuda.Driver, enabled: bool) !Profile {
++        var p: Profile = .{ .enabled = enabled };
++        if (!enabled) return p;
++        errdefer p.deinit();
++        for (&p.events) |*event| {
++            event.start = try cuda.Event.init(d, true);
++            event.end = cuda.Event.init(d, true) catch |err| {
++                event.start.deinit();
++                return err;
++            };
++            p.made += 1;
++        }
++        return p;
++    }
++
++    pub fn deinit(p: *Profile) void {
++        for (p.events[0..p.made]) |*event| {
++            event.start.deinit();
++            event.end.deinit();
++        }
++        p.made = 0;
++    }
++
++    pub fn begin(p: *Profile, s: cuda.Stream, category: Category) !?usize {
++        if (!p.enabled) return null;
++        if (p.used == p.events.len - 1) return error.DFly2ProfileCapacity;
++        const i = p.used;
++        p.used += 1;
++        p.events[i].category = category;
++        try p.events[i].start.record(s);
++        return i;
++    }
++
++    pub fn end(p: *Profile, s: cuda.Stream, interval: ?usize) !void {
++        if (interval) |i| try p.events[i].end.record(s);
++    }
++
++    pub fn startPass(p: *Profile, s: cuda.Stream) !void {
++        if (!p.enabled) return;
++        if (p.used != 0) return error.DFly2ProfileIncompletePass;
++        try p.events[max_intervals - 1].start.record(s);
++    }
++
++    pub fn finish(p: *Profile, s: cuda.Stream, steps: usize) !void {
++        if (!p.enabled) return;
++        try p.events[max_intervals - 1].end.record(s);
++        // Called after proposal readback. The last event may follow that host
++        // wait, so finish it before inspecting timestamps or reusing events.
++        try s.synchronize();
++        p.pass_ms += @as(f64, try cuda.Event.elapsedMs(p.events[max_intervals - 1].start, p.events[max_intervals - 1].end));
++        for (p.events[0..p.used]) |*event| {
++            const at = @intFromEnum(event.category);
++            p.ms[at] += @as(f64, try cuda.Event.elapsedMs(event.start, event.end));
++            p.calls[at] += 1;
++        }
++        p.used = 0;
++        p.passes += 1;
++        p.depths[steps] += 1;
++    }
++
++    pub fn writeSummary(p: *const Profile, w: *std.Io.Writer, rank: usize) !void {
++        if (!p.enabled) return;
++        try w.print("{{\"rank\":{d},\"dfly2_profile\":{{\"schema\":\"dfly2-stream-profile-v1\",\"passes\":{d},\"total_pass_ms\":{d:.6},\"host_readbacks\":{d},\"depths\":[", .{ rank, p.passes, p.pass_ms, p.host_readbacks });
++        for (p.depths, 0..) |n, i| {
++            if (i != 0) try w.writeAll(",");
++            try w.print("{d}", .{n});
++        }
++        try w.writeAll("],\"categories\":{");
++        inline for (@typeInfo(Category).@"enum".field_names, 0..) |name, i| {
++            if (i != 0) try w.writeAll(",");
++            try w.print("\"{s}\":{{\"calls\":{d},\"total_ms\":{d:.6}}}", .{ name, p.calls[i], p.ms[i] });
++        }
++        try w.writeAll("},\"scope\":\"elapsed stream intervals, including enqueue gaps; instrumentation enabled\"}}\n");
++    }
++};

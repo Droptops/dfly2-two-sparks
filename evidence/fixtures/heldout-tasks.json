@@ -1,0 +1,188 @@
+{
+  "schema": "dfly2-heldout-tasks-v1",
+  "suite": "heldout-parity-v1",
+  "first_seed": 263801,
+  "policy": "Frozen before candidate measurements; preserve all tasks and failures; max_tokens=256; top_p=1; top_k=20.",
+  "tasks": [
+    {
+      "name": "prose_greedy_idempotent",
+      "category": "prose",
+      "temperature": 0,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "In 120 to 150 words, explain to a new developer why retrying a timed-out request can accidentally perform an action twice. Use a document-upload example, distinguish a timeout from a confirmed failure, and describe how an idempotency key helps. State one thing an idempotency key does not solve."
+        }
+      ]
+    },
+    {
+      "name": "prose_sampled_tradeoff",
+      "category": "prose",
+      "temperature": 0.7,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "A small volunteer group is choosing between a shared spreadsheet and a custom application for assigning weekly shifts. They have 18 volunteers, two coordinators, no software budget, and frequent last-minute swaps. In 120 to 160 words, recommend an initial approach, explain one concrete drawback, and name a measurable condition that would justify changing it. Do not recommend products."
+        }
+      ]
+    },
+    {
+      "name": "prose_greedy_incident",
+      "category": "prose",
+      "temperature": 0,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "The following is a synthetic operations log. Write a 100-to-140-word incident summary giving the first degraded minute, the recovery minute, what operators changed, and what the log does not establish about causation. Do not invent a root cause.\n\nMinute 000: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 002: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 004: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 006: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 008: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 010: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 012: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 014: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 016: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 018: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 020: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 022: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 024: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 026: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 028: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 030: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 032: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 034: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 036: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 038: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 040: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 042: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 044: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 046: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 048: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18. A dependency timeout was first reported.\nMinute 050: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 052: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 054: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 056: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 058: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 060: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 062: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 064: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 066: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 068: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 070: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 072: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 074: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 076: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 078: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 080: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18. Operators lowered retry concurrency; no deployment was rolled back.\nMinute 082: status=degraded. Queue depth is 47; completed jobs 82; retry counter is 18.\nMinute 084: status=recovering. Queue depth is 15; completed jobs 110; retry counter is 4. The dependency became healthy again.\nMinute 086: status=recovering. Queue depth is 15; completed jobs 110; retry counter is 4.\nMinute 088: status=recovering. Queue depth is 15; completed jobs 110; retry counter is 4.\nMinute 090: status=recovering. Queue depth is 15; completed jobs 110; retry counter is 4.\nMinute 092: status=recovering. Queue depth is 15; completed jobs 110; retry counter is 4.\nMinute 094: status=recovering. Queue depth is 15; completed jobs 110; retry counter is 4.\nMinute 096: status=recovering. Queue depth is 15; completed jobs 110; retry counter is 4.\nMinute 098: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 100: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 102: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 104: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 106: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 108: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 110: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 112: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 114: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 116: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 118: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 120: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 122: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 124: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 126: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 128: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 130: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 132: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 134: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 136: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 138: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 140: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 142: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 144: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 146: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 148: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 150: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 152: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 154: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 156: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 158: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 160: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 162: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 164: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 166: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 168: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 170: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 172: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 174: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 176: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0.\nMinute 178: status=normal. Queue depth is 3; completed jobs 120; retry counter is 0."
+        }
+      ]
+    },
+    {
+      "name": "structured_sampled_catalog",
+      "category": "structured",
+      "temperature": 0.7,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "Convert this catalog into JSON with keys items and unresolved. Each item needs sku, name, quantity, and color. Do not infer an absent color; use null. An SKU occurring twice must appear once, with quantities added only when the names and colors match. Put incompatible duplicates in unresolved. Records: A17 | cable | 3 | blue; B02 | clamp | 4 | absent; A17 | cable | 2 | blue; C91 | tray | 1 | gray; C91 | bin | 5 | gray. Output only JSON."
+        }
+      ]
+    },
+    {
+      "name": "structured_greedy_schedule",
+      "category": "structured",
+      "temperature": 0,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "Three room reservations use half-open intervals [start,end): R1 09:00-09:30; R2 09:30-10:00; R3 09:15-09:45; R4 10:00-10:20. Return JSON with exactly two keys: conflicting_pairs (pairs of reservation IDs, lexicographically sorted) and maximum_simultaneous (integer). Touching endpoints do not overlap. Output only JSON."
+        }
+      ]
+    },
+    {
+      "name": "structured_sampled_readings",
+      "category": "structured",
+      "temperature": 0.7,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "Use only this synthetic sensor inventory. Return a JSON array for S003, S028, S077, S119, and S139, in that order. Each object must contain sensor, floor, observed, missing, where observed equals sample_count minus missing. Output only the five objects in the array.\n\nsensor=S000; floor=0; sample_count=20; missing=0; unit=C\nsensor=S001; floor=1; sample_count=21; missing=1; unit=C\nsensor=S002; floor=2; sample_count=22; missing=2; unit=C\nsensor=S003; floor=3; sample_count=23; missing=3; unit=C\nsensor=S004; floor=4; sample_count=24; missing=0; unit=C\nsensor=S005; floor=0; sample_count=25; missing=1; unit=C\nsensor=S006; floor=1; sample_count=26; missing=2; unit=C\nsensor=S007; floor=2; sample_count=20; missing=3; unit=C\nsensor=S008; floor=3; sample_count=21; missing=0; unit=C\nsensor=S009; floor=4; sample_count=22; missing=1; unit=C\nsensor=S010; floor=0; sample_count=23; missing=2; unit=C\nsensor=S011; floor=1; sample_count=24; missing=3; unit=C\nsensor=S012; floor=2; sample_count=25; missing=0; unit=C\nsensor=S013; floor=3; sample_count=26; missing=1; unit=C\nsensor=S014; floor=4; sample_count=20; missing=2; unit=C\nsensor=S015; floor=0; sample_count=21; missing=3; unit=C\nsensor=S016; floor=1; sample_count=22; missing=0; unit=C\nsensor=S017; floor=2; sample_count=23; missing=1; unit=C\nsensor=S018; floor=3; sample_count=24; missing=2; unit=C\nsensor=S019; floor=4; sample_count=25; missing=3; unit=C\nsensor=S020; floor=0; sample_count=26; missing=0; unit=C\nsensor=S021; floor=1; sample_count=20; missing=1; unit=C\nsensor=S022; floor=2; sample_count=21; missing=2; unit=C\nsensor=S023; floor=3; sample_count=22; missing=3; unit=C\nsensor=S024; floor=4; sample_count=23; missing=0; unit=C\nsensor=S025; floor=0; sample_count=24; missing=1; unit=C\nsensor=S026; floor=1; sample_count=25; missing=2; unit=C\nsensor=S027; floor=2; sample_count=26; missing=3; unit=C\nsensor=S028; floor=3; sample_count=20; missing=0; unit=C\nsensor=S029; floor=4; sample_count=21; missing=1; unit=C\nsensor=S030; floor=0; sample_count=22; missing=2; unit=C\nsensor=S031; floor=1; sample_count=23; missing=3; unit=C\nsensor=S032; floor=2; sample_count=24; missing=0; unit=C\nsensor=S033; floor=3; sample_count=25; missing=1; unit=C\nsensor=S034; floor=4; sample_count=26; missing=2; unit=C\nsensor=S035; floor=0; sample_count=20; missing=3; unit=C\nsensor=S036; floor=1; sample_count=21; missing=0; unit=C\nsensor=S037; floor=2; sample_count=22; missing=1; unit=C\nsensor=S038; floor=3; sample_count=23; missing=2; unit=C\nsensor=S039; floor=4; sample_count=24; missing=3; unit=C\nsensor=S040; floor=0; sample_count=25; missing=0; unit=C\nsensor=S041; floor=1; sample_count=26; missing=1; unit=C\nsensor=S042; floor=2; sample_count=20; missing=2; unit=C\nsensor=S043; floor=3; sample_count=21; missing=3; unit=C\nsensor=S044; floor=4; sample_count=22; missing=0; unit=C\nsensor=S045; floor=0; sample_count=23; missing=1; unit=C\nsensor=S046; floor=1; sample_count=24; missing=2; unit=C\nsensor=S047; floor=2; sample_count=25; missing=3; unit=C\nsensor=S048; floor=3; sample_count=26; missing=0; unit=C\nsensor=S049; floor=4; sample_count=20; missing=1; unit=C\nsensor=S050; floor=0; sample_count=21; missing=2; unit=C\nsensor=S051; floor=1; sample_count=22; missing=3; unit=C\nsensor=S052; floor=2; sample_count=23; missing=0; unit=C\nsensor=S053; floor=3; sample_count=24; missing=1; unit=C\nsensor=S054; floor=4; sample_count=25; missing=2; unit=C\nsensor=S055; floor=0; sample_count=26; missing=3; unit=C\nsensor=S056; floor=1; sample_count=20; missing=0; unit=C\nsensor=S057; floor=2; sample_count=21; missing=1; unit=C\nsensor=S058; floor=3; sample_count=22; missing=2; unit=C\nsensor=S059; floor=4; sample_count=23; missing=3; unit=C\nsensor=S060; floor=0; sample_count=24; missing=0; unit=C\nsensor=S061; floor=1; sample_count=25; missing=1; unit=C\nsensor=S062; floor=2; sample_count=26; missing=2; unit=C\nsensor=S063; floor=3; sample_count=20; missing=3; unit=C\nsensor=S064; floor=4; sample_count=21; missing=0; unit=C\nsensor=S065; floor=0; sample_count=22; missing=1; unit=C\nsensor=S066; floor=1; sample_count=23; missing=2; unit=C\nsensor=S067; floor=2; sample_count=24; missing=3; unit=C\nsensor=S068; floor=3; sample_count=25; missing=0; unit=C\nsensor=S069; floor=4; sample_count=26; missing=1; unit=C\nsensor=S070; floor=0; sample_count=20; missing=2; unit=C\nsensor=S071; floor=1; sample_count=21; missing=3; unit=C\nsensor=S072; floor=2; sample_count=22; missing=0; unit=C\nsensor=S073; floor=3; sample_count=23; missing=1; unit=C\nsensor=S074; floor=4; sample_count=24; missing=2; unit=C\nsensor=S075; floor=0; sample_count=25; missing=3; unit=C\nsensor=S076; floor=1; sample_count=26; missing=0; unit=C\nsensor=S077; floor=2; sample_count=20; missing=1; unit=C\nsensor=S078; floor=3; sample_count=21; missing=2; unit=C\nsensor=S079; floor=4; sample_count=22; missing=3; unit=C\nsensor=S080; floor=0; sample_count=23; missing=0; unit=C\nsensor=S081; floor=1; sample_count=24; missing=1; unit=C\nsensor=S082; floor=2; sample_count=25; missing=2; unit=C\nsensor=S083; floor=3; sample_count=26; missing=3; unit=C\nsensor=S084; floor=4; sample_count=20; missing=0; unit=C\nsensor=S085; floor=0; sample_count=21; missing=1; unit=C\nsensor=S086; floor=1; sample_count=22; missing=2; unit=C\nsensor=S087; floor=2; sample_count=23; missing=3; unit=C\nsensor=S088; floor=3; sample_count=24; missing=0; unit=C\nsensor=S089; floor=4; sample_count=25; missing=1; unit=C\nsensor=S090; floor=0; sample_count=26; missing=2; unit=C\nsensor=S091; floor=1; sample_count=20; missing=3; unit=C\nsensor=S092; floor=2; sample_count=21; missing=0; unit=C\nsensor=S093; floor=3; sample_count=22; missing=1; unit=C\nsensor=S094; floor=4; sample_count=23; missing=2; unit=C\nsensor=S095; floor=0; sample_count=24; missing=3; unit=C\nsensor=S096; floor=1; sample_count=25; missing=0; unit=C\nsensor=S097; floor=2; sample_count=26; missing=1; unit=C\nsensor=S098; floor=3; sample_count=20; missing=2; unit=C\nsensor=S099; floor=4; sample_count=21; missing=3; unit=C\nsensor=S100; floor=0; sample_count=22; missing=0; unit=C\nsensor=S101; floor=1; sample_count=23; missing=1; unit=C\nsensor=S102; floor=2; sample_count=24; missing=2; unit=C\nsensor=S103; floor=3; sample_count=25; missing=3; unit=C\nsensor=S104; floor=4; sample_count=26; missing=0; unit=C\nsensor=S105; floor=0; sample_count=20; missing=1; unit=C\nsensor=S106; floor=1; sample_count=21; missing=2; unit=C\nsensor=S107; floor=2; sample_count=22; missing=3; unit=C\nsensor=S108; floor=3; sample_count=23; missing=0; unit=C\nsensor=S109; floor=4; sample_count=24; missing=1; unit=C\nsensor=S110; floor=0; sample_count=25; missing=2; unit=C\nsensor=S111; floor=1; sample_count=26; missing=3; unit=C\nsensor=S112; floor=2; sample_count=20; missing=0; unit=C\nsensor=S113; floor=3; sample_count=21; missing=1; unit=C\nsensor=S114; floor=4; sample_count=22; missing=2; unit=C\nsensor=S115; floor=0; sample_count=23; missing=3; unit=C\nsensor=S116; floor=1; sample_count=24; missing=0; unit=C\nsensor=S117; floor=2; sample_count=25; missing=1; unit=C\nsensor=S118; floor=3; sample_count=26; missing=2; unit=C\nsensor=S119; floor=4; sample_count=20; missing=3; unit=C\nsensor=S120; floor=0; sample_count=21; missing=0; unit=C\nsensor=S121; floor=1; sample_count=22; missing=1; unit=C\nsensor=S122; floor=2; sample_count=23; missing=2; unit=C\nsensor=S123; floor=3; sample_count=24; missing=3; unit=C\nsensor=S124; floor=4; sample_count=25; missing=0; unit=C\nsensor=S125; floor=0; sample_count=26; missing=1; unit=C\nsensor=S126; floor=1; sample_count=20; missing=2; unit=C\nsensor=S127; floor=2; sample_count=21; missing=3; unit=C\nsensor=S128; floor=3; sample_count=22; missing=0; unit=C\nsensor=S129; floor=4; sample_count=23; missing=1; unit=C\nsensor=S130; floor=0; sample_count=24; missing=2; unit=C\nsensor=S131; floor=1; sample_count=25; missing=3; unit=C\nsensor=S132; floor=2; sample_count=26; missing=0; unit=C\nsensor=S133; floor=3; sample_count=20; missing=1; unit=C\nsensor=S134; floor=4; sample_count=21; missing=2; unit=C\nsensor=S135; floor=0; sample_count=22; missing=3; unit=C\nsensor=S136; floor=1; sample_count=23; missing=0; unit=C\nsensor=S137; floor=2; sample_count=24; missing=1; unit=C\nsensor=S138; floor=3; sample_count=25; missing=2; unit=C\nsensor=S139; floor=4; sample_count=26; missing=3; unit=C"
+        }
+      ]
+    },
+    {
+      "name": "code_greedy_runlength",
+      "category": "code",
+      "temperature": 0,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "Write Python function runs(values) returning a list of (value,count) tuples for consecutive equal values. It must accept any iterable, consume it once, and return [] when empty. Include assert tests for [1,1,2,1], an empty list, and an iterator over ['x','x','y']. Output only code, at most 25 lines."
+        }
+      ]
+    },
+    {
+      "name": "code_sampled_leftjoin",
+      "category": "code",
+      "temperature": 0.7,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "SQLite tables are customers(id INTEGER PRIMARY KEY, name TEXT) and orders(id INTEGER PRIMARY KEY, customer_id INTEGER, amount_cents INTEGER). Write one query returning every customer's id and name, order_count, and total_cents, including customers with no orders. Sort by customer id. Explain in at most two sentences why COUNT(*) would be wrong for customers with no orders."
+        }
+      ]
+    },
+    {
+      "name": "code_greedy_configparse",
+      "category": "code",
+      "temperature": 0,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "Write Python function enabled_zones(text) for the exact configuration format below. Ignore blank lines. Return enabled zone IDs whose retries value is at least 2, sorted numerically by ID. Split keys explicitly rather than relying on field order; assume valid input. Output only the function, no expanded result list, at most 25 lines.\n\nZONE_000: enabled=false, retries=0, label=zone-000\nZONE_001: enabled=true, retries=1, label=zone-001\nZONE_002: enabled=true, retries=2, label=zone-002\nZONE_003: enabled=true, retries=3, label=zone-003\nZONE_004: enabled=true, retries=0, label=zone-004\nZONE_005: enabled=true, retries=1, label=zone-005\nZONE_006: enabled=true, retries=2, label=zone-006\nZONE_007: enabled=true, retries=3, label=zone-007\nZONE_008: enabled=true, retries=0, label=zone-008\nZONE_009: enabled=false, retries=1, label=zone-009\nZONE_010: enabled=true, retries=2, label=zone-010\nZONE_011: enabled=true, retries=3, label=zone-011\nZONE_012: enabled=true, retries=0, label=zone-012\nZONE_013: enabled=true, retries=1, label=zone-013\nZONE_014: enabled=true, retries=2, label=zone-014\nZONE_015: enabled=true, retries=3, label=zone-015\nZONE_016: enabled=true, retries=0, label=zone-016\nZONE_017: enabled=true, retries=1, label=zone-017\nZONE_018: enabled=false, retries=2, label=zone-018\nZONE_019: enabled=true, retries=3, label=zone-019\nZONE_020: enabled=true, retries=0, label=zone-020\nZONE_021: enabled=true, retries=1, label=zone-021\nZONE_022: enabled=true, retries=2, label=zone-022\nZONE_023: enabled=true, retries=3, label=zone-023\nZONE_024: enabled=true, retries=0, label=zone-024\nZONE_025: enabled=true, retries=1, label=zone-025\nZONE_026: enabled=true, retries=2, label=zone-026\nZONE_027: enabled=false, retries=3, label=zone-027\nZONE_028: enabled=true, retries=0, label=zone-028\nZONE_029: enabled=true, retries=1, label=zone-029\nZONE_030: enabled=true, retries=2, label=zone-030\nZONE_031: enabled=true, retries=3, label=zone-031\nZONE_032: enabled=true, retries=0, label=zone-032\nZONE_033: enabled=true, retries=1, label=zone-033\nZONE_034: enabled=true, retries=2, label=zone-034\nZONE_035: enabled=true, retries=3, label=zone-035\nZONE_036: enabled=false, retries=0, label=zone-036\nZONE_037: enabled=true, retries=1, label=zone-037\nZONE_038: enabled=true, retries=2, label=zone-038\nZONE_039: enabled=true, retries=3, label=zone-039\nZONE_040: enabled=true, retries=0, label=zone-040\nZONE_041: enabled=true, retries=1, label=zone-041\nZONE_042: enabled=true, retries=2, label=zone-042\nZONE_043: enabled=true, retries=3, label=zone-043\nZONE_044: enabled=true, retries=0, label=zone-044\nZONE_045: enabled=false, retries=1, label=zone-045\nZONE_046: enabled=true, retries=2, label=zone-046\nZONE_047: enabled=true, retries=3, label=zone-047\nZONE_048: enabled=true, retries=0, label=zone-048\nZONE_049: enabled=true, retries=1, label=zone-049\nZONE_050: enabled=true, retries=2, label=zone-050\nZONE_051: enabled=true, retries=3, label=zone-051\nZONE_052: enabled=true, retries=0, label=zone-052\nZONE_053: enabled=true, retries=1, label=zone-053\nZONE_054: enabled=false, retries=2, label=zone-054\nZONE_055: enabled=true, retries=3, label=zone-055\nZONE_056: enabled=true, retries=0, label=zone-056\nZONE_057: enabled=true, retries=1, label=zone-057\nZONE_058: enabled=true, retries=2, label=zone-058\nZONE_059: enabled=true, retries=3, label=zone-059\nZONE_060: enabled=true, retries=0, label=zone-060\nZONE_061: enabled=true, retries=1, label=zone-061\nZONE_062: enabled=true, retries=2, label=zone-062\nZONE_063: enabled=false, retries=3, label=zone-063\nZONE_064: enabled=true, retries=0, label=zone-064\nZONE_065: enabled=true, retries=1, label=zone-065\nZONE_066: enabled=true, retries=2, label=zone-066\nZONE_067: enabled=true, retries=3, label=zone-067\nZONE_068: enabled=true, retries=0, label=zone-068\nZONE_069: enabled=true, retries=1, label=zone-069\nZONE_070: enabled=true, retries=2, label=zone-070\nZONE_071: enabled=true, retries=3, label=zone-071\nZONE_072: enabled=false, retries=0, label=zone-072\nZONE_073: enabled=true, retries=1, label=zone-073\nZONE_074: enabled=true, retries=2, label=zone-074\nZONE_075: enabled=true, retries=3, label=zone-075\nZONE_076: enabled=true, retries=0, label=zone-076\nZONE_077: enabled=true, retries=1, label=zone-077\nZONE_078: enabled=true, retries=2, label=zone-078\nZONE_079: enabled=true, retries=3, label=zone-079\nZONE_080: enabled=true, retries=0, label=zone-080\nZONE_081: enabled=false, retries=1, label=zone-081\nZONE_082: enabled=true, retries=2, label=zone-082\nZONE_083: enabled=true, retries=3, label=zone-083\nZONE_084: enabled=true, retries=0, label=zone-084\nZONE_085: enabled=true, retries=1, label=zone-085\nZONE_086: enabled=true, retries=2, label=zone-086\nZONE_087: enabled=true, retries=3, label=zone-087\nZONE_088: enabled=true, retries=0, label=zone-088\nZONE_089: enabled=true, retries=1, label=zone-089\nZONE_090: enabled=false, retries=2, label=zone-090\nZONE_091: enabled=true, retries=3, label=zone-091\nZONE_092: enabled=true, retries=0, label=zone-092\nZONE_093: enabled=true, retries=1, label=zone-093\nZONE_094: enabled=true, retries=2, label=zone-094\nZONE_095: enabled=true, retries=3, label=zone-095\nZONE_096: enabled=true, retries=0, label=zone-096\nZONE_097: enabled=true, retries=1, label=zone-097\nZONE_098: enabled=true, retries=2, label=zone-098\nZONE_099: enabled=false, retries=3, label=zone-099\nZONE_100: enabled=true, retries=0, label=zone-100\nZONE_101: enabled=true, retries=1, label=zone-101\nZONE_102: enabled=true, retries=2, label=zone-102\nZONE_103: enabled=true, retries=3, label=zone-103\nZONE_104: enabled=true, retries=0, label=zone-104\nZONE_105: enabled=true, retries=1, label=zone-105\nZONE_106: enabled=true, retries=2, label=zone-106\nZONE_107: enabled=true, retries=3, label=zone-107\nZONE_108: enabled=false, retries=0, label=zone-108\nZONE_109: enabled=true, retries=1, label=zone-109"
+        }
+      ]
+    },
+    {
+      "name": "multilingual_sampled_spanish",
+      "category": "multilingual",
+      "temperature": 0.7,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "Responde en español, en 100 a 130 palabras. Una biblioteca quiere sustituir todos sus libros impresos por libros electrónicos para ahorrar espacio. Explica dos ventajas, dos limitaciones concretas y una alternativa gradual. No supongas que todos los lectores tienen conexión a internet o un dispositivo propio."
+        }
+      ]
+    },
+    {
+      "name": "multilingual_greedy_french",
+      "category": "multilingual",
+      "temperature": 0,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "Réponds uniquement en français. Un atelier annonce : les commandes reçues avant mardi à 12 h sont préparées mercredi ; les commandes reçues après cette limite sont préparées le mercredi suivant. La livraison prend ensuite deux jours ouvrés, sans jours fériés. Léa commande mardi à 11 h et Marc mardi à 14 h. En deux phrases, indique le jour de livraison de chacun et précise si c'est la semaine de commande ou la suivante."
+        }
+      ]
+    },
+    {
+      "name": "multilingual_sampled_japanese",
+      "category": "multilingual",
+      "temperature": 0.7,
+      "messages": [
+        {
+          "role": "system",
+          "content": "Answer accurately and concisely. Follow the requested output format."
+        },
+        {
+          "role": "user",
+          "content": "以下は架空の部品管理記録です。日本語で、保留件数、完了件数、保留の部品番号の最初の3件と最後の2件を報告してください。記録にない理由は推測しないでください。回答は200字以内にしてください。\n\n記録000: 担当者は青木。状態は保留。部品番号はP000。\n記録001: 担当者は森。状態は完了。部品番号はP001。\n記録002: 担当者は青木。状態は完了。部品番号はP002。\n記録003: 担当者は森。状態は完了。部品番号はP003。\n記録004: 担当者は青木。状態は完了。部品番号はP004。\n記録005: 担当者は森。状態は保留。部品番号はP005。\n記録006: 担当者は青木。状態は完了。部品番号はP006。\n記録007: 担当者は森。状態は完了。部品番号はP007。\n記録008: 担当者は青木。状態は完了。部品番号はP008。\n記録009: 担当者は森。状態は完了。部品番号はP009。\n記録010: 担当者は青木。状態は保留。部品番号はP010。\n記録011: 担当者は森。状態は完了。部品番号はP011。\n記録012: 担当者は青木。状態は完了。部品番号はP012。\n記録013: 担当者は森。状態は完了。部品番号はP013。\n記録014: 担当者は青木。状態は完了。部品番号はP014。\n記録015: 担当者は森。状態は保留。部品番号はP015。\n記録016: 担当者は青木。状態は完了。部品番号はP016。\n記録017: 担当者は森。状態は完了。部品番号はP017。\n記録018: 担当者は青木。状態は完了。部品番号はP018。\n記録019: 担当者は森。状態は完了。部品番号はP019。\n記録020: 担当者は青木。状態は保留。部品番号はP020。\n記録021: 担当者は森。状態は完了。部品番号はP021。\n記録022: 担当者は青木。状態は完了。部品番号はP022。\n記録023: 担当者は森。状態は完了。部品番号はP023。\n記録024: 担当者は青木。状態は完了。部品番号はP024。\n記録025: 担当者は森。状態は保留。部品番号はP025。\n記録026: 担当者は青木。状態は完了。部品番号はP026。\n記録027: 担当者は森。状態は完了。部品番号はP027。\n記録028: 担当者は青木。状態は完了。部品番号はP028。\n記録029: 担当者は森。状態は完了。部品番号はP029。\n記録030: 担当者は青木。状態は保留。部品番号はP030。\n記録031: 担当者は森。状態は完了。部品番号はP031。\n記録032: 担当者は青木。状態は完了。部品番号はP032。\n記録033: 担当者は森。状態は完了。部品番号はP033。\n記録034: 担当者は青木。状態は完了。部品番号はP034。\n記録035: 担当者は森。状態は保留。部品番号はP035。\n記録036: 担当者は青木。状態は完了。部品番号はP036。\n記録037: 担当者は森。状態は完了。部品番号はP037。\n記録038: 担当者は青木。状態は完了。部品番号はP038。\n記録039: 担当者は森。状態は完了。部品番号はP039。\n記録040: 担当者は青木。状態は保留。部品番号はP040。\n記録041: 担当者は森。状態は完了。部品番号はP041。\n記録042: 担当者は青木。状態は完了。部品番号はP042。\n記録043: 担当者は森。状態は完了。部品番号はP043。\n記録044: 担当者は青木。状態は完了。部品番号はP044。\n記録045: 担当者は森。状態は保留。部品番号はP045。\n記録046: 担当者は青木。状態は完了。部品番号はP046。\n記録047: 担当者は森。状態は完了。部品番号はP047。\n記録048: 担当者は青木。状態は完了。部品番号はP048。\n記録049: 担当者は森。状態は完了。部品番号はP049。\n記録050: 担当者は青木。状態は保留。部品番号はP050。\n記録051: 担当者は森。状態は完了。部品番号はP051。\n記録052: 担当者は青木。状態は完了。部品番号はP052。\n記録053: 担当者は森。状態は完了。部品番号はP053。\n記録054: 担当者は青木。状態は完了。部品番号はP054。\n記録055: 担当者は森。状態は保留。部品番号はP055。\n記録056: 担当者は青木。状態は完了。部品番号はP056。\n記録057: 担当者は森。状態は完了。部品番号はP057。\n記録058: 担当者は青木。状態は完了。部品番号はP058。\n記録059: 担当者は森。状態は完了。部品番号はP059。\n記録060: 担当者は青木。状態は保留。部品番号はP060。\n記録061: 担当者は森。状態は完了。部品番号はP061。\n記録062: 担当者は青木。状態は完了。部品番号はP062。\n記録063: 担当者は森。状態は完了。部品番号はP063。\n記録064: 担当者は青木。状態は完了。部品番号はP064。\n記録065: 担当者は森。状態は保留。部品番号はP065。\n記録066: 担当者は青木。状態は完了。部品番号はP066。\n記録067: 担当者は森。状態は完了。部品番号はP067。\n記録068: 担当者は青木。状態は完了。部品番号はP068。\n記録069: 担当者は森。状態は完了。部品番号はP069。\n記録070: 担当者は青木。状態は保留。部品番号はP070。\n記録071: 担当者は森。状態は完了。部品番号はP071。"
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,14 @@
 # Recorded two-Spark results
 
+For the newer adaptive controls, see the separate [39-run v5 evaluation](EXPERIMENTAL_RESULTS.md). It records mixed results and request regressions; the historical measurements below are retained unchanged.
+
+This page retains the historical release measurements and settings. The
+separately pinned [experimental workflow](EXPERIMENTAL.md) adds optional depth,
+copy-policy and GPU execution controls. Its [released-weight reference
+comparisons](REFERENCE.md) now measure hidden states and proposal chains and
+retain the remaining numerical failures; the historical receipts below do not
+attest that newer executable.
+
 The repeated validation completed **24 GPU runs**, twelve per fixture. Each
 fixture runs serial, DFly2, fixed-five DSpark and ordinary DSpark three times
 with the starting mode rotating. All runs match their fixture's first serial
